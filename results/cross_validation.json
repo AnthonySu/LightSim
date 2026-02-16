@@ -1,0 +1,38 @@
+[
+  {
+    "simulator": "LightSim",
+    "scenario": "single-intersection-v0",
+    "controller": "FixedTimeController",
+    "total_exited": 3539.7769036817936,
+    "avg_delay": 0.6705032625839475,
+    "total_queue": 17.08086094248842,
+    "wall_time": 0.2434145000006538
+  },
+  {
+    "simulator": "SUMO",
+    "scenario": "single-intersection-v0",
+    "controller": "FixedTimeController",
+    "total_exited": 3540.0,
+    "avg_delay": 8.133333333333333,
+    "total_queue": 28.0,
+    "wall_time": 1.729035099997418
+  },
+  {
+    "simulator": "LightSim",
+    "scenario": "single-intersection-v0",
+    "controller": "MaxPressureController",
+    "total_exited": 3531.379057786626,
+    "avg_delay": 1.093801853725143,
+    "total_queue": 18.774055307053207,
+    "wall_time": 0.22254200000315905
+  },
+  {
+    "simulator": "SUMO",
+    "scenario": "single-intersection-v0",
+    "controller": "MaxPressureController",
+    "total_exited": 3541.0,
+    "avg_delay": 0.1864406779661017,
+    "total_queue": 4.0,
+    "wall_time": 2.4022792000032496
+  }
+]

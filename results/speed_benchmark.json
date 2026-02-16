@@ -1,0 +1,85 @@
+{
+  "scenarios": [
+    {
+      "name": "single-intersection",
+      "cells": 24,
+      "intersections": 1,
+      "steps": 10000,
+      "wall_time": 0.468,
+      "steps_per_sec": 21365,
+      "speedup": 21365
+    },
+    {
+      "name": "grid-2x2",
+      "cells": 126,
+      "intersections": 4,
+      "steps": 10000,
+      "wall_time": 1.247,
+      "steps_per_sec": 8020,
+      "speedup": 8020
+    },
+    {
+      "name": "grid-4x4",
+      "cells": 378,
+      "intersections": 16,
+      "steps": 10000,
+      "wall_time": 3.456,
+      "steps_per_sec": 2894,
+      "speedup": 2894
+    },
+    {
+      "name": "grid-6x6",
+      "cells": 726,
+      "intersections": 36,
+      "steps": 10000,
+      "wall_time": 7.062,
+      "steps_per_sec": 1416,
+      "speedup": 1416
+    },
+    {
+      "name": "grid-8x8",
+      "cells": 1170,
+      "intersections": 64,
+      "steps": 10000,
+      "wall_time": 12.606,
+      "steps_per_sec": 793,
+      "speedup": 793
+    },
+    {
+      "name": "arterial-3",
+      "cells": 56,
+      "intersections": 3,
+      "steps": 10000,
+      "wall_time": 0.995,
+      "steps_per_sec": 10050,
+      "speedup": 10050
+    },
+    {
+      "name": "arterial-5",
+      "cells": 88,
+      "intersections": 5,
+      "steps": 10000,
+      "wall_time": 1.211,
+      "steps_per_sec": 8260,
+      "speedup": 8260
+    },
+    {
+      "name": "arterial-10",
+      "cells": 168,
+      "intersections": 10,
+      "steps": 10000,
+      "wall_time": 2.149,
+      "steps_per_sec": 4654,
+      "speedup": 4654
+    },
+    {
+      "name": "arterial-20",
+      "cells": 328,
+      "intersections": 20,
+      "steps": 10000,
+      "wall_time": 4.029,
+      "steps_per_sec": 2482,
+      "speedup": 2482
+    }
+  ]
+}

@@ -1,0 +1,85 @@
+{
+  "scenarios": [
+    {
+      "name": "single-intersection",
+      "n_int": 1,
+      "ls_wall": 0.171,
+      "sumo_wall": 0.717,
+      "ls_sps": 21056,
+      "sumo_sps": 5020,
+      "speedup": 4.2
+    },
+    {
+      "name": "grid-2x2",
+      "n_int": 4,
+      "ls_wall": 0.462,
+      "sumo_wall": 0.761,
+      "ls_sps": 7789,
+      "sumo_sps": 4728,
+      "speedup": 1.6
+    },
+    {
+      "name": "grid-4x4",
+      "n_int": 16,
+      "ls_wall": 1.278,
+      "sumo_wall": 1.847,
+      "ls_sps": 2817,
+      "sumo_sps": 1949,
+      "speedup": 1.4
+    },
+    {
+      "name": "grid-6x6",
+      "n_int": 36,
+      "ls_wall": 2.624,
+      "sumo_wall": 2.574,
+      "ls_sps": 1372,
+      "sumo_sps": 1399,
+      "speedup": 1.0
+    },
+    {
+      "name": "grid-8x8",
+      "n_int": 64,
+      "ls_wall": 4.331,
+      "sumo_wall": 3.728,
+      "ls_sps": 831,
+      "sumo_sps": 966,
+      "speedup": 0.9
+    },
+    {
+      "name": "arterial-3",
+      "n_int": 3,
+      "ls_wall": 0.355,
+      "sumo_wall": 1.523,
+      "ls_sps": 10133,
+      "sumo_sps": 2363,
+      "speedup": 4.3
+    },
+    {
+      "name": "arterial-5",
+      "n_int": 5,
+      "ls_wall": 0.443,
+      "sumo_wall": 2.4,
+      "ls_sps": 8122,
+      "sumo_sps": 1500,
+      "speedup": 5.4
+    },
+    {
+      "name": "arterial-10",
+      "n_int": 10,
+      "ls_wall": 0.826,
+      "sumo_wall": 4.536,
+      "ls_sps": 4361,
+      "sumo_sps": 794,
+      "speedup": 5.5
+    },
+    {
+      "name": "arterial-20",
+      "n_int": 20,
+      "ls_wall": 1.506,
+      "sumo_wall": 9.499,
+      "ls_sps": 2391,
+      "sumo_sps": 379,
+      "speedup": 6.3
+    }
+  ]
+}
