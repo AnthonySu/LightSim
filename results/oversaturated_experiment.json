@@ -1,0 +1,112 @@
+{
+  "experiment": "oversaturated_demand",
+  "config": {
+    "dqn_train_steps": 50000,
+    "eval_episodes": 5,
+    "eval_max_steps": 720,
+    "sim_steps_per_action": 5,
+    "dt": 1.0,
+    "seed": 42
+  },
+  "demand_levels": {
+    "vc_0.7": {
+      "label": "v/c ~ 0.7 (undersaturated)",
+      "ns_rate": 0.35,
+      "ew_rate": 0.25,
+      "controllers": {
+        "FixedTime": {
+          "avg_reward": -15807.86927522455,
+          "std_reward": 0.0,
+          "throughput": 4245.5298462710525,
+          "std_throughput": 0.0,
+          "final_queue": 21.414571401626915,
+          "std_final_queue": 0.0
+        },
+        "MaxPressure": {
+          "avg_reward": -132726.57901426693,
+          "std_reward": 0.0,
+          "throughput": 3545.821805997807,
+          "std_throughput": 0.0,
+          "final_queue": 211.46219104294784,
+          "std_final_queue": 2.842170943040401e-14
+        },
+        "DQN": {
+          "avg_reward": -11763.982444180108,
+          "std_reward": 0.0,
+          "throughput": 4247.2162679542735,
+          "std_throughput": 0.0,
+          "final_queue": 16.504857271839363,
+          "std_final_queue": 0.0,
+          "train_time_seconds": 88.7,
+          "train_episodes": 69
+        }
+      }
+    },
+    "vc_1.0": {
+      "label": "v/c ~ 1.0 (at capacity)",
+      "ns_rate": 0.5,
+      "ew_rate": 0.35,
+      "controllers": {
+        "FixedTime": {
+          "avg_reward": -106337.52351798773,
+          "std_reward": 1.4551915228366852e-11,
+          "throughput": 5508.976405604722,
+          "std_throughput": 0.0,
+          "final_queue": 158.4673145433346,
+          "std_final_queue": 0.0
+        },
+        "MaxPressure": {
+          "avg_reward": -216533.58744261944,
+          "std_reward": 0.0,
+          "throughput": 3561.2509169675113,
+          "std_throughput": 4.547473508864641e-13,
+          "final_queue": 321.53101827465446,
+          "std_final_queue": 0.0
+        },
+        "DQN": {
+          "avg_reward": -38954.764205134685,
+          "std_reward": 0.0,
+          "throughput": 5997.763108217922,
+          "std_throughput": 0.0,
+          "final_queue": 58.19414736514814,
+          "std_final_queue": 0.0,
+          "train_time_seconds": 80.2,
+          "train_episodes": 69
+        }
+      }
+    },
+    "vc_1.3": {
+      "label": "v/c ~ 1.3 (oversaturated)",
+      "ns_rate": 0.65,
+      "ew_rate": 0.45,
+      "controllers": {
+        "FixedTime": {
+          "avg_reward": -175721.70123990162,
+          "std_reward": 0.0,
+          "throughput": 6069.808119939052,
+          "std_throughput": 0.0,
+          "final_queue": 287.00766173530417,
+          "std_final_queue": 0.0
+        },
+        "MaxPressure": {
+          "avg_reward": -223166.27478170986,
+          "std_reward": 0.0,
+          "throughput": 3565.5794154568816,
+          "std_throughput": 0.0,
+          "final_queue": 322.540911475098,
+          "std_final_queue": 0.0
+        },
+        "DQN": {
+          "avg_reward": -123226.37166899888,
+          "std_reward": 1.4551915228366852e-11,
+          "throughput": 5769.067207131406,
+          "std_throughput": 0.0,
+          "final_queue": 179.7804852960673,
+          "std_final_queue": 0.0,
+          "train_time_seconds": 77.9,
+          "train_episodes": 69
+        }
+      }
+    }
+  }
+}

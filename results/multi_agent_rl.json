@@ -1,0 +1,56 @@
+{
+  "scenario": "grid-4x4-v0",
+  "num_agents": 16,
+  "obs_dimensions": {
+    "corner": 14,
+    "edge": 12,
+    "center": 10
+  },
+  "padding_strategy": "zero-pad to max dim (14)",
+  "training": {
+    "method": "DQN with MlpPolicy",
+    "wrapper": "SharedPolicyMultiAgentWrapper",
+    "total_timesteps": 100000,
+    "training_time_seconds": 115.1,
+    "hyperparameters": {
+      "learning_rate": 0.001,
+      "buffer_size": 50000,
+      "learning_starts": 2000,
+      "batch_size": 128,
+      "gamma": 0.99,
+      "exploration_fraction": 0.3,
+      "exploration_final_eps": 0.05,
+      "target_update_interval": 500,
+      "train_freq": 4
+    }
+  },
+  "evaluation": {
+    "episode_steps": 720,
+    "episodes": 5,
+    "FixedTime": {
+      "avg_reward_per_step": -1238.3159482899744,
+      "std_reward_per_step": 0.0,
+      "avg_throughput": 3228.93690836796,
+      "avg_final_queue": 2452.156905938774
+    },
+    "MaxPressure": {
+      "avg_reward_per_step": -1410.2278774816998,
+      "std_reward_per_step": 0.0,
+      "avg_throughput": 2770.1188260051335,
+      "avg_final_queue": 3068.8103851760775
+    },
+    "DQN_shared_policy": {
+      "avg_reward_per_step": -232.71493410301682,
+      "std_reward_per_step": 2.842170943040401e-14,
+      "avg_throughput": 15527.77950362705,
+      "episodes": 5,
+      "episode_steps": 720,
+      "approach": "independent_learners_parameter_sharing",
+      "obs_padding": "zero-pad to 14 dims"
+    }
+  },
+  "reference_baselines_3600steps": {
+    "FixedTime": -3615.41,
+    "MaxPressure": -3945.88
+  }
+}

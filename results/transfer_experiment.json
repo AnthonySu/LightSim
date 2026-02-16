@@ -1,0 +1,18 @@
+{
+  "lightsim_rl_reward": -4776.8592,
+  "learned_timing": {
+    "num_switches": 191,
+    "phase_0_avg_green": 20.0,
+    "phase_1_avg_green": 17.5
+  },
+  "sumo_fixed": {
+    "throughput": 3522,
+    "delay": 135.94,
+    "queue": 11.78
+  },
+  "sumo_rl_timing": {
+    "throughput": 3539,
+    "delay": 27.47,
+    "queue": 5.53
+  }
+}

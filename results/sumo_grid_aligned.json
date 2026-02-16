@@ -1,0 +1,38 @@
+{
+  "description": "SUMO grid-4x4 cross-validation with corrected demand alignment",
+  "fix_applied": "Replaced hardcoded edge names (bottom{i}_0, top{i}_{rows-2}, etc.) with actual netgenerate edge names discovered by parsing net.xml. Edge naming: netgenerate uses LetterNumber pairs (A0, B1, C2, D3) for nodes and concatenation for edges (A0A1, B1C1).",
+  "parameters": {
+    "rows": 4,
+    "cols": 4,
+    "sim_seconds": 3600,
+    "demand_rate_per_entry_link": 0.15,
+    "lightsim_reference_throughput": 18500,
+    "old_sumo_throughput_randomtrips": 1725
+  },
+  "results": {
+    "FixedTime": {
+      "controller": "FixedTime",
+      "tls_type": "static",
+      "total_departed": 7160,
+      "total_arrived": 5963,
+      "avg_delay": 76.13951545530493,
+      "max_queue": 1022.0,
+      "avg_queue": 819.0794444444444,
+      "total_queue_sum": 2948686.0,
+      "wall_time": 270.3499812999944,
+      "sim_seconds": 3600
+    },
+    "MaxPressure": {
+      "controller": "MaxPressure",
+      "tls_type": "actuated",
+      "total_departed": 7070,
+      "total_arrived": 5867,
+      "avg_delay": 81.99416666666667,
+      "max_queue": 1040.0,
+      "avg_queue": 838.3630555555555,
+      "total_queue_sum": 3018107.0,
+      "wall_time": 211.22980299999472,
+      "sim_seconds": 3600
+    }
+  }
+}
