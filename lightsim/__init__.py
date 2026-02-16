@@ -8,7 +8,7 @@ from .core.demand import DemandProfile
 from .core.engine import SimulationEngine
 from .core.flow_model import CTMFlowModel, FlowModel
 from .core.network import Network
-from .core.signal import FixedTimeController, RLController
+from .core.signal import FixedTimeController, MaxPressureController, RLController
 from .core.types import LinkID, NodeID, NodeType, TurnType
 from .envs.single_agent import LightSimEnv
 

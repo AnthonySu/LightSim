@@ -83,6 +83,53 @@ class RLController(SignalController):
         return self._actions.get(node_id, state.current_phase_idx)
 
 
+class MaxPressureController(SignalController):
+    """MaxPressure adaptive signal controller.
+
+    At each decision point, selects the phase that maximises the pressure
+    (sum of upstream density - downstream density for each movement in
+    the phase).  This is a well-known decentralised adaptive controller
+    with provable stability guarantees.
+
+    Reference: Varaiya (2013), "Max pressure control of a network of
+    signalized intersections", Transportation Research Part C.
+    """
+
+    def __init__(self, min_green: float = 5.0) -> None:
+        self.min_green = min_green
+
+    def get_phase_index(
+        self,
+        node_id: NodeID,
+        state: SignalState,
+        net: CompiledNetwork,
+        density: np.ndarray,
+    ) -> int:
+        # Don't switch if minimum green hasn't elapsed
+        if state.time_in_phase < self.min_green:
+            return state.current_phase_idx
+
+        phase_ids = net.node_phases.get(node_id, [])
+        if not phase_ids:
+            return 0
+
+        best_idx = 0
+        best_pressure = -np.inf
+
+        for idx, pid in enumerate(phase_ids):
+            pressure = 0.0
+            for mid in range(net.n_movements):
+                if net.phase_mov_mask[pid, mid]:
+                    upstream_k = density[net.mov_from_cell[mid]]
+                    downstream_k = density[net.mov_to_cell[mid]]
+                    pressure += (upstream_k - downstream_k) * net.mov_turn_ratio[mid]
+            if pressure > best_pressure:
+                best_pressure = pressure
+                best_idx = idx
+
+        return best_idx
+
+
 class SignalManager:
     """Manages signal states for all signalised nodes."""
 
