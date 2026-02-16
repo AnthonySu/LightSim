@@ -1,0 +1,16 @@
+{
+  "scenario": "grid-4x4-v0",
+  "num_agents": 16,
+  "episode_steps": 3600,
+  "FixedTime": {
+    "avg_reward_per_step": -3615.41,
+    "throughput": 18523,
+    "final_queue": 4278.0
+  },
+  "MaxPressure": {
+    "avg_reward_per_step": -3945.88,
+    "throughput": 15867,
+    "final_queue": 4749.2
+  },
+  "note": "Reward is sum of negative queues across all 16 intersections per step"
+}

@@ -1,0 +1,38 @@
+[
+  {
+    "simulator": "LightSim",
+    "scenario": "grid-4x4-v0",
+    "controller": "FixedTimeController",
+    "total_exited": 18522.607244612827,
+    "avg_delay": 39.075576132909404,
+    "total_queue": 4277.95392200496,
+    "wall_time": 1.379322399996454
+  },
+  {
+    "simulator": "LightSim",
+    "scenario": "grid-4x4-v0",
+    "controller": "MaxPressureController",
+    "total_exited": 15867.44574173125,
+    "avg_delay": 43.526575809659306,
+    "total_queue": 4749.224679282176,
+    "wall_time": 1.5627424999984214
+  },
+  {
+    "simulator": "SUMO",
+    "scenario": "grid-4x4-v0",
+    "controller": "FixedTimeController",
+    "total_exited": 1725.0,
+    "avg_delay": 10.653333333333334,
+    "total_queue": 34.0,
+    "wall_time": 2.137206300001708
+  },
+  {
+    "simulator": "SUMO",
+    "scenario": "grid-4x4-v0",
+    "controller": "MaxPressureController",
+    "total_exited": 1744.0,
+    "avg_delay": 0.03571428571428571,
+    "total_queue": 1.0,
+    "wall_time": 1.973861799997394
+  }
+]

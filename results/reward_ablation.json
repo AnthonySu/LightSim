@@ -1,0 +1,44 @@
+{
+  "reward_functions": [
+    {
+      "name": "queue",
+      "train_reward": -281801.71518376924,
+      "eval_queue_reward": -25098.934772787215,
+      "eval_throughput": 17942.09547175855,
+      "eval_queue_reward_std": 3.637978807091713e-12,
+      "eval_throughput_std": 3.637978807091713e-12,
+      "train_time_seconds": 82.3,
+      "train_episodes": 13
+    },
+    {
+      "name": "pressure",
+      "train_reward": -1092.413246153846,
+      "eval_queue_reward": -16761.94598805764,
+      "eval_throughput": 17942.657392265588,
+      "eval_queue_reward_std": 3.637978807091713e-12,
+      "eval_throughput_std": 0.0,
+      "train_time_seconds": 56.5,
+      "train_episodes": 13
+    },
+    {
+      "name": "delay",
+      "train_reward": -131609.36509669232,
+      "eval_queue_reward": -25098.934772787215,
+      "eval_throughput": 17942.09547175855,
+      "eval_queue_reward_std": 3.637978807091713e-12,
+      "eval_throughput_std": 3.637978807091713e-12,
+      "train_time_seconds": 60.9,
+      "train_episodes": 13
+    },
+    {
+      "name": "throughput",
+      "train_reward": 42562.123022,
+      "eval_queue_reward": -41434.58061054863,
+      "eval_throughput": 17937.865452647588,
+      "eval_queue_reward_std": 7.275957614183426e-12,
+      "eval_throughput_std": 0.0,
+      "train_time_seconds": 55.6,
+      "train_episodes": 13
+    }
+  ]
+}
