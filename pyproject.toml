@@ -1,0 +1,31 @@
+[build-system]
+requires = ["setuptools>=68.0", "wheel"]
+build-backend = "setuptools.build_meta"
+
+[project]
+name = "lightsim"
+version = "0.1.0"
+description = "Lightweight CTM-based traffic signal simulation for RL research"
+readme = "README.md"
+license = {text = "MIT"}
+requires-python = ">=3.10"
+dependencies = [
+    "numpy>=1.24",
+    "gymnasium>=0.29",
+]
+
+[project.optional-dependencies]
+multi = ["pettingzoo>=1.24"]
+viz = ["fastapi>=0.100", "uvicorn>=0.23", "websockets>=11.0"]
+osm = ["osmnx>=1.6"]
+dev = [
+    "pytest>=7.0",
+    "pettingzoo>=1.24",
+]
+all = ["lightsim[multi,viz,osm,dev]"]
+
+[tool.setuptools.packages.find]
+include = ["lightsim*"]
+
+[tool.pytest.ini_options]
+testpaths = ["tests"]
