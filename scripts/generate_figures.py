@@ -249,6 +249,258 @@ def fig_cross_validation():
     print("  Saved cross_validation.pdf")
 
 
+def fig_mesoscopic_crossval():
+    """Figure: Mesoscopic cross-validation — controller ranking across modes."""
+    cv_file = RESULTS / "cross_validation_mesoscopic.json"
+    if not cv_file.exists():
+        print("  Skipping (no mesoscopic cross-val data)")
+        return
+
+    with open(cv_file) as f:
+        data = json.load(f)
+
+    # Focus on key controllers
+    key_ctrls = ["FixedTime-30s", "SOTL", "MaxPressure-mg5",
+                 "MaxPressure-mg15", "LT-Aware-MP-mg5"]
+    short_labels = ["Fixed\nTime", "SOTL", "MP\nmg5", "MP\nmg15", "LT-Aware\nMP"]
+    modes = ["default", "mesoscopic"]
+    mode_labels = {"default": "Default", "mesoscopic": "Mesoscopic"}
+    mode_colors = {"default": "#78909C", "mesoscopic": "#2196F3"}
+
+    def _plot_crossval(scenario_data, title, out_name, show_sumo=True):
+        fig, axes = plt.subplots(1, 2, figsize=(7, 3.2))
+
+        for ax_i, (metric, ylabel) in enumerate([
+            ("total_exited", "Throughput (veh)"),
+            ("avg_delay", "Avg Delay (s)"),
+        ]):
+            ax = axes[ax_i]
+            x = np.arange(len(key_ctrls))
+            width = 0.35
+
+            all_vals = []
+            for m_i, mode in enumerate(modes):
+                vals = []
+                for ctrl in key_ctrls:
+                    row = next((r for r in scenario_data
+                                if r["controller"] == ctrl and r["mode"] == mode), None)
+                    vals.append(row[metric] if row else 0)
+                all_vals.append(vals)
+                offset = (m_i - 0.5) * width
+                ax.bar(x + offset, vals, width,
+                       label=mode_labels[mode], color=mode_colors[mode],
+                       edgecolor="white", linewidth=0.5)
+
+            # SUMO reference lines
+            if show_sumo:
+                for sumo_r in [r for r in scenario_data if r["mode"] == "sumo"]:
+                    ctrl_short = "FT" if "Fixed" in sumo_r["controller"] else "MP"
+                    val = sumo_r[metric]
+                    ax.axhline(y=val, color="#F44336", linestyle="--",
+                               linewidth=1, alpha=0.7)
+                    ax.text(len(key_ctrls) - 0.5, val, f"SUMO {ctrl_short}",
+                            fontsize=6, color="#F44336", va="bottom")
+
+            ax.set_xticks(x)
+            ax.set_xticklabels(short_labels, fontsize=7)
+            ax.set_ylabel(ylabel)
+            ax.grid(True, alpha=0.3, axis="y")
+
+            # Zoom throughput y-axis to show real differences
+            if metric == "total_exited":
+                flat = [v for vs in all_vals for v in vs if v > 0]
+                if show_sumo:
+                    for sr in [r for r in scenario_data if r["mode"] == "sumo"]:
+                        flat.append(sr[metric])
+                if flat:
+                    lo = min(flat) * 0.97
+                    hi = max(flat) * 1.02
+                    ax.set_ylim(lo, hi)
+                    # Broken-axis indicator (two small diagonal marks)
+                    d = 0.015
+                    kw = dict(transform=ax.transAxes, color="k",
+                              clip_on=False, linewidth=0.8)
+                    ax.plot((-d, +d), (-d, +d), **kw)
+                    ax.plot((1 - d, 1 + d), (-d, +d), **kw)
+
+            if ax_i == 0:
+                ax.legend(fontsize=8, loc="lower left")
+
+        fig.suptitle(title, fontsize=11)
+        fig.tight_layout()
+        fig.savefig(OVERLEAF / out_name)
+        plt.close(fig)
+        print(f"  Saved {out_name}")
+
+    # Figure A: Single intersection
+    si_data = [r for r in data if r["scenario"] == "single-intersection-v0"]
+    _plot_crossval(si_data,
+                   "Single Intersection: Default vs Mesoscopic",
+                   "meso_crossval_single.pdf", show_sumo=True)
+
+    # Figure B: Grid 4x4
+    grid_data = [r for r in data if r["scenario"] == "grid-4x4-v0"]
+    if grid_data:
+        _plot_crossval(grid_data,
+                       "Grid 4\u00d74: Default vs Mesoscopic",
+                       "meso_crossval_grid.pdf", show_sumo=True)
+
+
+def fig_mesoscopic_rl():
+    """Figure: RL learning curves — default vs mesoscopic."""
+    rl_file = RESULTS / "rl_mesoscopic_experiment.json"
+    if not rl_file.exists():
+        print("  Skipping (no RL mesoscopic data)")
+        return
+
+    with open(rl_file) as f:
+        data = json.load(f)
+
+    fig, axes = plt.subplots(1, 2, figsize=(7, 3.2), sharey=True)
+
+    algo_colors = {"DQN": "#2196F3", "PPO": "#4CAF50"}
+    baseline_styles = {
+        "FixedTime": ("#FF9800", "--"),
+        "MaxPressure-mg15": ("#9C27B0", "--"),
+        "LT-Aware-MP-mg5": ("#F44336", ":"),
+    }
+
+    # Collect final converged values (baselines + last RL eval) for y-range
+    ylim_vals = []
+
+    for ax_i, (mode, title) in enumerate([
+        ("default", "Default Mode"),
+        ("mesoscopic", "Mesoscopic Mode"),
+    ]):
+        ax = axes[ax_i]
+        mode_data = data.get(mode, {})
+        rl_data = mode_data.get("rl", {})
+        bl_data = mode_data.get("baselines", {})
+
+        for algo in ["DQN", "PPO"]:
+            if algo not in rl_data:
+                continue
+            seeds = rl_data[algo]
+            timesteps = seeds[0]["timesteps"]
+            all_rewards = np.array([s["mean_rewards"] for s in seeds])
+            mean = all_rewards.mean(axis=0)
+            std = all_rewards.std(axis=0)
+
+            ax.plot(timesteps, mean, color=algo_colors[algo],
+                    linewidth=2, label=algo)
+            ax.fill_between(timesteps, mean - std, mean + std,
+                            color=algo_colors[algo], alpha=0.15)
+            # Only use final converged value for y-range
+            ylim_vals.append(mean[-1])
+            ylim_vals.append(mean[-1] - std[-1])
+
+        for bl_name, (color, ls) in baseline_styles.items():
+            if bl_name in bl_data:
+                val = bl_data[bl_name]["avg_reward"]
+                short = bl_name.replace("MaxPressure-mg15", "MP-15").replace(
+                    "LT-Aware-MP-mg5", "LT-MP")
+                ax.axhline(y=val, color=color, linestyle=ls,
+                           linewidth=1.2, label=short)
+                ylim_vals.append(val)
+
+        ax.set_xlabel("Training Timesteps")
+        ax.set_title(title, fontsize=10)
+        ax.grid(True, alpha=0.3)
+        ax.legend(fontsize=7, loc="lower right")
+
+    # Zoom y-axis to converged region — exclude early -170 exploration dip
+    if ylim_vals:
+        worst = min(ylim_vals)
+        best = max(ylim_vals)
+        margin = (best - worst) * 0.25
+        axes[0].set_ylim(worst - margin, best + margin)
+
+    axes[0].set_ylabel("Per-Step Reward")
+    fig.suptitle("RL Training: Default vs Mesoscopic", fontsize=11)
+    fig.tight_layout()
+    fig.savefig(OVERLEAF / "meso_rl_curves.pdf")
+    plt.close(fig)
+    print("  Saved meso_rl_curves.pdf")
+
+
+def fig_mesoscopic_summary():
+    """Figure: Combined summary — final reward bar chart across all methods."""
+    rl_file = RESULTS / "rl_mesoscopic_experiment.json"
+    if not rl_file.exists():
+        print("  Skipping (no RL mesoscopic data)")
+        return
+
+    with open(rl_file) as f:
+        data = json.load(f)
+
+    fig, ax = plt.subplots(figsize=(7, 3.5))
+
+    # Collect all methods and their rewards for both modes
+    # Exclude MP-mg5 — its -143 mesoscopic collapse compresses the useful range
+    methods = []
+    default_vals = []
+    default_errs = []
+    meso_vals = []
+    meso_errs = []
+
+    for algo in ["DQN", "PPO"]:
+        methods.append(algo)
+        for mode, vals_list, errs_list in [
+            ("default", default_vals, default_errs),
+            ("mesoscopic", meso_vals, meso_errs),
+        ]:
+            seeds = data[mode]["rl"][algo]
+            rewards = [s["final_eval_reward"] for s in seeds]
+            vals_list.append(float(np.mean(rewards)))
+            errs_list.append(float(np.std(rewards)))
+
+    for bl_name in ["MaxPressure-mg15", "LT-Aware-MP-mg5", "FixedTime"]:
+        methods.append(bl_name.replace("MaxPressure-mg15", "MP-mg15").replace(
+            "LT-Aware-MP-mg5", "LT-Aware-MP"))
+        for mode, vals_list, errs_list in [
+            ("default", default_vals, default_errs),
+            ("mesoscopic", meso_vals, meso_errs),
+        ]:
+            bl = data[mode]["baselines"].get(bl_name, {})
+            vals_list.append(bl.get("avg_reward", 0))
+            errs_list.append(bl.get("std_reward", 0))
+
+    x = np.arange(len(methods))
+    width = 0.35
+
+    ax.bar(x - width / 2, default_vals, width, yerr=default_errs,
+           label="Default", color="#78909C", edgecolor="white",
+           linewidth=0.5, capsize=3, error_kw={"linewidth": 0.8})
+    ax.bar(x + width / 2, meso_vals, width, yerr=meso_errs,
+           label="Mesoscopic", color="#2196F3", edgecolor="white",
+           linewidth=0.5, capsize=3, error_kw={"linewidth": 0.8})
+
+    # Add value labels on bars
+    for i, (dv, mv) in enumerate(zip(default_vals, meso_vals)):
+        ax.text(i - width / 2, dv - 0.3, f"{dv:.1f}", ha="center",
+                va="top", fontsize=6, color="white", fontweight="bold")
+        ax.text(i + width / 2, mv - 0.3, f"{mv:.1f}", ha="center",
+                va="top", fontsize=6, color="white", fontweight="bold")
+
+    # Note about excluded controller
+    ax.annotate("MP-mg5 excluded\n(meso: \u2212143)",
+                xy=(0.98, 0.02), xycoords="axes fraction",
+                fontsize=6, color="#999", ha="right", va="bottom")
+
+    ax.set_xticks(x)
+    ax.set_xticklabels(methods, fontsize=8, rotation=25, ha="right")
+    ax.set_ylabel("Per-Step Reward (higher = better)")
+    ax.set_title("Single Intersection: All Controllers (Default vs Mesoscopic)")
+    ax.legend(fontsize=8)
+    ax.grid(True, alpha=0.3, axis="y")
+    ax.axhline(y=0, color="black", linewidth=0.5)
+
+    fig.tight_layout()
+    fig.savefig(OVERLEAF / "meso_summary.pdf")
+    plt.close(fig)
+    print("  Saved meso_summary.pdf")
+
+
 if __name__ == "__main__":
     print("Generating figures for LightSim paper...\n")
 
@@ -266,5 +518,14 @@ if __name__ == "__main__":
 
     print("Figure 5: Cross-validation")
     fig_cross_validation()
+
+    print("\nFigure: Mesoscopic cross-validation (single)")
+    fig_mesoscopic_crossval()
+
+    print("Figure: Mesoscopic RL curves")
+    fig_mesoscopic_rl()
+
+    print("Figure: Mesoscopic summary bar chart")
+    fig_mesoscopic_summary()
 
     print("\nDone! Figures saved to:", OVERLEAF)
