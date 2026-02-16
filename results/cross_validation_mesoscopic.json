@@ -1,0 +1,182 @@
+[
+  {
+    "mode": "default",
+    "simulator": "LightSim",
+    "controller": "FixedTime-30s",
+    "total_exited": 3539.7769036817936,
+    "avg_delay": 0.6705032625839475,
+    "total_queue": 17.08086094248842,
+    "wall_time": 0.20478289999300614
+  },
+  {
+    "mode": "default",
+    "simulator": "LightSim",
+    "controller": "Webster",
+    "total_exited": 3540.8481273473435,
+    "avg_delay": 1.6041148809709824,
+    "total_queue": 20.815307416036553,
+    "wall_time": 0.19664470000134315
+  },
+  {
+    "mode": "default",
+    "simulator": "LightSim",
+    "controller": "SOTL",
+    "total_exited": 3537.0065511916955,
+    "avg_delay": 1.1254811948188035,
+    "total_queue": 18.90077267142784,
+    "wall_time": 0.20546690000628587
+  },
+  {
+    "mode": "default",
+    "simulator": "LightSim",
+    "controller": "MaxPressure-mg5",
+    "total_exited": 3531.379057786626,
+    "avg_delay": 1.093801853725143,
+    "total_queue": 18.774055307053207,
+    "wall_time": 0.2059672000032151
+  },
+  {
+    "mode": "default",
+    "simulator": "LightSim",
+    "controller": "MaxPressure-mg10",
+    "total_exited": 3540.1504305125886,
+    "avg_delay": 0.0,
+    "total_queue": 0.0,
+    "wall_time": 0.20449070000904612
+  },
+  {
+    "mode": "default",
+    "simulator": "LightSim",
+    "controller": "MaxPressure-mg15",
+    "total_exited": 3541.69826213552,
+    "avg_delay": 0.0,
+    "total_queue": 0.0,
+    "wall_time": 0.2009952000080375
+  },
+  {
+    "mode": "default",
+    "simulator": "LightSim",
+    "controller": "LT-Aware-MP-mg5",
+    "total_exited": 3541.06546243917,
+    "avg_delay": 1.6434382843318183,
+    "total_queue": 20.972601029479904,
+    "wall_time": 0.2175065000046743
+  },
+  {
+    "mode": "default",
+    "simulator": "LightSim",
+    "controller": "LT-Aware-MP-mg10",
+    "total_exited": 3537.695994234422,
+    "avg_delay": 0.2653238031883003,
+    "total_queue": 15.460143104905832,
+    "wall_time": 0.2121154999913415
+  },
+  {
+    "mode": "default",
+    "simulator": "LightSim",
+    "controller": "EfficientMP",
+    "total_exited": 2132.227573829518,
+    "avg_delay": 34.200864080885424,
+    "total_queue": 179.99999999999957,
+    "wall_time": 0.22193980000156444
+  },
+  {
+    "mode": "mesoscopic",
+    "simulator": "LightSim",
+    "controller": "FixedTime-30s",
+    "total_exited": 3546.9605277055794,
+    "avg_delay": 0.6070050803309208,
+    "total_queue": 9.6274442674,
+    "wall_time": 0.2116905200004112
+  },
+  {
+    "mode": "mesoscopic",
+    "simulator": "LightSim",
+    "controller": "Webster",
+    "total_exited": 3539.426939532589,
+    "avg_delay": 4.074354407586398,
+    "total_queue": 30.69626552249822,
+    "wall_time": 0.21503721999761183
+  },
+  {
+    "mode": "mesoscopic",
+    "simulator": "LightSim",
+    "controller": "SOTL",
+    "total_exited": 3537.6400378441367,
+    "avg_delay": 4.7682590973140995,
+    "total_queue": 32.03199949219377,
+    "wall_time": 0.2198529999994207
+  },
+  {
+    "mode": "mesoscopic",
+    "simulator": "LightSim",
+    "controller": "MaxPressure-mg5",
+    "total_exited": 3270.838119145517,
+    "avg_delay": 40.728361848883075,
+    "total_queue": 227.70826291021913,
+    "wall_time": 0.2250588999973843
+  },
+  {
+    "mode": "mesoscopic",
+    "simulator": "LightSim",
+    "controller": "MaxPressure-mg10",
+    "total_exited": 3547.4786854665545,
+    "avg_delay": 0.8172937386126131,
+    "total_queue": 11.908483689742031,
+    "wall_time": 0.21605817999807186
+  },
+  {
+    "mode": "mesoscopic",
+    "simulator": "LightSim",
+    "controller": "MaxPressure-mg15",
+    "total_exited": 3549.2503628156664,
+    "avg_delay": 0.5277374941680015,
+    "total_queue": 9.310373922748322,
+    "wall_time": 0.21394781999406404
+  },
+  {
+    "mode": "mesoscopic",
+    "simulator": "LightSim",
+    "controller": "LT-Aware-MP-mg5",
+    "total_exited": 3548.8329091241226,
+    "avg_delay": 1.4249969038548402,
+    "total_queue": 14.339296350710942,
+    "wall_time": 0.24014440000464674
+  },
+  {
+    "mode": "mesoscopic",
+    "simulator": "LightSim",
+    "controller": "LT-Aware-MP-mg10",
+    "total_exited": 3548.5872535783938,
+    "avg_delay": 0.8952002316464375,
+    "total_queue": 13.65999445109259,
+    "wall_time": 0.231788380004582
+  },
+  {
+    "mode": "mesoscopic",
+    "simulator": "LightSim",
+    "controller": "EfficientMP",
+    "total_exited": 2315.378788661684,
+    "avg_delay": 30.760552818063683,
+    "total_queue": 163.35898537028208,
+    "wall_time": 0.23451589999895078
+  },
+  {
+    "mode": "sumo",
+    "simulator": "SUMO",
+    "controller": "FixedTimeController",
+    "total_exited": 3540.0,
+    "avg_delay": 8.133333333333333,
+    "total_queue": 28.0,
+    "wall_time": 1.7149279000004753
+  },
+  {
+    "mode": "sumo",
+    "simulator": "SUMO",
+    "controller": "MaxPressureController",
+    "total_exited": 3541.0,
+    "avg_delay": 0.1864406779661017,
+    "total_queue": 4.0,
+    "wall_time": 1.6924050000088755
+  }
+]

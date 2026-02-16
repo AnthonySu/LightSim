@@ -1,11 +1,9 @@
 """Cross-validation with mesoscopic extensions: LightSim vs SUMO.
 
-Compares two LightSim configurations against SUMO:
-  1. Default: deterministic demand, no lost_time
-  2. Mesoscopic: stochastic=True, lost_time=2.0
-
-Checks whether mesoscopic extensions bring controller ranking
-(FixedTime vs MaxPressure) and absolute metrics closer to SUMO.
+Runs a comprehensive ablation across:
+  - Simulator modes: default (deterministic) vs mesoscopic (stochastic + lost_time)
+  - Controllers: FixedTime, Webster, SOTL, MaxPressure (vanilla + tuned + lost-time-aware + EMP)
+  - SUMO reference for FixedTime and actuated (MaxPressure proxy)
 
 Usage::
 
@@ -26,18 +24,23 @@ import numpy as np
 # Add project root to path
 sys.path.insert(0, str(Path(__file__).resolve().parent.parent))
 
-from lightsim.core.demand import DemandProfile
 from lightsim.core.engine import SimulationEngine
-from lightsim.core.network import Network
-from lightsim.core.signal import FixedTimeController, MaxPressureController
-from lightsim.core.types import LinkID, NodeID, NodeType, TurnType
+from lightsim.core.signal import (
+    EfficientMaxPressureController,
+    FixedTimeController,
+    LostTimeAwareMaxPressureController,
+    MaxPressureController,
+    SOTLController,
+    WebsterController,
+)
+from lightsim.core.types import NodeID, NodeType
 from lightsim.utils.metrics import compute_link_delay
 
 
 @dataclass
 class MesoResult:
-    mode: str          # "default" or "mesoscopic"
-    simulator: str     # "LightSim" or "SUMO"
+    mode: str
+    simulator: str
     controller: str
     total_exited: float
     avg_delay: float
@@ -46,34 +49,28 @@ class MesoResult:
 
 
 def _build_single_intersection(lost_time: float = 0.0):
-    """Build single intersection network with configurable lost_time."""
     from lightsim.benchmarks.scenarios import get_scenario
     factory = get_scenario("single-intersection-v0")
     network, demand = factory()
-
-    # Patch lost_time on all phases if non-zero
     if lost_time > 0.0:
         for node in network.nodes.values():
             for phase in node.phases:
                 phase.lost_time = lost_time
-
     return network, demand
 
 
 def _run_lightsim(
     mode: str,
     controller,
+    ctrl_label: str,
     lost_time: float = 0.0,
     stochastic: bool = False,
     n_steps: int = 3600,
     n_seeds: int = 5,
 ) -> MesoResult:
-    """Run LightSim and average over seeds (only matters for stochastic)."""
     network, demand = _build_single_intersection(lost_time=lost_time)
 
-    all_exited = []
-    all_delay = []
-    all_queue = []
+    all_exited, all_delay, all_queue = [], [], []
     total_wall = 0.0
 
     for seed in range(n_seeds):
@@ -108,7 +105,7 @@ def _run_lightsim(
     return MesoResult(
         mode=mode,
         simulator="LightSim",
-        controller=type(controller).__name__,
+        controller=ctrl_label,
         total_exited=float(np.mean(all_exited)),
         avg_delay=float(np.mean(all_delay)),
         total_queue=float(np.mean(all_queue)),
@@ -117,7 +114,6 @@ def _run_lightsim(
 
 
 def _try_run_sumo(controller_name: str) -> MesoResult | None:
-    """Attempt to run SUMO cross-validation. Returns None if SUMO unavailable."""
     try:
         from lightsim.benchmarks.cross_validation import _run_sumo_with_controller
         r = _run_sumo_with_controller("single-intersection-v0", controller_name)
@@ -131,85 +127,133 @@ def _try_run_sumo(controller_name: str) -> MesoResult | None:
             wall_time=r.wall_time,
         )
     except Exception as e:
-        print(f"  SUMO unavailable: {e}")
+        print(f"    SUMO unavailable: {e}")
         return None
 
 
-def main():
-    print("=" * 80)
-    print("Mesoscopic Cross-Validation: LightSim vs SUMO")
-    print("=" * 80)
+def _print_table(results: list[MesoResult], title: str) -> None:
+    print(f"\n{'=' * 90}")
+    print(title)
+    print("=" * 90)
+    header = (f"{'Mode':<14} {'Sim':<10} {'Controller':<30} "
+              f"{'Exited':>8} {'Delay':>8} {'Queue':>8}")
+    print(header)
+    print("-" * 90)
+    for r in results:
+        print(f"{r.mode:<14} {r.simulator:<10} {r.controller:<30} "
+              f"{r.total_exited:>8.0f} {r.avg_delay:>8.2f} {r.total_queue:>8.1f}")
 
+
+def main():
+    print("=" * 90)
+    print("Mesoscopic Cross-Validation + Controller Ablation")
+    print("=" * 90)
+
+    # ---------------------------------------------------------------
+    # Define all controllers
+    # ---------------------------------------------------------------
     controllers = [
-        ("FixedTimeController", FixedTimeController()),
-        ("MaxPressureController", MaxPressureController(min_green=5.0)),
+        # --- Fixed-time family ---
+        ("FixedTime-30s",           FixedTimeController()),
+        ("Webster",                 WebsterController()),
+        # --- Adaptive family ---
+        ("SOTL",                    SOTLController()),
+        ("MaxPressure-mg5",         MaxPressureController(min_green=5.0)),
+        ("MaxPressure-mg10",        MaxPressureController(min_green=10.0)),
+        ("MaxPressure-mg15",        MaxPressureController(min_green=15.0)),
+        ("LT-Aware-MP-mg5",        LostTimeAwareMaxPressureController(min_green=5.0)),
+        ("LT-Aware-MP-mg10",       LostTimeAwareMaxPressureController(min_green=10.0)),
+        ("EfficientMP",            EfficientMaxPressureController()),
     ]
 
     results: list[MesoResult] = []
 
-    # --- LightSim default mode ---
-    print("\n[1/3] LightSim DEFAULT (deterministic, no lost_time)")
-    for ctrl_name, ctrl_obj in controllers:
-        print(f"  Running {ctrl_name}...")
-        r = _run_lightsim("default", ctrl_obj, lost_time=0.0, stochastic=False)
+    # ---------------------------------------------------------------
+    # 1. LightSim DEFAULT (deterministic, no lost_time)
+    # ---------------------------------------------------------------
+    print("\n[1/3] LightSim DEFAULT (deterministic, lost_time=0)")
+    for label, ctrl in controllers:
+        print(f"  {label}...", end="", flush=True)
+        r = _run_lightsim("default", ctrl, label,
+                          lost_time=0.0, stochastic=False, n_seeds=1)
         results.append(r)
-        print(f"    exited={r.total_exited:.0f}, delay={r.avg_delay:.2f}, "
+        print(f"  exited={r.total_exited:.0f}  delay={r.avg_delay:.2f}  "
               f"queue={r.total_queue:.1f}")
 
-    # --- LightSim mesoscopic mode ---
+    # ---------------------------------------------------------------
+    # 2. LightSim MESOSCOPIC (stochastic, lost_time=2.0)
+    # ---------------------------------------------------------------
     print("\n[2/3] LightSim MESOSCOPIC (stochastic=True, lost_time=2.0)")
-    for ctrl_name, ctrl_obj in controllers:
-        print(f"  Running {ctrl_name} (5-seed average)...")
-        r = _run_lightsim("mesoscopic", ctrl_obj, lost_time=2.0, stochastic=True)
+    for label, ctrl in controllers:
+        print(f"  {label} (5-seed avg)...", end="", flush=True)
+        r = _run_lightsim("mesoscopic", ctrl, label,
+                          lost_time=2.0, stochastic=True, n_seeds=5)
         results.append(r)
-        print(f"    exited={r.total_exited:.0f}, delay={r.avg_delay:.2f}, "
+        print(f"  exited={r.total_exited:.0f}  delay={r.avg_delay:.2f}  "
               f"queue={r.total_queue:.1f}")
 
-    # --- SUMO ---
+    # ---------------------------------------------------------------
+    # 3. SUMO reference
+    # ---------------------------------------------------------------
     print("\n[3/3] SUMO reference")
-    for ctrl_name, _ in controllers:
-        print(f"  Running {ctrl_name}...")
-        r = _try_run_sumo(ctrl_name)
+    for sumo_ctrl in ["FixedTimeController", "MaxPressureController"]:
+        print(f"  {sumo_ctrl}...", end="", flush=True)
+        r = _try_run_sumo(sumo_ctrl)
         if r is not None:
             results.append(r)
-            print(f"    exited={r.total_exited:.0f}, delay={r.avg_delay:.2f}, "
+            print(f"  exited={r.total_exited:.0f}  delay={r.avg_delay:.2f}  "
                   f"queue={r.total_queue:.1f}")
 
-    # --- Summary ---
-    print("\n" + "=" * 80)
-    print("Results Summary")
-    print("=" * 80)
-    header = (f"{'Mode':<14} {'Simulator':<10} {'Controller':<22} "
-              f"{'Exited':>8} {'Delay':>8} {'Queue':>8}")
-    print(header)
-    print("-" * len(header))
-    for r in results:
-        print(f"{r.mode:<14} {r.simulator:<10} {r.controller:<22} "
-              f"{r.total_exited:>8.0f} {r.avg_delay:>8.2f} {r.total_queue:>8.1f}")
+    # ---------------------------------------------------------------
+    # Print tables
+    # ---------------------------------------------------------------
+    _print_table(results, "All Results")
 
-    # --- Controller ranking analysis ---
-    print("\n" + "-" * 80)
-    print("Controller Ranking Analysis")
-    print("-" * 80)
+    # ---------------------------------------------------------------
+    # Ranking analysis
+    # ---------------------------------------------------------------
+    print(f"\n{'=' * 90}")
+    print("Controller Ranking (sorted by throughput within each mode)")
+    print("=" * 90)
 
+    for mode in ["default", "mesoscopic", "sumo"]:
+        mode_r = sorted(
+            [r for r in results if r.mode == mode],
+            key=lambda r: r.total_exited, reverse=True,
+        )
+        if not mode_r:
+            continue
+        sim = mode_r[0].simulator
+        print(f"\n  [{mode.upper()}] ({sim})")
+        for i, r in enumerate(mode_r):
+            marker = " <-- best" if i == 0 else ""
+            print(f"    {i+1}. {r.controller:<30}  "
+                  f"exited={r.total_exited:>7.0f}  "
+                  f"delay={r.avg_delay:>7.2f}  "
+                  f"queue={r.total_queue:>7.1f}{marker}")
+
+    # ---------------------------------------------------------------
+    # Key insight: does mesoscopic flip any rankings?
+    # ---------------------------------------------------------------
+    print(f"\n{'=' * 90}")
+    print("Key Question: Does mesoscopic mode change the best adaptive controller?")
+    print("=" * 90)
+
+    adaptive_labels = [l for l, _ in controllers if l not in ("FixedTime-30s", "Webster")]
     for mode in ["default", "mesoscopic"]:
-        mode_results = [r for r in results if r.mode == mode and r.simulator == "LightSim"]
-        if len(mode_results) == 2:
-            ft = next(r for r in mode_results if "Fixed" in r.controller)
-            mp = next(r for r in mode_results if "MaxPressure" in r.controller)
-            better = "MaxPressure" if mp.total_exited > ft.total_exited else "FixedTime"
-            diff_pct = abs(mp.total_exited - ft.total_exited) / max(ft.total_exited, 1) * 100
-            print(f"  LightSim {mode}: {better} wins by {diff_pct:.1f}% throughput")
+        mode_adaptive = [r for r in results if r.mode == mode and r.controller in adaptive_labels]
+        if mode_adaptive:
+            best = max(mode_adaptive, key=lambda r: r.total_exited)
+            ft = next((r for r in results if r.mode == mode and r.controller == "FixedTime-30s"), None)
+            if ft:
+                gap = (best.total_exited - ft.total_exited) / ft.total_exited * 100
+                direction = "beats" if gap > 0 else "loses to"
+                print(f"  {mode}: best adaptive = {best.controller}  "
+                      f"({direction} FixedTime by {abs(gap):.1f}%)")
 
-    sumo_results = [r for r in results if r.simulator == "SUMO"]
-    if len(sumo_results) == 2:
-        ft = next(r for r in sumo_results if "Fixed" in r.controller)
-        mp = next(r for r in sumo_results if "MaxPressure" in r.controller)
-        better = "MaxPressure" if mp.total_exited > ft.total_exited else "FixedTime"
-        diff_pct = abs(mp.total_exited - ft.total_exited) / max(ft.total_exited, 1) * 100
-        print(f"  SUMO:             {better} wins by {diff_pct:.1f}% throughput")
-
-    # --- Save results ---
+    # ---------------------------------------------------------------
+    # Save
+    # ---------------------------------------------------------------
     os.makedirs("results", exist_ok=True)
     out_path = "results/cross_validation_mesoscopic.json"
     with open(out_path, "w") as f:
