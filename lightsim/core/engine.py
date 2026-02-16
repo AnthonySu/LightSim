@@ -56,26 +56,36 @@ class SimulationEngine:
         flow_model: FlowModel | None = None,
         controller: SignalController | None = None,
         demand_profiles: list[DemandProfile] | None = None,
+        stochastic: bool = False,
     ) -> None:
         self.dt = dt
         self.network = network
         self.net = network.compile(dt)
         self.flow_model = flow_model or CTMFlowModel()
         self.controller = controller or FixedTimeController()
+        self.stochastic = stochastic
+        self._rng: np.random.Generator | None = None
         self.signal_manager = SignalManager(self.net, self.controller)
-        self.demand_manager = DemandManager(self.net, demand_profiles)
+        self.demand_manager = DemandManager(
+            self.net, demand_profiles,
+            stochastic=stochastic, rng=self._rng,
+        )
+        self.demand_profiles = demand_profiles
         self.state = SimState(
             density=np.zeros(self.net.n_cells, dtype=FLOAT),
         )
 
     def reset(self, seed: int | None = None) -> SimState:
         """Reset the simulation to time zero."""
-        if seed is not None:
-            np.random.seed(seed)
+        self._rng = np.random.default_rng(seed)
         self.state = SimState(
             density=np.zeros(self.net.n_cells, dtype=FLOAT),
         )
         self.signal_manager = SignalManager(self.net, self.controller)
+        self.demand_manager = DemandManager(
+            self.net, self.demand_profiles,
+            stochastic=self.stochastic, rng=self._rng,
+        )
         return self.state
 
     def step(self) -> SimState:
@@ -92,12 +102,14 @@ class SimulationEngine:
         sending = self.flow_model.compute_sending_flow(density, net)
         receiving = self.flow_model.compute_receiving_flow(density, net)
 
-        # 2. Get signal mask
+        # 2. Get signal mask and capacity factor
         signal_mask = self.signal_manager.get_movement_mask()
+        capacity_factor = self.signal_manager.get_capacity_factor()
 
         # 3. Compute flows
         intra_flow, movement_flow = self.flow_model.compute_flow(
             density, sending, receiving, signal_mask, net, dt,
+            capacity_factor=capacity_factor,
         )
 
         # 4. Update densities from intra-link flows

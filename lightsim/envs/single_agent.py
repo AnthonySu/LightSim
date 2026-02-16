@@ -62,6 +62,7 @@ class LightSimEnv(gym.Env):
         demand_profiles: list[DemandProfile] | None = None,
         flow_model: FlowModel | None = None,
         render_mode: str | None = None,
+        stochastic: bool = False,
     ) -> None:
         super().__init__()
         self.render_mode = render_mode
@@ -82,6 +83,7 @@ class LightSimEnv(gym.Env):
         self.network = network
         self.demand_profiles = demand_profiles or []
         self.flow_model = flow_model
+        self.stochastic = stochastic
 
         # RL controller
         self._rl_controller = RLController()
@@ -93,6 +95,7 @@ class LightSimEnv(gym.Env):
             flow_model=flow_model,
             controller=self._rl_controller,
             demand_profiles=self.demand_profiles,
+            stochastic=stochastic,
         )
 
         # Observation / action / reward
@@ -134,6 +137,7 @@ class LightSimEnv(gym.Env):
             flow_model=self.flow_model,
             controller=self._rl_controller,
             demand_profiles=self.demand_profiles,
+            stochastic=self.stochastic,
         )
         self.engine.reset(seed=seed)
         self._step_count = 0

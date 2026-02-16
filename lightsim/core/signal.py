@@ -144,6 +144,10 @@ class SignalManager:
         for node_id in net.node_phases:
             self.states[node_id] = SignalState()
 
+        # Per-movement green timer tracking for capacity factor
+        self._time_since_green = np.zeros(net.n_movements, dtype=FLOAT)
+        self._was_green = np.zeros(net.n_movements, dtype=bool)
+
     def get_movement_mask(self) -> np.ndarray:
         """Return boolean mask: True if movement is green."""
         mask = np.ones(self.net.n_movements, dtype=FLOAT)
@@ -172,12 +176,9 @@ class SignalManager:
 
             if state.in_all_red:
                 state.all_red_timer += dt
-                current_pid = phase_ids[state.current_phase_idx]
                 # Look up all_red duration from the phase that just ended
-                # (use previous phase)
                 prev_idx = (state.current_phase_idx - 1) % len(phase_ids)
                 prev_pid = phase_ids[prev_idx]
-                # Find the Phase object — we store all_red on each phase
                 all_red_dur = self._get_phase_all_red(prev_pid)
                 if state.all_red_timer >= all_red_dur:
                     state.in_all_red = False
@@ -211,14 +212,49 @@ class SignalManager:
                 state.in_yellow = True
                 state.yellow_timer = 0.0
 
+        # Update per-movement green timers
+        current_mask = self.get_movement_mask()
+        is_green = current_mask > 0.0
+        # Detect red→green transitions (newly green)
+        newly_green = is_green & ~self._was_green
+        still_green = is_green & self._was_green
+        # Reset timer for newly-green, increment for still-green, zero for red
+        self._time_since_green[newly_green] = dt
+        self._time_since_green[still_green] += dt
+        self._time_since_green[~is_green] = 0.0
+        self._was_green[:] = is_green
+
+    def get_capacity_factor(self) -> np.ndarray:
+        """Return per-movement capacity factor (0.0–1.0) for green ramp.
+
+        Models start-up lost time: factor ramps from 0 to 1 over ``lost_time``
+        seconds after each red→green transition. If ``lost_time == 0``, factor
+        is always 1.0 (backward compatible).
+        """
+        factor = np.ones(self.net.n_movements, dtype=FLOAT)
+        for node_id, state in self.states.items():
+            phase_ids = self.net.node_phases[node_id]
+            if not phase_ids:
+                continue
+            current_pid = phase_ids[state.current_phase_idx]
+            lost = self.net.phase_lost_time[current_pid]
+            if lost <= 0.0:
+                continue
+            node_movs = self.net.node_movements.get(node_id, [])
+            for mid in node_movs:
+                if self._was_green[mid]:
+                    factor[mid] = min(1.0, self._time_since_green[mid] / lost)
+                # Red movements already have factor=1.0 but will be zeroed by signal_mask
+        return factor
+
     def _get_phase_yellow(self, phase_id: PhaseID) -> float:
-        """Look up yellow duration for a phase."""
-        for node in self.net.node_phases.values():
-            for pid in node:
-                if pid == phase_id:
-                    # Access from the global_phase_list or fall back
-                    return 3.0  # default
+        """Look up yellow duration for a phase from compiled arrays."""
+        if len(self.net.phase_yellow) > phase_id:
+            return float(self.net.phase_yellow[phase_id])
         return 3.0
 
     def _get_phase_all_red(self, phase_id: PhaseID) -> float:
-        return 2.0  # default
+        """Look up all-red duration for a phase from compiled arrays."""
+        if len(self.net.phase_all_red) > phase_id:
+            return float(self.net.phase_all_red[phase_id])
+        return 2.0

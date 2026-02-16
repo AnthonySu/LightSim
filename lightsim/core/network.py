@@ -76,6 +76,7 @@ class Phase:
     max_green: float = 60.0   # seconds
     yellow: float = 3.0       # seconds
     all_red: float = 2.0      # seconds
+    lost_time: float = 0.0    # seconds – start-up lost time per green onset
 
 
 @dataclass
@@ -131,6 +132,11 @@ class CompiledNetwork:
     # phase_mov_mask[p] is a bool array of shape (n_movements,)
     phase_mov_mask: np.ndarray  # bool, shape (n_phases, n_movements)
     n_phases_per_node: dict[NodeID, int] = field(default_factory=dict)
+
+    # --- per-phase timing arrays (length n_phases) ---
+    phase_lost_time: np.ndarray = field(default_factory=lambda: np.empty(0))
+    phase_yellow: np.ndarray = field(default_factory=lambda: np.empty(0))
+    phase_all_red: np.ndarray = field(default_factory=lambda: np.empty(0))
 
     # --- look-ups ---
     link_first_cell: dict[LinkID, CellID] = field(default_factory=dict)
@@ -233,6 +239,7 @@ class Network:
         max_green: float = 60.0,
         yellow: float = 3.0,
         all_red: float = 2.0,
+        lost_time: float = 0.0,
     ) -> Phase:
         pid = PhaseID(self._next_phase_id)
         self._next_phase_id += 1
@@ -243,6 +250,7 @@ class Network:
             max_green=max_green,
             yellow=yellow,
             all_red=all_red,
+            lost_time=lost_time,
         )
         self.nodes[node_id].phases.append(phase)
         return phase
@@ -357,6 +365,17 @@ class Network:
             for mid in phase.movements:
                 phase_mov_mask[phase.phase_id, mid] = True
 
+        # Per-phase timing arrays
+        phase_lost_time = np.array(
+            [p.lost_time for p in all_phases], dtype=FLOAT
+        ) if all_phases else np.empty(0, dtype=FLOAT)
+        phase_yellow = np.array(
+            [p.yellow for p in all_phases], dtype=FLOAT
+        ) if all_phases else np.empty(0, dtype=FLOAT)
+        phase_all_red = np.array(
+            [p.all_red for p in all_phases], dtype=FLOAT
+        ) if all_phases else np.empty(0, dtype=FLOAT)
+
         return CompiledNetwork(
             n_cells=n_cells,
             n_movements=n_movements,
@@ -377,6 +396,9 @@ class Network:
             mov_node=mov_node,
             phase_mov_mask=phase_mov_mask,
             n_phases_per_node=n_phases_per_node,
+            phase_lost_time=phase_lost_time,
+            phase_yellow=phase_yellow,
+            phase_all_red=phase_all_red,
             link_first_cell=link_first_cell,
             link_last_cell=link_last_cell,
             link_cells=link_cells_map,

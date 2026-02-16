@@ -50,9 +50,13 @@ class DemandManager:
         self,
         net: CompiledNetwork,
         profiles: list[DemandProfile] | None = None,
+        stochastic: bool = False,
+        rng: np.random.Generator | None = None,
     ) -> None:
         self.net = net
         self.profiles = profiles or []
+        self.stochastic = stochastic
+        self.rng = rng
         # Map link_id → cell_id for source cells
         self._source_cells: dict[LinkID, CellID] = {}
         for p in self.profiles:
@@ -63,6 +67,8 @@ class DemandManager:
         """Compute vehicles to inject into source cells.
 
         Injection is capped by the receiving flow capacity of the source cell.
+        If ``stochastic=True``, demand is drawn from a Poisson distribution
+        with mean ``rate * dt`` instead of the deterministic value.
 
         Returns
         -------
@@ -75,7 +81,11 @@ class DemandManager:
             if cid is None:
                 continue
             rate = profile.get_rate(t)
-            demand_veh = rate * dt
+            mean_veh = rate * dt
+            if self.stochastic and self.rng is not None:
+                demand_veh = float(self.rng.poisson(mean_veh))
+            else:
+                demand_veh = mean_veh
             # Cap by available space
             cell_cap = (
                 self.net.kj[cid] * self.net.lanes[cid] * self.net.length[cid]

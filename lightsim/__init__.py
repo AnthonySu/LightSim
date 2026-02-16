@@ -25,6 +25,7 @@ def make(
     action_handler: str = "phase_select",
     reward_fn: str = "queue",
     render_mode: str | None = None,
+    stochastic: bool = False,
     **scenario_kwargs: Any,
 ) -> LightSimEnv:
     """Create a single-agent LightSim Gymnasium environment.
@@ -64,6 +65,7 @@ def make(
         reward_fn=reward_fn,
         demand_profiles=demand_profiles,
         render_mode=render_mode,
+        stochastic=stochastic,
     )
 
 
@@ -77,6 +79,7 @@ def parallel_env(
     action_handler: str = "phase_select",
     reward_fn: str = "queue",
     render_mode: str | None = None,
+    stochastic: bool = False,
     **scenario_kwargs: Any,
 ):
     """Create a multi-agent LightSim PettingZoo ParallelEnv.
@@ -99,4 +102,5 @@ def parallel_env(
         reward_fn=reward_fn,
         demand_profiles=demand_profiles,
         render_mode=render_mode,
+        stochastic=stochastic,
     )

@@ -48,6 +48,7 @@ class LightSimParallelEnv(ParallelEnv):
         demand_profiles: list[DemandProfile] | None = None,
         flow_model: FlowModel | None = None,
         render_mode: str | None = None,
+        stochastic: bool = False,
     ) -> None:
         if not HAS_PETTINGZOO:
             raise ImportError("pettingzoo is required for multi-agent env. "
@@ -60,6 +61,7 @@ class LightSimParallelEnv(ParallelEnv):
         self.max_steps = max_steps
         self.demand_profiles = demand_profiles or []
         self.flow_model = flow_model
+        self.stochastic = stochastic
 
         # Find all signalised nodes
         self._agent_nodes: list[NodeID] = []
@@ -86,6 +88,7 @@ class LightSimParallelEnv(ParallelEnv):
             flow_model=flow_model,
             controller=self._rl_controller,
             demand_profiles=self.demand_profiles,
+            stochastic=stochastic,
         )
 
         # Components
@@ -138,6 +141,7 @@ class LightSimParallelEnv(ParallelEnv):
             flow_model=self.flow_model,
             controller=self._rl_controller,
             demand_profiles=self.demand_profiles,
+            stochastic=self.stochastic,
         )
         self.engine.reset(seed=seed)
         self.agents = list(self.possible_agents)

@@ -38,8 +38,15 @@ class FlowModel(ABC):
         signal_mask: np.ndarray,
         net: CompiledNetwork,
         dt: float,
+        capacity_factor: np.ndarray | None = None,
     ) -> tuple[np.ndarray, np.ndarray]:
         """Compute actual cell-to-cell flows.
+
+        Parameters
+        ----------
+        capacity_factor : ndarray, shape (n_movements,), optional
+            Per-movement capacity reduction factor (0–1) for start-up
+            lost time.  If *None*, no reduction is applied.
 
         Returns
         -------
@@ -76,6 +83,7 @@ class CTMFlowModel(FlowModel):
         signal_mask: np.ndarray,
         net: CompiledNetwork,
         dt: float,
+        capacity_factor: np.ndarray | None = None,
     ) -> tuple[np.ndarray, np.ndarray]:
         n = net.n_cells
         intra_flow = np.zeros(n, dtype=FLOAT)
@@ -101,6 +109,10 @@ class CTMFlowModel(FlowModel):
 
         # Apply signal: zero flow for red movements
         effective_sending = mov_sending * signal_mask
+
+        # Apply capacity factor (start-up lost time ramp)
+        if capacity_factor is not None:
+            effective_sending = effective_sending * capacity_factor
 
         # Apply turn ratios: each movement gets its share of the upstream flow
         effective_sending = effective_sending * net.mov_turn_ratio
