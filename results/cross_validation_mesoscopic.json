@@ -1,182 +1,362 @@
 [
   {
+    "scenario": "single-intersection-v0",
     "mode": "default",
     "simulator": "LightSim",
     "controller": "FixedTime-30s",
     "total_exited": 3539.7769036817936,
     "avg_delay": 0.6705032625839475,
     "total_queue": 17.08086094248842,
-    "wall_time": 0.20478289999300614
+    "wall_time": 0.2057201999996323
   },
   {
+    "scenario": "single-intersection-v0",
     "mode": "default",
     "simulator": "LightSim",
     "controller": "Webster",
     "total_exited": 3540.8481273473435,
     "avg_delay": 1.6041148809709824,
     "total_queue": 20.815307416036553,
-    "wall_time": 0.19664470000134315
+    "wall_time": 0.20684139999502804
   },
   {
+    "scenario": "single-intersection-v0",
     "mode": "default",
     "simulator": "LightSim",
     "controller": "SOTL",
     "total_exited": 3537.0065511916955,
     "avg_delay": 1.1254811948188035,
     "total_queue": 18.90077267142784,
-    "wall_time": 0.20546690000628587
+    "wall_time": 0.20757769999909215
   },
   {
+    "scenario": "single-intersection-v0",
     "mode": "default",
     "simulator": "LightSim",
     "controller": "MaxPressure-mg5",
     "total_exited": 3531.379057786626,
     "avg_delay": 1.093801853725143,
     "total_queue": 18.774055307053207,
-    "wall_time": 0.2059672000032151
+    "wall_time": 0.20835629999055527
   },
   {
+    "scenario": "single-intersection-v0",
     "mode": "default",
     "simulator": "LightSim",
     "controller": "MaxPressure-mg10",
     "total_exited": 3540.1504305125886,
     "avg_delay": 0.0,
     "total_queue": 0.0,
-    "wall_time": 0.20449070000904612
+    "wall_time": 0.20350319999852218
   },
   {
+    "scenario": "single-intersection-v0",
     "mode": "default",
     "simulator": "LightSim",
     "controller": "MaxPressure-mg15",
     "total_exited": 3541.69826213552,
     "avg_delay": 0.0,
     "total_queue": 0.0,
-    "wall_time": 0.2009952000080375
+    "wall_time": 0.20684139999502804
   },
   {
+    "scenario": "single-intersection-v0",
     "mode": "default",
     "simulator": "LightSim",
     "controller": "LT-Aware-MP-mg5",
     "total_exited": 3541.06546243917,
     "avg_delay": 1.6434382843318183,
     "total_queue": 20.972601029479904,
-    "wall_time": 0.2175065000046743
+    "wall_time": 0.220836499996949
   },
   {
+    "scenario": "single-intersection-v0",
     "mode": "default",
     "simulator": "LightSim",
     "controller": "LT-Aware-MP-mg10",
     "total_exited": 3537.695994234422,
     "avg_delay": 0.2653238031883003,
     "total_queue": 15.460143104905832,
-    "wall_time": 0.2121154999913415
+    "wall_time": 0.21184959998936392
   },
   {
-    "mode": "default",
-    "simulator": "LightSim",
-    "controller": "EfficientMP",
-    "total_exited": 2132.227573829518,
-    "avg_delay": 34.200864080885424,
-    "total_queue": 179.99999999999957,
-    "wall_time": 0.22193980000156444
-  },
-  {
+    "scenario": "single-intersection-v0",
     "mode": "mesoscopic",
     "simulator": "LightSim",
     "controller": "FixedTime-30s",
     "total_exited": 3546.9605277055794,
     "avg_delay": 0.6070050803309208,
     "total_queue": 9.6274442674,
-    "wall_time": 0.2116905200004112
+    "wall_time": 0.2131252599967411
   },
   {
+    "scenario": "single-intersection-v0",
     "mode": "mesoscopic",
     "simulator": "LightSim",
     "controller": "Webster",
     "total_exited": 3539.426939532589,
     "avg_delay": 4.074354407586398,
     "total_queue": 30.69626552249822,
-    "wall_time": 0.21503721999761183
+    "wall_time": 0.21702928000013344
   },
   {
+    "scenario": "single-intersection-v0",
     "mode": "mesoscopic",
     "simulator": "LightSim",
     "controller": "SOTL",
     "total_exited": 3537.6400378441367,
     "avg_delay": 4.7682590973140995,
     "total_queue": 32.03199949219377,
-    "wall_time": 0.2198529999994207
+    "wall_time": 0.2243555200024275
   },
   {
+    "scenario": "single-intersection-v0",
     "mode": "mesoscopic",
     "simulator": "LightSim",
     "controller": "MaxPressure-mg5",
     "total_exited": 3270.838119145517,
     "avg_delay": 40.728361848883075,
     "total_queue": 227.70826291021913,
-    "wall_time": 0.2250588999973843
+    "wall_time": 0.21910006000543944
   },
   {
+    "scenario": "single-intersection-v0",
     "mode": "mesoscopic",
     "simulator": "LightSim",
     "controller": "MaxPressure-mg10",
     "total_exited": 3547.4786854665545,
     "avg_delay": 0.8172937386126131,
     "total_queue": 11.908483689742031,
-    "wall_time": 0.21605817999807186
+    "wall_time": 0.21645855999959168
   },
   {
+    "scenario": "single-intersection-v0",
     "mode": "mesoscopic",
     "simulator": "LightSim",
     "controller": "MaxPressure-mg15",
     "total_exited": 3549.2503628156664,
     "avg_delay": 0.5277374941680015,
     "total_queue": 9.310373922748322,
-    "wall_time": 0.21394781999406404
+    "wall_time": 0.21340224000159652
   },
   {
+    "scenario": "single-intersection-v0",
     "mode": "mesoscopic",
     "simulator": "LightSim",
     "controller": "LT-Aware-MP-mg5",
     "total_exited": 3548.8329091241226,
     "avg_delay": 1.4249969038548402,
     "total_queue": 14.339296350710942,
-    "wall_time": 0.24014440000464674
+    "wall_time": 0.23632425999967382
   },
   {
+    "scenario": "single-intersection-v0",
     "mode": "mesoscopic",
     "simulator": "LightSim",
     "controller": "LT-Aware-MP-mg10",
     "total_exited": 3548.5872535783938,
     "avg_delay": 0.8952002316464375,
     "total_queue": 13.65999445109259,
-    "wall_time": 0.231788380004582
+    "wall_time": 0.2297899800003506
   },
   {
-    "mode": "mesoscopic",
-    "simulator": "LightSim",
-    "controller": "EfficientMP",
-    "total_exited": 2315.378788661684,
-    "avg_delay": 30.760552818063683,
-    "total_queue": 163.35898537028208,
-    "wall_time": 0.23451589999895078
-  },
-  {
+    "scenario": "single-intersection-v0",
     "mode": "sumo",
     "simulator": "SUMO",
     "controller": "FixedTimeController",
     "total_exited": 3540.0,
     "avg_delay": 8.133333333333333,
     "total_queue": 28.0,
-    "wall_time": 1.7149279000004753
+    "wall_time": 1.7346711000136565
   },
   {
+    "scenario": "single-intersection-v0",
     "mode": "sumo",
     "simulator": "SUMO",
     "controller": "MaxPressureController",
     "total_exited": 3541.0,
     "avg_delay": 0.1864406779661017,
     "total_queue": 4.0,
-    "wall_time": 1.6924050000088755
+    "wall_time": 1.7258714999916265
+  },
+  {
+    "scenario": "grid-4x4-v0",
+    "mode": "default",
+    "simulator": "LightSim",
+    "controller": "FixedTime-30s",
+    "total_exited": 18522.607244612827,
+    "avg_delay": 39.075576132909404,
+    "total_queue": 4277.95392200496,
+    "wall_time": 1.3570379000011599
+  },
+  {
+    "scenario": "grid-4x4-v0",
+    "mode": "default",
+    "simulator": "LightSim",
+    "controller": "Webster",
+    "total_exited": 17242.731461357682,
+    "avg_delay": 39.41192405533558,
+    "total_queue": 4420.052538936279,
+    "wall_time": 1.3617363000084879
+  },
+  {
+    "scenario": "grid-4x4-v0",
+    "mode": "default",
+    "simulator": "LightSim",
+    "controller": "SOTL",
+    "total_exited": 18879.498207346063,
+    "avg_delay": 39.2634895007938,
+    "total_queue": 4379.380078788629,
+    "wall_time": 1.5456558000005316
+  },
+  {
+    "scenario": "grid-4x4-v0",
+    "mode": "default",
+    "simulator": "LightSim",
+    "controller": "MaxPressure-mg5",
+    "total_exited": 15867.44574173125,
+    "avg_delay": 43.526575809659306,
+    "total_queue": 4749.224679282176,
+    "wall_time": 1.4747529000014765
+  },
+  {
+    "scenario": "grid-4x4-v0",
+    "mode": "default",
+    "simulator": "LightSim",
+    "controller": "MaxPressure-mg10",
+    "total_exited": 17059.67528453849,
+    "avg_delay": 42.733095714786586,
+    "total_queue": 4656.948575908048,
+    "wall_time": 1.4319712999858893
+  },
+  {
+    "scenario": "grid-4x4-v0",
+    "mode": "default",
+    "simulator": "LightSim",
+    "controller": "MaxPressure-mg15",
+    "total_exited": 17668.162528718767,
+    "avg_delay": 42.092701082616465,
+    "total_queue": 4634.514701118751,
+    "wall_time": 1.4133306000003358
+  },
+  {
+    "scenario": "grid-4x4-v0",
+    "mode": "default",
+    "simulator": "LightSim",
+    "controller": "LT-Aware-MP-mg5",
+    "total_exited": 19243.366844542146,
+    "avg_delay": 37.7432177590736,
+    "total_queue": 4084.972164745189,
+    "wall_time": 1.9922858999925666
+  },
+  {
+    "scenario": "grid-4x4-v0",
+    "mode": "default",
+    "simulator": "LightSim",
+    "controller": "LT-Aware-MP-mg10",
+    "total_exited": 19377.13255907022,
+    "avg_delay": 37.31367694454053,
+    "total_queue": 4050.608899582541,
+    "wall_time": 2.001909999991767
+  },
+  {
+    "scenario": "grid-4x4-v0",
+    "mode": "mesoscopic",
+    "simulator": "LightSim",
+    "controller": "FixedTime-30s",
+    "total_exited": 18416.536489913262,
+    "avg_delay": 38.943479012095686,
+    "total_queue": 4267.386152339865,
+    "wall_time": 1.475760100001935
+  },
+  {
+    "scenario": "grid-4x4-v0",
+    "mode": "mesoscopic",
+    "simulator": "LightSim",
+    "controller": "Webster",
+    "total_exited": 17004.505473363108,
+    "avg_delay": 39.37502673942959,
+    "total_queue": 4417.100753663798,
+    "wall_time": 1.4743378199986181
+  },
+  {
+    "scenario": "grid-4x4-v0",
+    "mode": "mesoscopic",
+    "simulator": "LightSim",
+    "controller": "SOTL",
+    "total_exited": 18778.520764903667,
+    "avg_delay": 39.50549870752552,
+    "total_queue": 4387.221737013444,
+    "wall_time": 1.6711049400008051
+  },
+  {
+    "scenario": "grid-4x4-v0",
+    "mode": "mesoscopic",
+    "simulator": "LightSim",
+    "controller": "MaxPressure-mg5",
+    "total_exited": 15539.088793873141,
+    "avg_delay": 44.59426860903128,
+    "total_queue": 4874.95687732996,
+    "wall_time": 1.6102640800003427
+  },
+  {
+    "scenario": "grid-4x4-v0",
+    "mode": "mesoscopic",
+    "simulator": "LightSim",
+    "controller": "MaxPressure-mg10",
+    "total_exited": 16810.859465565412,
+    "avg_delay": 43.199743187502314,
+    "total_queue": 4717.318530352757,
+    "wall_time": 1.566921860000002
+  },
+  {
+    "scenario": "grid-4x4-v0",
+    "mode": "mesoscopic",
+    "simulator": "LightSim",
+    "controller": "MaxPressure-mg15",
+    "total_exited": 17474.65601931781,
+    "avg_delay": 42.668330348700934,
+    "total_queue": 4679.12515761629,
+    "wall_time": 1.5425923800008605
+  },
+  {
+    "scenario": "grid-4x4-v0",
+    "mode": "mesoscopic",
+    "simulator": "LightSim",
+    "controller": "LT-Aware-MP-mg5",
+    "total_exited": 19328.655577003996,
+    "avg_delay": 32.06201910726934,
+    "total_queue": 3513.845604674406,
+    "wall_time": 2.123843100000522
+  },
+  {
+    "scenario": "grid-4x4-v0",
+    "mode": "mesoscopic",
+    "simulator": "LightSim",
+    "controller": "LT-Aware-MP-mg10",
+    "total_exited": 19315.408520644647,
+    "avg_delay": 34.457530688227976,
+    "total_queue": 3794.7593880824425,
+    "wall_time": 2.1180394200026056
+  },
+  {
+    "scenario": "grid-4x4-v0",
+    "mode": "sumo",
+    "simulator": "SUMO",
+    "controller": "FixedTimeController",
+    "total_exited": 1725.0,
+    "avg_delay": 10.653333333333334,
+    "total_queue": 34.0,
+    "wall_time": 2.0041937999922084
+  },
+  {
+    "scenario": "grid-4x4-v0",
+    "mode": "sumo",
+    "simulator": "SUMO",
+    "controller": "MaxPressureController",
+    "total_exited": 1744.0,
+    "avg_delay": 0.03571428571428571,
+    "total_queue": 1.0,
+    "wall_time": 1.936233300002641
   }
 ]
