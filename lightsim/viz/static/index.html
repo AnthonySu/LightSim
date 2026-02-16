@@ -1,0 +1,760 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>LightSim Visualization</title>
+<style>
+  :root {
+    --bg: #1a1a2e;
+    --panel: #16213e;
+    --border: #0f3460;
+    --text: #e0e0e0;
+    --accent: #00b4d8;
+    --green: #06d6a0;
+    --yellow: #ffd166;
+    --red: #ef476f;
+    --muted: #8892b0;
+  }
+  * { box-sizing: border-box; margin: 0; padding: 0; }
+  body {
+    font-family: 'Segoe UI', -apple-system, BlinkMacSystemFont, sans-serif;
+    background: var(--bg);
+    color: var(--text);
+    display: flex;
+    flex-direction: column;
+    height: 100vh;
+    overflow: hidden;
+  }
+
+  /* Header */
+  header {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    padding: 8px 20px;
+    background: var(--panel);
+    border-bottom: 1px solid var(--border);
+    flex-shrink: 0;
+  }
+  header h1 { font-size: 18px; font-weight: 600; }
+  header h1 span { color: var(--accent); }
+  .mode-badge {
+    font-size: 11px;
+    padding: 2px 8px;
+    border-radius: 10px;
+    background: var(--border);
+    color: var(--accent);
+    text-transform: uppercase;
+    letter-spacing: 0.5px;
+  }
+
+  /* Main layout */
+  .main {
+    display: flex;
+    flex: 1;
+    min-height: 0;
+  }
+
+  /* Canvas area */
+  .canvas-wrap {
+    flex: 1;
+    position: relative;
+    background: var(--bg);
+  }
+  canvas {
+    display: block;
+    width: 100%;
+    height: 100%;
+  }
+
+  /* Right panel */
+  .panel {
+    width: 280px;
+    background: var(--panel);
+    border-left: 1px solid var(--border);
+    display: flex;
+    flex-direction: column;
+    flex-shrink: 0;
+    overflow-y: auto;
+  }
+  .panel-section {
+    padding: 14px 16px;
+    border-bottom: 1px solid var(--border);
+  }
+  .panel-section h2 {
+    font-size: 11px;
+    text-transform: uppercase;
+    letter-spacing: 1px;
+    color: var(--muted);
+    margin-bottom: 10px;
+  }
+
+  /* Metrics */
+  .metric-row {
+    display: flex;
+    justify-content: space-between;
+    align-items: baseline;
+    margin-bottom: 6px;
+  }
+  .metric-label { font-size: 13px; color: var(--muted); }
+  .metric-value { font-size: 15px; font-weight: 600; font-variant-numeric: tabular-nums; }
+
+  /* Controls */
+  .controls {
+    display: flex;
+    gap: 6px;
+    flex-wrap: wrap;
+    margin-bottom: 8px;
+  }
+  button {
+    background: var(--border);
+    color: var(--text);
+    border: none;
+    padding: 6px 14px;
+    border-radius: 4px;
+    cursor: pointer;
+    font-size: 13px;
+    transition: background 0.15s;
+  }
+  button:hover { background: var(--accent); color: #000; }
+  button.active { background: var(--accent); color: #000; }
+  button:disabled { opacity: 0.4; cursor: default; }
+
+  .speed-control {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    margin-top: 6px;
+  }
+  .speed-control label { font-size: 13px; color: var(--muted); }
+  .speed-control input[type="range"] {
+    flex: 1;
+    accent-color: var(--accent);
+  }
+  .speed-val { font-size: 13px; font-weight: 600; min-width: 40px; text-align: right; }
+
+  /* Legend */
+  .legend {
+    display: flex;
+    flex-direction: column;
+    gap: 4px;
+  }
+  .legend-item {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    font-size: 12px;
+  }
+  .legend-swatch {
+    width: 24px;
+    height: 12px;
+    border-radius: 2px;
+    flex-shrink: 0;
+  }
+
+  /* Signal states panel */
+  .signal-list {
+    display: flex;
+    flex-direction: column;
+    gap: 6px;
+  }
+  .signal-item {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    font-size: 13px;
+  }
+  .signal-dot {
+    width: 12px;
+    height: 12px;
+    border-radius: 50%;
+    flex-shrink: 0;
+  }
+  .signal-dot.green { background: var(--green); box-shadow: 0 0 6px var(--green); }
+  .signal-dot.yellow { background: var(--yellow); box-shadow: 0 0 6px var(--yellow); }
+  .signal-dot.red { background: var(--red); box-shadow: 0 0 6px var(--red); }
+
+  /* Charts */
+  .chart-container {
+    height: 100px;
+    position: relative;
+  }
+  .chart-canvas {
+    width: 100%;
+    height: 100%;
+  }
+
+  /* Connection status */
+  .status-bar {
+    padding: 4px 20px;
+    font-size: 11px;
+    background: var(--panel);
+    border-top: 1px solid var(--border);
+    color: var(--muted);
+    display: flex;
+    align-items: center;
+    gap: 6px;
+    flex-shrink: 0;
+  }
+  .status-dot {
+    width: 6px;
+    height: 6px;
+    border-radius: 50%;
+    background: var(--red);
+  }
+  .status-dot.connected { background: var(--green); }
+</style>
+</head>
+<body>
+
+<header>
+  <h1><span>Light</span>Sim</h1>
+  <span class="mode-badge" id="modeBadge">connecting...</span>
+</header>
+
+<div class="main">
+  <div class="canvas-wrap">
+    <canvas id="netCanvas"></canvas>
+  </div>
+
+  <div class="panel">
+    <div class="panel-section">
+      <h2>Simulation</h2>
+      <div class="metric-row">
+        <span class="metric-label">Time</span>
+        <span class="metric-value" id="mTime">0.0 s</span>
+      </div>
+      <div class="metric-row">
+        <span class="metric-label">Step</span>
+        <span class="metric-value" id="mStep">0</span>
+      </div>
+      <div class="metric-row">
+        <span class="metric-label">Vehicles</span>
+        <span class="metric-value" id="mVehicles">0</span>
+      </div>
+      <div class="metric-row">
+        <span class="metric-label">Entered</span>
+        <span class="metric-value" id="mEntered">0</span>
+      </div>
+      <div class="metric-row">
+        <span class="metric-label">Exited</span>
+        <span class="metric-value" id="mExited">0</span>
+      </div>
+      <div class="metric-row">
+        <span class="metric-label">Avg Density</span>
+        <span class="metric-value" id="mDensity">0.000</span>
+      </div>
+    </div>
+
+    <div class="panel-section">
+      <h2>Controls</h2>
+      <div class="controls">
+        <button id="btnPlay" class="active">Play</button>
+        <button id="btnPause">Pause</button>
+        <button id="btnStep" disabled>Step</button>
+        <button id="btnReset">Reset</button>
+      </div>
+      <div class="speed-control">
+        <label>Speed</label>
+        <input type="range" id="speedSlider" min="1" max="100" value="10">
+        <span class="speed-val" id="speedVal">10x</span>
+      </div>
+    </div>
+
+    <div class="panel-section">
+      <h2>Signals</h2>
+      <div class="signal-list" id="signalList"></div>
+    </div>
+
+    <div class="panel-section">
+      <h2>Vehicles Over Time</h2>
+      <div class="chart-container">
+        <canvas class="chart-canvas" id="chartVehicles"></canvas>
+      </div>
+    </div>
+
+    <div class="panel-section">
+      <h2>Density Legend</h2>
+      <div class="legend" id="legend"></div>
+    </div>
+  </div>
+</div>
+
+<div class="status-bar">
+  <div class="status-dot" id="statusDot"></div>
+  <span id="statusText">Disconnected</span>
+</div>
+
+<script>
+(function() {
+  // ------------------------------------------------------------------
+  // State
+  // ------------------------------------------------------------------
+  let topology = null;
+  let ws = null;
+  let paused = false;
+  let speed = 10;
+  let connected = false;
+
+  // View transform (pan & zoom)
+  let viewX = 0, viewY = 0, viewScale = 1;
+  let isPanning = false, panStartX = 0, panStartY = 0;
+
+  // Chart data
+  const chartHistory = { time: [], vehicles: [], entered: [], exited: [] };
+  const MAX_HISTORY = 500;
+
+  // ------------------------------------------------------------------
+  // DOM
+  // ------------------------------------------------------------------
+  const canvas = document.getElementById('netCanvas');
+  const ctx = canvas.getContext('2d');
+  const chartCanvas = document.getElementById('chartVehicles');
+  const chartCtx = chartCanvas.getContext('2d');
+
+  const mTime = document.getElementById('mTime');
+  const mStep = document.getElementById('mStep');
+  const mVehicles = document.getElementById('mVehicles');
+  const mEntered = document.getElementById('mEntered');
+  const mExited = document.getElementById('mExited');
+  const mDensity = document.getElementById('mDensity');
+  const modeBadge = document.getElementById('modeBadge');
+  const signalList = document.getElementById('signalList');
+  const statusDot = document.getElementById('statusDot');
+  const statusText = document.getElementById('statusText');
+  const btnPlay = document.getElementById('btnPlay');
+  const btnPause = document.getElementById('btnPause');
+  const btnStep = document.getElementById('btnStep');
+  const btnReset = document.getElementById('btnReset');
+  const speedSlider = document.getElementById('speedSlider');
+  const speedVal = document.getElementById('speedVal');
+  const legendDiv = document.getElementById('legend');
+
+  // ------------------------------------------------------------------
+  // Color scale (green → yellow → red)
+  // ------------------------------------------------------------------
+  function densityColor(ratio) {
+    // ratio = density / jam_density, clamped 0..1
+    const r = Math.min(1, Math.max(0, ratio));
+    if (r < 0.5) {
+      // green → yellow
+      const t = r * 2;
+      return `rgb(${Math.round(6 + 249*t)}, ${Math.round(214 - 47*t)}, ${Math.round(160 - 58*t)})`;
+    } else {
+      // yellow → red
+      const t = (r - 0.5) * 2;
+      return `rgb(${Math.round(255 - 16*t)}, ${Math.round(167 - 96*t)}, ${Math.round(102 - 0*t)})`;
+    }
+  }
+
+  function buildLegend() {
+    const stops = [
+      { ratio: 0, label: 'Empty (0%)' },
+      { ratio: 0.25, label: 'Light (25%)' },
+      { ratio: 0.5, label: 'Moderate (50%)' },
+      { ratio: 0.75, label: 'Heavy (75%)' },
+      { ratio: 1.0, label: 'Jammed (100%)' },
+    ];
+    legendDiv.innerHTML = '';
+    for (const s of stops) {
+      const item = document.createElement('div');
+      item.className = 'legend-item';
+      item.innerHTML = `<div class="legend-swatch" style="background:${densityColor(s.ratio)}"></div><span>${s.label}</span>`;
+      legendDiv.appendChild(item);
+    }
+  }
+  buildLegend();
+
+  // ------------------------------------------------------------------
+  // Canvas resize
+  // ------------------------------------------------------------------
+  function resizeCanvas() {
+    const rect = canvas.parentElement.getBoundingClientRect();
+    const dpr = window.devicePixelRatio || 1;
+    canvas.width = rect.width * dpr;
+    canvas.height = rect.height * dpr;
+    ctx.setTransform(dpr, 0, 0, dpr, 0, 0);
+
+    // Chart canvas
+    const cr = chartCanvas.parentElement.getBoundingClientRect();
+    chartCanvas.width = cr.width * dpr;
+    chartCanvas.height = cr.height * dpr;
+    chartCtx.setTransform(dpr, 0, 0, dpr, 0, 0);
+  }
+  window.addEventListener('resize', resizeCanvas);
+  resizeCanvas();
+
+  // ------------------------------------------------------------------
+  // Auto-fit view to topology
+  // ------------------------------------------------------------------
+  function fitView() {
+    if (!topology || !topology.nodes.length) return;
+    let minX = Infinity, minY = Infinity, maxX = -Infinity, maxY = -Infinity;
+    for (const n of topology.nodes) {
+      minX = Math.min(minX, n.x);
+      minY = Math.min(minY, n.y);
+      maxX = Math.max(maxX, n.x);
+      maxY = Math.max(maxY, n.y);
+    }
+    const pad = 80;
+    const rect = canvas.parentElement.getBoundingClientRect();
+    const w = rect.width - pad * 2;
+    const h = rect.height - pad * 2;
+    const rangeX = maxX - minX || 1;
+    const rangeY = maxY - minY || 1;
+    viewScale = Math.min(w / rangeX, h / rangeY);
+    viewX = pad + (w - rangeX * viewScale) / 2 - minX * viewScale;
+    viewY = pad + (h - rangeY * viewScale) / 2 + maxY * viewScale;  // flip Y
+  }
+
+  function toScreen(x, y) {
+    return [viewX + x * viewScale, viewY - y * viewScale];
+  }
+
+  // ------------------------------------------------------------------
+  // Drawing
+  // ------------------------------------------------------------------
+  let lastFrame = null;
+
+  function draw() {
+    const rect = canvas.parentElement.getBoundingClientRect();
+    const w = rect.width;
+    const h = rect.height;
+    ctx.clearRect(0, 0, w, h);
+
+    if (!topology || !lastFrame) {
+      ctx.fillStyle = '#8892b0';
+      ctx.font = '16px sans-serif';
+      ctx.textAlign = 'center';
+      ctx.fillText('Waiting for data...', w / 2, h / 2);
+      return;
+    }
+
+    const density = lastFrame.density;
+    const signals = lastFrame.signals || {};
+
+    // Draw links as sequences of colored cells
+    for (const link of topology.links) {
+      const [x1, y1] = toScreen(link.from_x, link.from_y);
+      const [x2, y2] = toScreen(link.to_x, link.to_y);
+      const dx = x2 - x1;
+      const dy = y2 - y1;
+      const len = Math.sqrt(dx * dx + dy * dy);
+      if (len < 1) continue;
+      const nx = dx / len;
+      const ny = dy / len;
+      // Perpendicular for width
+      const px = -ny;
+      const py = nx;
+      const cellWidth = Math.max(4, Math.min(16, viewScale * 8));
+      const laneOffset = link.lanes > 1 ? cellWidth * 0.3 : 0;
+
+      const nCells = link.cells.length;
+      const cellLen = len / nCells;
+
+      for (let i = 0; i < nCells; i++) {
+        const cid = link.cells[i];
+        const d = density[cid] || 0;
+        const kj = topology.cells[cid] ? topology.cells[cid].kj : 0.15;
+        const ratio = kj > 0 ? d / kj : 0;
+
+        const cx = x1 + nx * cellLen * (i + 0.5);
+        const cy = y1 + ny * cellLen * (i + 0.5);
+
+        ctx.fillStyle = densityColor(ratio);
+        ctx.strokeStyle = 'rgba(0,0,0,0.3)';
+        ctx.lineWidth = 0.5;
+
+        // Draw cell as a rectangle aligned to the link
+        ctx.save();
+        ctx.translate(cx, cy);
+        ctx.rotate(Math.atan2(dy, dx));
+        const cw = cellLen - 1;
+        const ch = cellWidth;
+        ctx.fillRect(-cw / 2, -ch / 2, cw, ch);
+        ctx.strokeRect(-cw / 2, -ch / 2, cw, ch);
+        ctx.restore();
+      }
+    }
+
+    // Draw nodes
+    for (const node of topology.nodes) {
+      const [sx, sy] = toScreen(node.x, node.y);
+      const r = node.type === 'signalized' ? 10 : 5;
+
+      if (node.type === 'signalized') {
+        // Draw signal state
+        const sig = signals[String(node.id)];
+        let color = '#555';
+        if (sig) {
+          if (sig.in_all_red) color = '#ef476f';
+          else if (sig.in_yellow) color = '#ffd166';
+          else color = '#06d6a0';
+        }
+        // Outer glow
+        ctx.beginPath();
+        ctx.arc(sx, sy, r + 4, 0, Math.PI * 2);
+        ctx.fillStyle = color + '40';
+        ctx.fill();
+        // Inner circle
+        ctx.beginPath();
+        ctx.arc(sx, sy, r, 0, Math.PI * 2);
+        ctx.fillStyle = color;
+        ctx.fill();
+        ctx.strokeStyle = '#fff';
+        ctx.lineWidth = 1.5;
+        ctx.stroke();
+
+        // Phase label
+        if (sig) {
+          ctx.fillStyle = '#fff';
+          ctx.font = 'bold 9px sans-serif';
+          ctx.textAlign = 'center';
+          ctx.textBaseline = 'middle';
+          ctx.fillText('P' + sig.phase_idx, sx, sy);
+        }
+      } else if (node.type === 'origin') {
+        ctx.beginPath();
+        ctx.arc(sx, sy, r, 0, Math.PI * 2);
+        ctx.fillStyle = '#00b4d8';
+        ctx.fill();
+      } else if (node.type === 'destination') {
+        ctx.beginPath();
+        ctx.arc(sx, sy, r, 0, Math.PI * 2);
+        ctx.fillStyle = '#8892b0';
+        ctx.fill();
+      } else {
+        ctx.beginPath();
+        ctx.arc(sx, sy, r, 0, Math.PI * 2);
+        ctx.fillStyle = '#555';
+        ctx.fill();
+      }
+    }
+  }
+
+  // ------------------------------------------------------------------
+  // Mini chart
+  // ------------------------------------------------------------------
+  function drawChart() {
+    const rect = chartCanvas.parentElement.getBoundingClientRect();
+    const w = rect.width;
+    const h = rect.height;
+    chartCtx.clearRect(0, 0, w, h);
+
+    const data = chartHistory.vehicles;
+    if (data.length < 2) return;
+
+    const maxVal = Math.max(1, ...data);
+    const pad = { l: 30, r: 6, t: 4, b: 14 };
+    const cw = w - pad.l - pad.r;
+    const ch = h - pad.t - pad.b;
+
+    // Grid lines
+    chartCtx.strokeStyle = '#0f346040';
+    chartCtx.lineWidth = 0.5;
+    for (let i = 0; i <= 4; i++) {
+      const y = pad.t + ch * (1 - i / 4);
+      chartCtx.beginPath();
+      chartCtx.moveTo(pad.l, y);
+      chartCtx.lineTo(pad.l + cw, y);
+      chartCtx.stroke();
+    }
+
+    // Y-axis labels
+    chartCtx.fillStyle = '#8892b0';
+    chartCtx.font = '9px sans-serif';
+    chartCtx.textAlign = 'right';
+    chartCtx.textBaseline = 'middle';
+    for (let i = 0; i <= 4; i++) {
+      const y = pad.t + ch * (1 - i / 4);
+      chartCtx.fillText(Math.round(maxVal * i / 4).toString(), pad.l - 4, y);
+    }
+
+    // Line
+    chartCtx.beginPath();
+    chartCtx.strokeStyle = '#00b4d8';
+    chartCtx.lineWidth = 1.5;
+    for (let i = 0; i < data.length; i++) {
+      const x = pad.l + (i / (data.length - 1)) * cw;
+      const y = pad.t + ch * (1 - data[i] / maxVal);
+      if (i === 0) chartCtx.moveTo(x, y);
+      else chartCtx.lineTo(x, y);
+    }
+    chartCtx.stroke();
+
+    // Fill under
+    chartCtx.lineTo(pad.l + cw, pad.t + ch);
+    chartCtx.lineTo(pad.l, pad.t + ch);
+    chartCtx.closePath();
+    chartCtx.fillStyle = '#00b4d820';
+    chartCtx.fill();
+  }
+
+  // ------------------------------------------------------------------
+  // Update UI from frame
+  // ------------------------------------------------------------------
+  function onFrame(frame) {
+    lastFrame = frame;
+    const m = frame.metrics || {};
+
+    mTime.textContent = (m.time || 0).toFixed(1) + ' s';
+    mStep.textContent = frame.step || 0;
+    mVehicles.textContent = (m.total_vehicles || 0).toFixed(1);
+    mEntered.textContent = Math.round(m.total_entered || 0);
+    mExited.textContent = Math.round(m.total_exited || 0);
+    mDensity.textContent = (m.avg_density || 0).toFixed(4);
+
+    // Chart history
+    chartHistory.time.push(m.time || 0);
+    chartHistory.vehicles.push(m.total_vehicles || 0);
+    if (chartHistory.time.length > MAX_HISTORY) {
+      chartHistory.time.shift();
+      chartHistory.vehicles.shift();
+    }
+
+    // Signals
+    updateSignals(frame.signals || {});
+
+    draw();
+    drawChart();
+  }
+
+  function updateSignals(signals) {
+    signalList.innerHTML = '';
+    const keys = Object.keys(signals).sort((a, b) => Number(a) - Number(b));
+    for (const nid of keys) {
+      const s = signals[nid];
+      let cls = 'green';
+      let label = `Phase ${s.phase_idx}`;
+      if (s.in_all_red) { cls = 'red'; label = 'All Red'; }
+      else if (s.in_yellow) { cls = 'yellow'; label = 'Yellow'; }
+
+      const item = document.createElement('div');
+      item.className = 'signal-item';
+      item.innerHTML = `<div class="signal-dot ${cls}"></div><span>Node ${nid}: ${label} (${s.time_in_phase.toFixed(0)}s)</span>`;
+      signalList.appendChild(item);
+    }
+  }
+
+  // ------------------------------------------------------------------
+  // Pan & Zoom
+  // ------------------------------------------------------------------
+  canvas.addEventListener('wheel', (e) => {
+    e.preventDefault();
+    const rect = canvas.getBoundingClientRect();
+    const mx = e.clientX - rect.left;
+    const my = e.clientY - rect.top;
+    const factor = e.deltaY < 0 ? 1.15 : 1 / 1.15;
+    viewX = mx - (mx - viewX) * factor;
+    viewY = my - (my - viewY) * factor;
+    viewScale *= factor;
+    draw();
+  }, { passive: false });
+
+  canvas.addEventListener('mousedown', (e) => {
+    isPanning = true;
+    panStartX = e.clientX - viewX;
+    panStartY = e.clientY - viewY;
+    canvas.style.cursor = 'grabbing';
+  });
+  window.addEventListener('mousemove', (e) => {
+    if (!isPanning) return;
+    viewX = e.clientX - panStartX;
+    viewY = e.clientY - panStartY;
+    draw();
+  });
+  window.addEventListener('mouseup', () => {
+    isPanning = false;
+    canvas.style.cursor = 'default';
+  });
+
+  // ------------------------------------------------------------------
+  // Controls
+  // ------------------------------------------------------------------
+  btnPlay.addEventListener('click', () => {
+    paused = false;
+    btnPlay.classList.add('active');
+    btnPause.classList.remove('active');
+    btnStep.disabled = true;
+    send({ cmd: 'resume' });
+  });
+  btnPause.addEventListener('click', () => {
+    paused = true;
+    btnPause.classList.add('active');
+    btnPlay.classList.remove('active');
+    btnStep.disabled = false;
+    send({ cmd: 'pause' });
+  });
+  btnStep.addEventListener('click', () => {
+    send({ cmd: 'step' });
+  });
+  btnReset.addEventListener('click', () => {
+    chartHistory.time.length = 0;
+    chartHistory.vehicles.length = 0;
+    send({ cmd: 'reset' });
+  });
+  speedSlider.addEventListener('input', () => {
+    speed = parseInt(speedSlider.value);
+    speedVal.textContent = speed + 'x';
+    send({ cmd: 'speed', value: speed });
+  });
+
+  // ------------------------------------------------------------------
+  // WebSocket
+  // ------------------------------------------------------------------
+  function send(obj) {
+    if (ws && ws.readyState === WebSocket.OPEN) {
+      ws.send(JSON.stringify(obj));
+    }
+  }
+
+  function connect() {
+    const proto = location.protocol === 'https:' ? 'wss:' : 'ws:';
+    ws = new WebSocket(`${proto}//${location.host}/ws`);
+
+    ws.onopen = () => {
+      connected = true;
+      statusDot.classList.add('connected');
+      statusText.textContent = 'Connected';
+    };
+
+    ws.onclose = () => {
+      connected = false;
+      statusDot.classList.remove('connected');
+      statusText.textContent = 'Disconnected — retrying...';
+      setTimeout(connect, 2000);
+    };
+
+    ws.onerror = () => {
+      statusText.textContent = 'Connection error';
+    };
+
+    ws.onmessage = (event) => {
+      const msg = JSON.parse(event.data);
+      if (msg.type === 'topology') {
+        topology = msg.data;
+        fitView();
+        // Fetch mode info
+        fetch('/api/info').then(r => r.json()).then(info => {
+          modeBadge.textContent = info.mode + ' | ' + info.scenario;
+        }).catch(() => {});
+        draw();
+      } else if (msg.type === 'frame') {
+        onFrame(msg);
+      } else if (msg.type === 'end') {
+        modeBadge.textContent += ' (ended)';
+        btnPause.click();
+      }
+    };
+  }
+
+  connect();
+
+  // Initial draw
+  draw();
+  drawChart();
+})();
+</script>
+</body>
+</html>
