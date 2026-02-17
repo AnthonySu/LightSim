@@ -1,9 +1,9 @@
 """Cross-validation: compare LightSim vs SUMO under identical controllers.
 
-Runs FixedTime and MaxPressure controllers in both LightSim and SUMO on
-single-intersection and grid-4x4 scenarios. Compares throughput, delay,
-and queue metrics to verify that the relative ordering of controllers
-is preserved across simulators.
+Runs multiple controllers in both LightSim and SUMO on single-intersection
+and grid-4x4 scenarios. Compares throughput, delay, and queue metrics to
+verify that the relative ordering of controllers is preserved across
+simulators.
 
 Usage::
 
@@ -21,12 +21,19 @@ import textwrap
 import time
 from dataclasses import dataclass, asdict
 from pathlib import Path
+from xml.etree import ElementTree
 
 import numpy as np
 
 from ..core.demand import DemandProfile
 from ..core.engine import SimulationEngine
-from ..core.signal import FixedTimeController, MaxPressureController
+from ..core.signal import (
+    FixedTimeController,
+    LostTimeAwareMaxPressureController,
+    MaxPressureController,
+    SOTLController,
+    WebsterController,
+)
 from ..core.types import LinkID, NodeID, NodeType
 from ..utils.metrics import compute_link_delay
 from .sumo_comparison import _find_sumo_binary
@@ -89,63 +96,194 @@ def _run_lightsim(scenario_name: str, controller, episode_steps: int = 3600,
     )
 
 
+def _is_green_phase(state: str) -> bool:
+    """Return True if phase state contains at least one 'G' or 'g'."""
+    return any(c in ('G', 'g') for c in state)
+
+
+# Track when each TLS entered its current phase: {tls_id: (phase_idx, start_time)}
+_phase_entry: dict[str, tuple[int, float]] = {}
+
+
+def _get_time_in_phase(traci_mod, tls_id: str) -> float:
+    """Return seconds spent in the current phase, tracked across setPhaseDuration calls."""
+    current = traci_mod.trafficlight.getPhase(tls_id)
+    sim_time = traci_mod.simulation.getTime()
+    prev = _phase_entry.get(tls_id)
+    if prev is None or prev[0] != current:
+        _phase_entry[tls_id] = (current, sim_time)
+        return 0.0
+    return sim_time - prev[1]
+
+
+def _traci_maxpressure_step(traci_mod, min_green: float = 15.0):
+    """One-step MaxPressure controller via TraCI.
+
+    Reads queue counts per incoming lane, computes pressure for each green
+    phase, and holds/ends the current green to favour the highest-pressure
+    direction.  Yellow/all-red phases are never interrupted.
+    """
+    for tls_id in traci_mod.trafficlight.getIDList():
+        logic = traci_mod.trafficlight.getAllProgramLogics(tls_id)[0]
+        n_phases = len(logic.phases)
+        current = traci_mod.trafficlight.getPhase(tls_id)
+        current_state = logic.phases[current].state
+
+        time_in_phase = _get_time_in_phase(traci_mod, tls_id)
+
+        # Only act during green phases — let yellow/all-red run naturally
+        if not _is_green_phase(current_state):
+            continue
+
+        # Identify green phases and compute pressure for each
+        controlled_links = traci_mod.trafficlight.getControlledLinks(tls_id)
+        green_phases = []
+        phase_pressure = {}
+        for pi in range(n_phases):
+            state = logic.phases[pi].state
+            if not _is_green_phase(state):
+                continue
+            green_phases.append(pi)
+            pressure = 0.0
+            for li, link_info in enumerate(controlled_links):
+                if li < len(state) and state[li] in ('G', 'g'):
+                    for in_lane, out_lane, _ in link_info:
+                        try:
+                            in_halt = traci_mod.lane.getLastStepHaltingNumber(
+                                in_lane)
+                            out_halt = traci_mod.lane.getLastStepHaltingNumber(
+                                out_lane)
+                            pressure += max(0, in_halt - out_halt)
+                        except Exception:
+                            pass
+            phase_pressure[pi] = pressure
+
+        if not green_phases:
+            continue
+
+        best_phase = max(green_phases, key=lambda p: phase_pressure[p])
+
+        if time_in_phase < min_green:
+            # Haven't served min_green yet — hold
+            traci_mod.trafficlight.setPhaseDuration(
+                tls_id, min_green - time_in_phase)
+        elif best_phase != current:
+            # A different phase has higher pressure — end current green
+            traci_mod.trafficlight.setPhaseDuration(tls_id, 0)
+        else:
+            # Current phase has highest pressure — extend by 5s
+            traci_mod.trafficlight.setPhaseDuration(tls_id, 5.0)
+
+
+def _traci_sotl_step(traci_mod, mu: float = 5.0,
+                     min_green: float = 10.0, max_green: float = 60.0):
+    """One-step SOTL controller via TraCI.
+
+    Extends green while vehicles are approaching the stop bar.
+    Switches when no approaching vehicles detected or max_green reached.
+    Yellow/all-red phases are never interrupted.
+    """
+    for tls_id in traci_mod.trafficlight.getIDList():
+        logic = traci_mod.trafficlight.getAllProgramLogics(tls_id)[0]
+        current = traci_mod.trafficlight.getPhase(tls_id)
+        current_state = logic.phases[current].state
+
+        time_in_phase = _get_time_in_phase(traci_mod, tls_id)
+
+        # Only act during green phases
+        if not _is_green_phase(current_state):
+            continue
+
+        controlled_links = traci_mod.trafficlight.getControlledLinks(tls_id)
+
+        # Count approaching vehicles on current green lanes
+        approaching = 0
+        for li, link_info in enumerate(controlled_links):
+            if li < len(current_state) and current_state[li] in ('G', 'g'):
+                for in_lane, _, _ in link_info:
+                    try:
+                        approaching += traci_mod.lane.getLastStepVehicleNumber(
+                            in_lane)
+                    except Exception:
+                        pass
+
+        # Decision: end current green or extend it
+        if time_in_phase < min_green:
+            # Haven't served min_green — hold
+            traci_mod.trafficlight.setPhaseDuration(
+                tls_id, min_green - time_in_phase)
+        elif time_in_phase >= max_green:
+            # Exceeded max_green — force switch
+            traci_mod.trafficlight.setPhaseDuration(tls_id, 0)
+        elif approaching <= mu:
+            # No vehicles approaching — switch
+            traci_mod.trafficlight.setPhaseDuration(tls_id, 0)
+        else:
+            # Vehicles still approaching — extend green by 5s
+            traci_mod.trafficlight.setPhaseDuration(tls_id, 5.0)
+
+
 def _run_sumo_with_controller(scenario_name: str, controller_name: str,
                               sim_seconds: int = 3600) -> CrossValResult:
     """Run a SUMO scenario with a specified controller type."""
     sumo_bin = _find_sumo_binary()
-    bin_dir = Path(sumo_bin).parent
+
+    # TraCI-based controllers use static TLS as base to avoid conflicts
+    traci_controller = controller_name in (
+        "MaxPressureController", "SOTLController",
+    )
+    sumo_tls_type = controller_name
+    if traci_controller:
+        sumo_tls_type = "FixedTimeController"  # Static base — TraCI manages switching
 
     with tempfile.TemporaryDirectory() as tmpdir:
         tmppath = Path(tmpdir)
 
         if scenario_name in ("single-intersection-v0", "single-intersection"):
             cfg = _build_sumo_single_intersection(
-                tmppath, sumo_bin, controller_name, sim_seconds
+                tmppath, sumo_bin, sumo_tls_type, sim_seconds
             )
         elif scenario_name in ("grid-4x4-v0", "grid-4x4"):
             cfg = _build_sumo_grid(
-                tmppath, sumo_bin, 4, 4, controller_name, sim_seconds
+                tmppath, sumo_bin, 4, 4, sumo_tls_type, sim_seconds
             )
         else:
             raise ValueError(f"Unknown scenario for SUMO cross-val: {scenario_name}")
 
-        # Run SUMO with traci to collect metrics
         try:
             import traci
         except ImportError:
             raise ImportError("traci required: pip install traci")
 
         t0 = time.perf_counter()
+        _phase_entry.clear()  # Reset phase timers for new simulation
         traci.start([sumo_bin, "-c", str(cfg), "--no-warnings", "true"])
 
-        total_departed = 0
         total_arrived = 0
-        total_waiting = 0
-        step_count = 0
 
-        for _ in range(sim_seconds):
+        for step in range(sim_seconds):
+            # Apply TraCI-based controller before stepping
+            if traci_controller and step > 0:
+                if controller_name == "MaxPressureController":
+                    _traci_maxpressure_step(traci, min_green=15.0)
+                elif controller_name == "SOTLController":
+                    _traci_sotl_step(traci, min_green=10.0, max_green=60.0)
+
             traci.simulationStep()
-            total_departed += traci.simulation.getDepartedNumber()
             total_arrived += traci.simulation.getArrivedNumber()
-            total_waiting += traci.simulation.getMinExpectedNumber()
-            step_count += 1
 
-        # Get final stats
+        # Collect final metrics
         total_exited = total_arrived
-        # Average waiting time from all vehicles that completed trips
         avg_delay = 0.0
         try:
-            # Use mean travel time from tripinfo if available
             vehicle_ids = traci.vehicle.getIDList()
             if vehicle_ids:
-                delays = []
-                for vid in vehicle_ids[:100]:  # sample up to 100
-                    delays.append(traci.vehicle.getWaitingTime(vid))
+                delays = [traci.vehicle.getWaitingTime(vid)
+                          for vid in vehicle_ids[:200]]
                 avg_delay = float(np.mean(delays)) if delays else 0.0
         except Exception:
             pass
 
-        # Queue = vehicles currently waiting
         total_queue = 0.0
         try:
             for vid in traci.vehicle.getIDList():
@@ -249,96 +387,147 @@ def _build_sumo_single_intersection(tmpdir: Path, sumo_bin: str,
 
 def _build_sumo_grid(tmpdir: Path, sumo_bin: str,
                      rows: int, cols: int,
-                     controller: str, sim_seconds: int) -> Path:
-    """Build SUMO config for a grid network."""
+                     controller: str, sim_seconds: int,
+                     demand_rate: float = 0.15) -> Path:
+    """Build SUMO config for a grid network matching LightSim's structure.
+
+    Creates a (rows+2)x(cols+2) grid with boundary priority nodes and
+    interior signalized nodes, matching LightSim's grid_4x4 scenario exactly.
+    Demand is injected from each boundary node at ``demand_rate`` veh/s.
+    """
+    nod_xml = tmpdir / "nodes.nod.xml"
+    edg_xml = tmpdir / "edges.edg.xml"
     net_xml = tmpdir / "net.net.xml"
     rou_xml = tmpdir / "routes.rou.xml"
     cfg_xml = tmpdir / "sim.sumocfg"
 
     tls_type = "static" if controller == "FixedTimeController" else "actuated"
 
-    netgenerate = str(Path(sumo_bin).parent / (
-        "netgenerate.exe" if sys.platform == "win32" else "netgenerate"
+    total_rows = rows + 2
+    total_cols = cols + 2
+    spacing = 300  # meters
+
+    def nid(r: int, c: int) -> str:
+        return f"n{r}_{c}"
+
+    # --- Nodes ---
+    node_lines = ['<nodes>']
+    for r in range(total_rows):
+        for c in range(total_cols):
+            is_corner = (r in (0, total_rows - 1)) and (c in (0, total_cols - 1))
+            if is_corner:
+                continue
+            is_boundary = r == 0 or r == total_rows - 1 or c == 0 or c == total_cols - 1
+            # Check if boundary node connects to interior
+            if is_boundary:
+                has_interior = False
+                if r == 0 and 1 <= c <= cols:
+                    has_interior = True
+                elif r == total_rows - 1 and 1 <= c <= cols:
+                    has_interior = True
+                elif c == 0 and 1 <= r <= rows:
+                    has_interior = True
+                elif c == total_cols - 1 and 1 <= r <= rows:
+                    has_interior = True
+                if not has_interior:
+                    continue
+            ntype = "priority" if is_boundary else "traffic_light"
+            tl_attr = f' tlType="{tls_type}"' if ntype == "traffic_light" else ""
+            x = c * spacing
+            y = r * spacing
+            node_lines.append(
+                f'    <node id="{nid(r, c)}" x="{x}" y="{y}" '
+                f'type="{ntype}"{tl_attr}/>'
+            )
+    node_lines.append('</nodes>')
+    nod_xml.write_text("\n".join(node_lines))
+
+    # --- Edges ---
+    edge_lines = ['<edges>']
+    directions = [(0, 1), (0, -1), (1, 0), (-1, 0)]
+
+    # Collect valid node IDs
+    valid_nodes = set()
+    tree = ElementTree.fromstring("\n".join(node_lines))
+    for n in tree.findall("node"):
+        valid_nodes.add(n.get("id"))
+
+    for r in range(total_rows):
+        for c in range(total_cols):
+            fid = nid(r, c)
+            if fid not in valid_nodes:
+                continue
+            for dr, dc in directions:
+                nr, nc = r + dr, c + dc
+                tid = nid(nr, nc)
+                if tid in valid_nodes:
+                    eid = f"{fid}{tid}"
+                    edge_lines.append(
+                        f'    <edge id="{eid}" from="{fid}" to="{tid}" '
+                        f'numLanes="2" speed="13.89"/>'
+                    )
+    edge_lines.append('</edges>')
+    edg_xml.write_text("\n".join(edge_lines))
+
+    # --- Build net ---
+    netconvert = str(Path(sumo_bin).parent / (
+        "netconvert.exe" if sys.platform == "win32" else "netconvert"
     ))
     subprocess.run(
-        [netgenerate, "--grid",
-         "--grid.x-number", str(cols),
-         "--grid.y-number", str(rows),
-         "--grid.x-length", "300",
-         "--grid.y-length", "300",
-         "--default.lanenumber", "2",
-         "--default.speed", "13.89",
-         "--tls.guess", "true",
-         f"--tls.default-type={tls_type}",
-         "-o", str(net_xml),
-         "--no-warnings", "true"],
+        [netconvert, "-n", str(nod_xml), "-e", str(edg_xml),
+         "-o", str(net_xml), "--no-warnings", "true"],
         check=True, capture_output=True,
     )
 
-    # Generate simple flow-based demand
-    flow_lines = [
+    # --- Routes: inject demand from each boundary→interior edge ---
+    # LightSim's grid has 2 origin→signalized links per boundary node
+    # (a duplicate in the network builder), each at demand_rate.
+    # Match effective input: 2 × demand_rate per boundary access point.
+    veh_per_hour = int(2 * demand_rate * 3600)
+    route_lines = [
         '<routes>',
         '    <vType id="car" length="5" maxSpeed="13.89" accel="2.6" decel="4.5"/>',
     ]
-    # Create flows from boundary edges
     fid = 0
-    for i in range(cols):
-        # South to North
-        flow_lines.append(
-            f'    <flow id="f_SN{i}" type="car" '
-            f'from="bottom{i}_0" to="{rows-2}_top{i}" '
-            f'begin="0" end="{sim_seconds}" vehsPerHour="360" departLane="best"/>'
-        )
-        # North to South
-        flow_lines.append(
-            f'    <flow id="f_NS{i}" type="car" '
-            f'from="top{i}_{rows-2}" to="0_bottom{i}" '
-            f'begin="0" end="{sim_seconds}" vehsPerHour="360" departLane="best"/>'
-        )
-    for j in range(rows):
-        # West to East
-        flow_lines.append(
-            f'    <flow id="f_WE{j}" type="car" '
-            f'from="left{j}_0" to="{cols-2}_right{j}" '
-            f'begin="0" end="{sim_seconds}" vehsPerHour="360" departLane="best"/>'
-        )
-        # East to West
-        flow_lines.append(
-            f'    <flow id="f_EW{j}" type="car" '
-            f'from="right{j}_{cols-2}" to="0_left{j}" '
-            f'begin="0" end="{sim_seconds}" vehsPerHour="360" departLane="best"/>'
-        )
-    flow_lines.append('</routes>')
-
-    # Use randomTrips as fallback since edge naming is unpredictable
-    tools_dir = Path(sumo_bin).parent.parent / "tools"
-    random_trips = tools_dir / "randomTrips.py"
-    if not random_trips.exists():
-        try:
-            import sumolib
-            sumolib_dir = Path(sumolib.__file__).parent
-            random_trips = sumolib_dir.parent / "sumo" / "tools" / "randomTrips.py"
-        except ImportError:
-            pass
-    if not random_trips.exists():
-        random_trips = Path(sumo_bin).parent.parent / "share" / "sumo" / "tools" / "randomTrips.py"
-
-    trip_xml = tmpdir / "trips.trips.xml"
-    if random_trips.exists():
-        total_vehs = int(sim_seconds * 0.5)
-        subprocess.run(
-            [sys.executable, str(random_trips),
-             "-n", str(net_xml),
-             "-o", str(trip_xml),
-             "-e", str(sim_seconds),
-             "-p", str(max(1, sim_seconds / total_vehs)),
-             "--fringe-factor", "100",
-             "--validate"],
-            check=True, capture_output=True,
-        )
-        rou_xml = trip_xml
-    else:
-        rou_xml.write_text("\n".join(flow_lines))
+    for r in range(total_rows):
+        for c in range(total_cols):
+            is_boundary = r == 0 or r == total_rows - 1 or c == 0 or c == total_cols - 1
+            if not is_boundary:
+                continue
+            src = nid(r, c)
+            if src not in valid_nodes:
+                continue
+            for dr, dc in directions:
+                nr, nc = r + dr, c + dc
+                # Only create flows from boundary → interior (signalized) nodes
+                is_interior = 1 <= nr <= rows and 1 <= nc <= cols
+                if not is_interior:
+                    continue
+                dst = nid(nr, nc)
+                if dst not in valid_nodes:
+                    continue
+                from_edge = f"{src}{dst}"
+                # Find opposite boundary node for destination
+                # Travel in the same direction until hitting boundary
+                opp_r, opp_c = nr, nc
+                while 1 <= opp_r <= rows and 1 <= opp_c <= cols:
+                    opp_r += dr
+                    opp_c += dc
+                # Back up one step to get last interior node
+                last_r, last_c = opp_r - dr, opp_c - dc
+                opp_nid = nid(opp_r, opp_c)
+                last_nid = nid(last_r, last_c)
+                if opp_nid in valid_nodes and last_nid in valid_nodes:
+                    to_edge = f"{last_nid}{opp_nid}"
+                    route_lines.append(
+                        f'    <flow id="f{fid}" type="car" '
+                        f'from="{from_edge}" to="{to_edge}" '
+                        f'begin="0" end="{sim_seconds}" '
+                        f'vehsPerHour="{veh_per_hour}" departLane="best"/>'
+                    )
+                    fid += 1
+    route_lines.append('</routes>')
+    rou_xml.write_text("\n".join(route_lines))
 
     cfg_xml.write_text(textwrap.dedent(f"""\
         <configuration>
@@ -368,34 +557,59 @@ def run_cross_validation() -> list[CrossValResult]:
     """Run cross-validation across simulators, scenarios, and controllers."""
     results = []
 
-    scenarios = ["single-intersection-v0"]
+    scenarios = ["single-intersection-v0", "grid-4x4-v0"]
+
+    # LightSim controllers
     controllers_ls = [
         ("FixedTimeController", FixedTimeController()),
-        ("MaxPressureController", MaxPressureController(min_green=5.0)),
+        ("MaxPressureController", MaxPressureController(min_green=15.0)),
+        ("SOTLController", SOTLController()),
+        ("WebsterController", WebsterController()),
+        ("LT-Aware-MP", LostTimeAwareMaxPressureController(min_green=5.0)),
+    ]
+
+    # SUMO controllers (name must match what _run_sumo_with_controller expects)
+    sumo_controllers = [
+        "FixedTimeController",      # SUMO static TLS
+        "ActuatedController",       # SUMO built-in actuated
+        "MaxPressureController",    # TraCI MaxPressure
+        "SOTLController",           # TraCI SOTL
     ]
 
     for scenario in scenarios:
+        print(f"\n{'#' * 60}")
+        print(f"  SCENARIO: {scenario}")
+        print(f"{'#' * 60}")
+
+        # LightSim
+        print(f"\n  [LightSim]")
         for ctrl_name, ctrl_obj in controllers_ls:
-            print(f"  LightSim / {scenario} / {ctrl_name}...", flush=True)
+            print(f"    {ctrl_name}...", end="", flush=True)
             r = _run_lightsim(scenario, ctrl_obj)
             results.append(r)
-            print(f"    exited={r.total_exited:.0f}, delay={r.avg_delay:.2f}, "
+            print(f"  exited={r.total_exited:.0f}, delay={r.avg_delay:.2f}, "
                   f"queue={r.total_queue:.1f}")
 
-            print(f"  SUMO / {scenario} / {ctrl_name}...", flush=True)
+        # SUMO
+        print(f"\n  [SUMO]")
+        for ctrl_name in sumo_controllers:
+            print(f"    {ctrl_name}...", end="", flush=True)
             try:
                 r = _run_sumo_with_controller(scenario, ctrl_name)
                 results.append(r)
-                print(f"    exited={r.total_exited:.0f}, delay={r.avg_delay:.2f}, "
+                print(f"  exited={r.total_exited:.0f}, delay={r.avg_delay:.2f}, "
                       f"queue={r.total_queue:.1f}")
             except Exception as e:
-                print(f"    SUMO failed: {e}")
+                print(f"  FAILED: {e}")
 
     return results
 
 
 def main():
-    print("Cross-Validation: LightSim vs SUMO\n")
+    print("=" * 80)
+    print("Cross-Validation: LightSim vs SUMO")
+    print("Scenarios: single-intersection, grid-4x4")
+    print("=" * 80)
 
     try:
         _find_sumo_binary()
@@ -405,22 +619,45 @@ def main():
 
     results = run_cross_validation()
 
-    # Print summary
-    print("\n" + "=" * 80)
-    print("Cross-Validation Results")
-    print("=" * 80)
-    header = f"{'Simulator':<12} {'Scenario':<25} {'Controller':<22} {'Exited':>8} {'Delay':>8} {'Queue':>8}"
+    # Print summary table
+    print(f"\n\n{'=' * 90}")
+    print("SUMMARY")
+    print("=" * 90)
+    header = (f"{'Scenario':<25} {'Simulator':<12} {'Controller':<22} "
+              f"{'Exited':>8} {'Delay':>8} {'Queue':>8}")
     print(header)
-    print("-" * len(header))
-    for r in results:
-        print(f"{r.simulator:<12} {r.scenario:<25} {r.controller:<22} "
+    print("-" * 90)
+    for r in sorted(results, key=lambda x: (x.scenario, x.simulator, x.controller)):
+        print(f"{r.scenario:<25} {r.simulator:<12} {r.controller:<22} "
               f"{r.total_exited:>8.0f} {r.avg_delay:>8.2f} {r.total_queue:>8.1f}")
+
+    # Ranking comparison
+    print(f"\n{'=' * 90}")
+    print("RANKING COMPARISON (sorted by throughput)")
+    print("=" * 90)
+    for scenario in ["single-intersection-v0", "grid-4x4-v0"]:
+        scen_results = [r for r in results if r.scenario == scenario]
+        if not scen_results:
+            continue
+        print(f"\n  --- {scenario} ---")
+        for sim in ["LightSim", "SUMO"]:
+            sim_r = sorted([r for r in scen_results if r.simulator == sim],
+                           key=lambda r: -r.total_exited)
+            if not sim_r:
+                continue
+            print(f"\n  [{sim}]")
+            for i, r in enumerate(sim_r):
+                marker = " <-- best" if i == 0 else ""
+                print(f"    {i+1}. {r.controller:<22} "
+                      f"exited={r.total_exited:>8.0f}  "
+                      f"delay={r.avg_delay:>7.2f}  "
+                      f"queue={r.total_queue:>7.1f}{marker}")
 
     # Save results
     os.makedirs("results", exist_ok=True)
     with open("results/cross_validation.json", "w") as f:
         json.dump([asdict(r) for r in results], f, indent=2)
-    print("\nSaved to results/cross_validation.json")
+    print(f"\nSaved to results/cross_validation.json")
 
 
 if __name__ == "__main__":

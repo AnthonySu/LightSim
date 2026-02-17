@@ -200,7 +200,7 @@ def fig_learning_curves():
 
 
 def fig_cross_validation():
-    """Figure 5: Cross-validation metric comparison."""
+    """Figure 5: Cross-validation — throughput comparison on both scenarios."""
     cv_file = RESULTS / "cross_validation.json"
     if not cv_file.exists():
         print("  Skipping cross_validation.pdf (no cross-val data)")
@@ -209,40 +209,82 @@ def fig_cross_validation():
     with open(cv_file) as f:
         data = json.load(f)
 
-    # Organize data
-    metrics = {}
-    for r in data:
-        key = (r['simulator'], r['controller'])
-        metrics[key] = r
+    fig, axes = plt.subplots(1, 2, figsize=(7, 3.0))
 
-    fig, axes = plt.subplots(1, 3, figsize=(7, 2.8))
+    scenarios = [
+        ("single-intersection-v0", "Single Intersection"),
+        ("grid-4x4-v0", "4x4 Grid"),
+    ]
+    ls_color = '#2196F3'
+    sumo_color = '#E91E63'
 
-    simulators = ['LightSim', 'SUMO']
-    controllers = ['FixedTimeController', 'MaxPressureController']
-    ctrl_labels = ['FixedTime', 'MaxPressure']
-    colors = ['#2196F3', '#4CAF50']
-
-    x = np.arange(len(simulators))
-    width = 0.3
-
-    for ax_idx, (metric, label) in enumerate([
-        ('total_exited', 'Throughput (veh)'),
-        ('avg_delay', 'Avg Delay (s)'),
-        ('total_queue', 'Queue (veh)'),
-    ]):
+    for ax_idx, (scenario, title) in enumerate(scenarios):
         ax = axes[ax_idx]
-        for i, (ctrl, ctrl_label) in enumerate(zip(controllers, ctrl_labels)):
-            vals = [metrics.get((sim, ctrl), {}).get(metric, 0) for sim in simulators]
-            ax.bar(x + (i - 0.5) * width, vals, width, label=ctrl_label,
-                   color=colors[i], edgecolor='white', linewidth=0.5)
+        scen_data = [r for r in data if r['scenario'] == scenario]
+
+        # Collect (controller_name, lightsim_val, sumo_val) for shared controllers
+        # Map LightSim names to short labels
+        name_map = {
+            'FixedTimeController': 'FixedTime',
+            'MaxPressureController': 'MaxPressure',
+            'SOTLController': 'SOTL',
+        }
+        shared = ['FixedTimeController', 'MaxPressureController', 'SOTLController']
+        ls_only = ['WebsterController', 'LostTimeAwareMaxPressureController']
+        sumo_only = ['ActuatedController']
+        ls_only_labels = {'WebsterController': 'Webster',
+                          'LostTimeAwareMaxPressureController': 'LT-Aware-MP'}
+
+        # Build lists: first shared (paired bars), then LS-only, then SUMO-only
+        labels = []
+        ls_vals = []
+        sumo_vals = []
+
+        for ctrl in shared:
+            labels.append(name_map[ctrl])
+            ls_v = [r['total_exited'] for r in scen_data
+                    if r['simulator'] == 'LightSim' and r['controller'] == ctrl]
+            su_v = [r['total_exited'] for r in scen_data
+                    if r['simulator'] == 'SUMO' and r['controller'] == ctrl]
+            ls_vals.append(ls_v[0] if ls_v else 0)
+            sumo_vals.append(su_v[0] if su_v else 0)
+
+        for ctrl in ls_only:
+            labels.append(ls_only_labels[ctrl])
+            ls_v = [r['total_exited'] for r in scen_data
+                    if r['simulator'] == 'LightSim' and r['controller'] == ctrl]
+            ls_vals.append(ls_v[0] if ls_v else 0)
+            sumo_vals.append(0)
+
+        for ctrl in sumo_only:
+            labels.append(ctrl.replace('Controller', ''))
+            ls_vals.append(0)
+            su_v = [r['total_exited'] for r in scen_data
+                    if r['simulator'] == 'SUMO' and r['controller'] == ctrl]
+            sumo_vals.append(su_v[0] if su_v else 0)
+
+        x = np.arange(len(labels))
+        width = 0.35
+        bars_ls = ax.bar(x - width / 2, ls_vals, width, label='LightSim',
+                         color=ls_color, edgecolor='white', linewidth=0.5)
+        bars_su = ax.bar(x + width / 2, sumo_vals, width, label='SUMO',
+                         color=sumo_color, edgecolor='white', linewidth=0.5)
+
+        # Zoom y-axis to data range
+        all_vals = [v for v in ls_vals + sumo_vals if v > 0]
+        if all_vals:
+            lo = min(all_vals) * 0.95
+            hi = max(all_vals) * 1.03
+            ax.set_ylim(lo, hi)
+
         ax.set_xticks(x)
-        ax.set_xticklabels(simulators, fontsize=8)
-        ax.set_ylabel(label, fontsize=9)
+        ax.set_xticklabels(labels, fontsize=7, rotation=30, ha='right')
+        ax.set_ylabel('Throughput (veh)', fontsize=9)
+        ax.set_title(title, fontsize=10)
         ax.grid(True, alpha=0.3, axis='y')
         if ax_idx == 0:
-            ax.legend(fontsize=7)
+            ax.legend(fontsize=7, loc='lower left')
 
-    fig.suptitle('Cross-Simulator Validation', fontsize=11)
     fig.tight_layout()
     fig.savefig(OVERLEAF / "cross_validation.pdf")
     plt.close(fig)

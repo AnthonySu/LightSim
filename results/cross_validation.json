@@ -6,7 +6,43 @@
     "total_exited": 3539.7769036817936,
     "avg_delay": 0.6705032625839475,
     "total_queue": 17.08086094248842,
-    "wall_time": 0.2434145000006538
+    "wall_time": 0.2128157000115607
+  },
+  {
+    "simulator": "LightSim",
+    "scenario": "single-intersection-v0",
+    "controller": "MaxPressureController",
+    "total_exited": 3541.69826213552,
+    "avg_delay": 0.0,
+    "total_queue": 0.0,
+    "wall_time": 0.1999364999937825
+  },
+  {
+    "simulator": "LightSim",
+    "scenario": "single-intersection-v0",
+    "controller": "SOTLController",
+    "total_exited": 3537.0065511916955,
+    "avg_delay": 1.1254811948188035,
+    "total_queue": 18.90077267142784,
+    "wall_time": 0.2040211999847088
+  },
+  {
+    "simulator": "LightSim",
+    "scenario": "single-intersection-v0",
+    "controller": "WebsterController",
+    "total_exited": 3540.8481273473435,
+    "avg_delay": 1.6041148809709824,
+    "total_queue": 20.815307416036553,
+    "wall_time": 0.19994190000579692
+  },
+  {
+    "simulator": "LightSim",
+    "scenario": "single-intersection-v0",
+    "controller": "LostTimeAwareMaxPressureController",
+    "total_exited": 3541.06546243917,
+    "avg_delay": 1.6434382843318183,
+    "total_queue": 20.972601029479904,
+    "wall_time": 0.21724570001242682
   },
   {
     "simulator": "SUMO",
@@ -15,24 +51,114 @@
     "total_exited": 3540.0,
     "avg_delay": 8.133333333333333,
     "total_queue": 28.0,
-    "wall_time": 1.729035099997418
+    "wall_time": 1.4812214999983553
   },
   {
-    "simulator": "LightSim",
+    "simulator": "SUMO",
     "scenario": "single-intersection-v0",
-    "controller": "MaxPressureController",
-    "total_exited": 3531.379057786626,
-    "avg_delay": 1.093801853725143,
-    "total_queue": 18.774055307053207,
-    "wall_time": 0.22254200000315905
+    "controller": "ActuatedController",
+    "total_exited": 3541.0,
+    "avg_delay": 0.1864406779661017,
+    "total_queue": 4.0,
+    "wall_time": 1.4903419000038411
   },
   {
     "simulator": "SUMO",
     "scenario": "single-intersection-v0",
     "controller": "MaxPressureController",
-    "total_exited": 3541.0,
-    "avg_delay": 0.1864406779661017,
-    "total_queue": 4.0,
-    "wall_time": 2.4022792000032496
+    "total_exited": 3536.0,
+    "avg_delay": 0.15873015873015872,
+    "total_queue": 3.0,
+    "wall_time": 7.131353899982059
+  },
+  {
+    "simulator": "SUMO",
+    "scenario": "single-intersection-v0",
+    "controller": "SOTLController",
+    "total_exited": 3513.0,
+    "avg_delay": 1.0,
+    "total_queue": 9.0,
+    "wall_time": 3.9078038999869023
+  },
+  {
+    "simulator": "LightSim",
+    "scenario": "grid-4x4-v0",
+    "controller": "FixedTimeController",
+    "total_exited": 18522.607244612827,
+    "avg_delay": 39.075576132909404,
+    "total_queue": 4277.95392200496,
+    "wall_time": 1.3736085999989882
+  },
+  {
+    "simulator": "LightSim",
+    "scenario": "grid-4x4-v0",
+    "controller": "MaxPressureController",
+    "total_exited": 17668.162528718767,
+    "avg_delay": 42.092701082616465,
+    "total_queue": 4634.514701118751,
+    "wall_time": 1.4276836999924853
+  },
+  {
+    "simulator": "LightSim",
+    "scenario": "grid-4x4-v0",
+    "controller": "SOTLController",
+    "total_exited": 18879.498207346063,
+    "avg_delay": 39.2634895007938,
+    "total_queue": 4379.380078788629,
+    "wall_time": 1.5474960000137798
+  },
+  {
+    "simulator": "LightSim",
+    "scenario": "grid-4x4-v0",
+    "controller": "WebsterController",
+    "total_exited": 17242.731461357682,
+    "avg_delay": 39.41192405533558,
+    "total_queue": 4420.052538936279,
+    "wall_time": 1.3708556999918073
+  },
+  {
+    "simulator": "LightSim",
+    "scenario": "grid-4x4-v0",
+    "controller": "LostTimeAwareMaxPressureController",
+    "total_exited": 19243.366844542146,
+    "avg_delay": 37.7432177590736,
+    "total_queue": 4084.972164745189,
+    "wall_time": 1.996962600009283
+  },
+  {
+    "simulator": "SUMO",
+    "scenario": "grid-4x4-v0",
+    "controller": "FixedTimeController",
+    "total_exited": 16063.0,
+    "avg_delay": 19.855,
+    "total_queue": 521.0,
+    "wall_time": 11.899226900015492
+  },
+  {
+    "simulator": "SUMO",
+    "scenario": "grid-4x4-v0",
+    "controller": "ActuatedController",
+    "total_exited": 16442.0,
+    "avg_delay": 0.45,
+    "total_queue": 144.0,
+    "wall_time": 9.490458200016292
+  },
+  {
+    "simulator": "SUMO",
+    "scenario": "grid-4x4-v0",
+    "controller": "MaxPressureController",
+    "total_exited": 16462.0,
+    "avg_delay": 1.54,
+    "total_queue": 87.0,
+    "wall_time": 104.80302459999803
+  },
+  {
+    "simulator": "SUMO",
+    "scenario": "grid-4x4-v0",
+    "controller": "SOTLController",
+    "total_exited": 16010.0,
+    "avg_delay": 11.625,
+    "total_queue": 363.0,
+    "wall_time": 51.21412680001231
   }
 ]
