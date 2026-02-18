@@ -543,6 +543,133 @@ def fig_mesoscopic_summary():
     print("  Saved meso_summary.pdf")
 
 
+def fig_rl_crossval():
+    """Figure: RL cross-validation — rank agreement between LightSim and SUMO."""
+    rl_file = RESULTS / "rl_crossval_results.json"
+    if not rl_file.exists():
+        print("  Skipping (no RL crossval data)")
+        return
+
+    with open(rl_file) as f:
+        data = json.load(f)
+
+    # Separate by simulator
+    sims = {}
+    for r in data:
+        if "error" in r:
+            continue
+        key = (r["simulator"], r["variant"])
+        sims.setdefault(key, []).append(r)
+
+    # Get variant lists — split by reward type for ranking
+    default_variants = ["DQN", "PPO", "A2C"]
+    pressure_variants = ["DQN-pressure", "PPO-pressure"]
+    all_variants = default_variants + pressure_variants
+
+    # Check we have both simulators
+    has_sumo = any(r["simulator"] == "SUMO" for r in data if "error" not in r)
+    if not has_sumo:
+        print("  Skipping (no SUMO data yet)")
+        return
+
+    # Compute mean reward and std per (simulator, variant)
+    stats = {}
+    for (sim, var), runs in sims.items():
+        rewards = [r["eval_reward_mean"] for r in runs]
+        times = [r["train_time"] for r in runs]
+        stats[(sim, var)] = {
+            "mean": np.mean(rewards),
+            "std": np.std(rewards),
+            "time_mean": np.mean(times),
+            "time_std": np.std(times),
+        }
+
+    # --- Figure: 2 panels ---
+    fig, (ax1, ax2) = plt.subplots(1, 2, figsize=(10, 4))
+
+    # Panel 1: Normalized rank comparison
+    # Rank within each simulator (lower reward rank = worse)
+    for group_name, variants in [("Default reward", default_variants),
+                                  ("Pressure reward", pressure_variants)]:
+        for sim in ["LightSim", "SUMO"]:
+            available = [v for v in variants if (sim, v) in stats]
+            if len(available) < 2:
+                continue
+            # Sort by mean reward (descending = rank 1 is best)
+            sorted_v = sorted(available, key=lambda v: -stats[(sim, v)]["mean"])
+            for rank, v in enumerate(sorted_v):
+                stats[(sim, v)]["rank"] = rank + 1
+
+    # Scatter: LightSim rank vs SUMO rank
+    for v in all_variants:
+        ls_key = ("LightSim", v)
+        su_key = ("SUMO", v)
+        if ls_key in stats and su_key in stats and "rank" in stats[ls_key] and "rank" in stats[su_key]:
+            color = "#2196F3" if "pressure" not in v else "#FF9800"
+            marker = "o" if "pressure" not in v else "s"
+            ax1.scatter(stats[ls_key]["rank"], stats[su_key]["rank"],
+                       c=color, marker=marker, s=100, zorder=3, edgecolors="white")
+            ax1.annotate(v, (stats[ls_key]["rank"], stats[su_key]["rank"]),
+                        textcoords="offset points", xytext=(8, 4), fontsize=7)
+
+    max_rank = max(len(default_variants), len(pressure_variants)) + 0.5
+    ax1.plot([0.5, max_rank], [0.5, max_rank], "--", color="#ccc", zorder=1)
+    ax1.set_xlabel("LightSim Rank")
+    ax1.set_ylabel("SUMO Rank")
+    ax1.set_title("Variant Ranking Agreement")
+    ax1.set_xlim(0.5, max_rank)
+    ax1.set_ylim(0.5, max_rank)
+    ax1.set_aspect("equal")
+    ax1.invert_yaxis()
+    ax1.invert_xaxis()
+    # Custom legend
+    from matplotlib.lines import Line2D
+    legend_elements = [
+        Line2D([0], [0], marker="o", color="w", markerfacecolor="#2196F3",
+               markersize=8, label="Default reward"),
+        Line2D([0], [0], marker="s", color="w", markerfacecolor="#FF9800",
+               markersize=8, label="Pressure reward"),
+    ]
+    ax1.legend(handles=legend_elements, fontsize=7, loc="lower right")
+    ax1.grid(True, alpha=0.3)
+
+    # Panel 2: Training time comparison (speedup)
+    available_variants = [v for v in all_variants
+                         if ("LightSim", v) in stats and ("SUMO", v) in stats]
+    x = np.arange(len(available_variants))
+    ls_times = [stats[("LightSim", v)]["time_mean"] for v in available_variants]
+    su_times = [stats[("SUMO", v)]["time_mean"] for v in available_variants]
+    ls_errs = [stats[("LightSim", v)]["time_std"] for v in available_variants]
+    su_errs = [stats[("SUMO", v)]["time_std"] for v in available_variants]
+
+    width = 0.35
+    ax2.bar(x - width / 2, ls_times, width, yerr=ls_errs,
+            label="LightSim", color="#4CAF50", edgecolor="white",
+            linewidth=0.5, capsize=3, error_kw={"linewidth": 0.8})
+    ax2.bar(x + width / 2, su_times, width, yerr=su_errs,
+            label="SUMO", color="#FF5722", edgecolor="white",
+            linewidth=0.5, capsize=3, error_kw={"linewidth": 0.8})
+
+    # Speedup annotations
+    for i, v in enumerate(available_variants):
+        if ls_times[i] > 0:
+            speedup = su_times[i] / ls_times[i]
+            ax2.text(i, max(ls_times[i], su_times[i]) + max(ls_errs[i], su_errs[i]) + 20,
+                    f"{speedup:.0f}x", ha="center", fontsize=7, color="#333")
+
+    ax2.set_xticks(x)
+    ax2.set_xticklabels(available_variants, fontsize=8, rotation=25, ha="right")
+    ax2.set_ylabel("Training Time (s)")
+    ax2.set_title("Training Speed: LightSim vs SUMO")
+    ax2.legend(fontsize=8)
+    ax2.grid(True, alpha=0.3, axis="y")
+
+    fig.tight_layout()
+    fig.savefig(OVERLEAF / "rl_crossval.pdf")
+    plt.close(fig)
+    print("  Saved rl_crossval.pdf")
+
+
 if __name__ == "__main__":
     print("Generating figures for LightSim paper...\n")
 
@@ -569,5 +696,8 @@ if __name__ == "__main__":
 
     print("Figure: Mesoscopic summary bar chart")
     fig_mesoscopic_summary()
+
+    print("\nFigure: RL cross-validation")
+    fig_rl_crossval()
 
     print("\nDone! Figures saved to:", OVERLEAF)
