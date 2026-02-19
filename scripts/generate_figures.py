@@ -572,16 +572,17 @@ def fig_rl_crossval():
         print("  Skipping (no SUMO data yet)")
         return
 
-    # Compute mean reward and std per (simulator, variant)
+    # Compute mean reward and median time per (simulator, variant)
     stats = {}
     for (sim, var), runs in sims.items():
         rewards = [r["eval_reward_mean"] for r in runs]
-        times = [r["train_time"] for r in runs]
+        times = np.array([r["train_time"] for r in runs])
         stats[(sim, var)] = {
             "mean": np.mean(rewards),
             "std": np.std(rewards),
-            "time_mean": np.mean(times),
-            "time_std": np.std(times),
+            "time_median": np.median(times),
+            "time_q25": np.percentile(times, 25),
+            "time_q75": np.percentile(times, 75),
         }
 
     # --- Figure: 2 panels ---
@@ -633,20 +634,27 @@ def fig_rl_crossval():
     ax1.legend(handles=legend_elements, fontsize=7, loc="lower right")
     ax1.grid(True, alpha=0.3)
 
-    # Panel 2: Training time comparison (speedup)
+    # Panel 2: Training time comparison (speedup) — median + IQR
     available_variants = [v for v in all_variants
                          if ("LightSim", v) in stats and ("SUMO", v) in stats]
     x = np.arange(len(available_variants))
-    ls_times = [stats[("LightSim", v)]["time_mean"] for v in available_variants]
-    su_times = [stats[("SUMO", v)]["time_mean"] for v in available_variants]
-    ls_errs = [stats[("LightSim", v)]["time_std"] for v in available_variants]
-    su_errs = [stats[("SUMO", v)]["time_std"] for v in available_variants]
+    ls_times = [stats[("LightSim", v)]["time_median"] for v in available_variants]
+    su_times = [stats[("SUMO", v)]["time_median"] for v in available_variants]
+    # IQR as asymmetric error bars: [median - q25, q75 - median]
+    ls_err_lo = [stats[("LightSim", v)]["time_median"] - stats[("LightSim", v)]["time_q25"]
+                 for v in available_variants]
+    ls_err_hi = [stats[("LightSim", v)]["time_q75"] - stats[("LightSim", v)]["time_median"]
+                 for v in available_variants]
+    su_err_lo = [stats[("SUMO", v)]["time_median"] - stats[("SUMO", v)]["time_q25"]
+                 for v in available_variants]
+    su_err_hi = [stats[("SUMO", v)]["time_q75"] - stats[("SUMO", v)]["time_median"]
+                 for v in available_variants]
 
     width = 0.35
-    ax2.bar(x - width / 2, ls_times, width, yerr=ls_errs,
+    ax2.bar(x - width / 2, ls_times, width, yerr=[ls_err_lo, ls_err_hi],
             label="LightSim", color="#4CAF50", edgecolor="white",
             linewidth=0.5, capsize=3, error_kw={"linewidth": 0.8})
-    ax2.bar(x + width / 2, su_times, width, yerr=su_errs,
+    ax2.bar(x + width / 2, su_times, width, yerr=[su_err_lo, su_err_hi],
             label="SUMO", color="#FF5722", edgecolor="white",
             linewidth=0.5, capsize=3, error_kw={"linewidth": 0.8})
 
@@ -654,8 +662,9 @@ def fig_rl_crossval():
     for i, v in enumerate(available_variants):
         if ls_times[i] > 0:
             speedup = su_times[i] / ls_times[i]
-            ax2.text(i, max(ls_times[i], su_times[i]) + max(ls_errs[i], su_errs[i]) + 20,
-                    f"{speedup:.0f}x", ha="center", fontsize=7, color="#333")
+            bar_top = max(ls_times[i] + ls_err_hi[i], su_times[i] + su_err_hi[i])
+            ax2.text(i, bar_top + 20,
+                    f"{speedup:.0f}×", ha="center", fontsize=7, color="#333")
 
     ax2.set_xticks(x)
     ax2.set_xticklabels(available_variants, fontsize=8, rotation=25, ha="right")
