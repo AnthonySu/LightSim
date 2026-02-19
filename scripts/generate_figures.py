@@ -1,4 +1,4 @@
-"""Generate all figures for the LightSim NeurIPS paper.
+"""Generate all figures for the LightSim paper.
 
 Usage::
     python scripts/generate_figures.py
