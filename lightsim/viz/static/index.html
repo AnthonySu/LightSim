@@ -545,6 +545,9 @@
         <span class="selection-close" id="selClose">&times;</span>
       </div>
       <div class="selection-rows" id="selRows"></div>
+      <div class="chart-container" style="height:60px;margin-top:8px" id="selChartWrap">
+        <canvas class="chart-canvas" id="selChart"></canvas>
+      </div>
     </div>
 
     <div class="panel-section">
@@ -992,10 +995,90 @@
     }
   }
 
+  // Per-link occupancy history for sparkline
+  const selHistory = { occ: [], speed: [] };
+  const SEL_HISTORY_MAX = 200;
+
+  function updateSelHistory() {
+    if (selectedLink < 0 || !lastFrame) return;
+    const m = getLinkMetrics(selectedLink);
+    if (!m) return;
+    selHistory.occ.push(m.avgOccupancy);
+    selHistory.speed.push(m.avgSpeed * 3.6);
+    if (selHistory.occ.length > SEL_HISTORY_MAX) {
+      selHistory.occ.shift();
+      selHistory.speed.shift();
+    }
+  }
+
+  function drawSelSparkline() {
+    const selChartWrap = document.getElementById('selChartWrap');
+    const selChartCanvas = document.getElementById('selChart');
+    if (!selChartCanvas || selectedLink < 0) return;
+
+    const dpr = window.devicePixelRatio || 1;
+    const rect = selChartWrap.getBoundingClientRect();
+    selChartCanvas.width = rect.width * dpr;
+    selChartCanvas.height = rect.height * dpr;
+    const sctx = selChartCanvas.getContext('2d');
+    sctx.setTransform(dpr, 0, 0, dpr, 0, 0);
+
+    const w = rect.width;
+    const h = rect.height;
+    sctx.clearRect(0, 0, w, h);
+
+    const data = selHistory.occ;
+    if (data.length < 2) return;
+
+    const pad = { l: 2, r: 2, t: 2, b: 2 };
+    const cw = w - pad.l - pad.r;
+    const ch = h - pad.t - pad.b;
+    const maxVal = Math.max(0.1, ...data);
+
+    // Fill area
+    sctx.beginPath();
+    for (let i = 0; i < data.length; i++) {
+      const x = pad.l + (i / (data.length - 1)) * cw;
+      const y = pad.t + ch * (1 - data[i] / maxVal);
+      if (i === 0) sctx.moveTo(x, y);
+      else sctx.lineTo(x, y);
+    }
+    sctx.lineTo(pad.l + cw, pad.t + ch);
+    sctx.lineTo(pad.l, pad.t + ch);
+    sctx.closePath();
+
+    // Color gradient based on congestion level
+    const lastOcc = data[data.length - 1];
+    const gradColor = densityColorRGBA(lastOcc, 0.15);
+    sctx.fillStyle = gradColor;
+    sctx.fill();
+
+    // Line
+    sctx.beginPath();
+    sctx.strokeStyle = densityColor(lastOcc);
+    sctx.lineWidth = 1.5;
+    for (let i = 0; i < data.length; i++) {
+      const x = pad.l + (i / (data.length - 1)) * cw;
+      const y = pad.t + ch * (1 - data[i] / maxVal);
+      if (i === 0) sctx.moveTo(x, y);
+      else sctx.lineTo(x, y);
+    }
+    sctx.stroke();
+
+    // Label
+    sctx.fillStyle = 'rgba(255,255,255,0.4)';
+    sctx.font = '9px sans-serif';
+    sctx.textAlign = 'right';
+    sctx.textBaseline = 'top';
+    sctx.fillText(`${(lastOcc * 100).toFixed(0)}% occ`, w - 4, 2);
+  }
+
   function clearSelection() {
     selectedLink = -1;
     selectedNode = -1;
     selectionInfo.classList.remove('visible');
+    selHistory.occ.length = 0;
+    selHistory.speed.length = 0;
   }
 
   selClose.addEventListener('click', clearSelection);
@@ -1549,6 +1632,8 @@
     // Update selection panel (live data)
     if (selectedLink >= 0 || selectedNode >= 0) {
       updateSelectionPanel();
+      updateSelHistory();
+      drawSelSparkline();
     }
 
     drawChart();
@@ -1643,8 +1728,14 @@
     if (hoveredNode >= 0) {
       selectedNode = hoveredNode;
       selectedLink = -1;
+      selHistory.occ.length = 0;
+      selHistory.speed.length = 0;
       updateSelectionPanel();
     } else if (hoveredLink >= 0) {
+      if (selectedLink !== hoveredLink) {
+        selHistory.occ.length = 0;
+        selHistory.speed.length = 0;
+      }
       selectedLink = hoveredLink;
       selectedNode = -1;
       updateSelectionPanel();
