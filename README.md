@@ -23,8 +23,9 @@ LightSim fills the gap between heavyweight microscopic simulators (SUMO, CityFlo
 - **RL-native** &mdash; Gymnasium single-agent and PettingZoo multi-agent environments out of the box.
 - **7 built-in controllers** &mdash; FixedTime, Webster, SOTL, MaxPressure (3 variants), and RLController.
 - **Pluggable** &mdash; Registry-based observations, actions, and rewards. Bring your own with decorators.
-- **Scenarios** &mdash; Single intersection, 4x4 grid, 5-intersection arterial. Or build custom networks.
+- **Scenarios** &mdash; Single intersection, 4x4 grid, 5-intersection arterial, and 6 real-world city networks from OpenStreetMap.
 - **Visualization** &mdash; Real-time web dashboard with FastAPI + WebSocket + HTML5 Canvas. Supports live simulation, replay, and RL checkpoint playback.
+- **OSM Import** &mdash; Import any road network from OpenStreetMap with automatic signal detection and demand generation.
 
 ## Requirements
 
@@ -95,6 +96,8 @@ python -m lightsim.viz --scenario grid-4x4-v0                  # different scena
 python -m lightsim.viz --controller MaxPressure                # different controller
 python -m lightsim.viz --checkpoint model.zip --algo PPO       # replay RL checkpoint
 python -m lightsim.viz --replay recording.json                 # replay a recording
+python -m lightsim.viz --scenario osm-manhattan-v0             # real-world Manhattan
+python -m lightsim.viz --scenario osm-shanghai-v0              # real-world Shanghai
 ```
 
 ### Custom Network
@@ -146,6 +149,12 @@ class MyObservation(ObservationBuilder):
 | `single-intersection-v0` | 1 | 4-leg intersection with NS/EW phases |
 | `grid-4x4-v0` | 16 | 4x4 grid with boundary demand |
 | `arterial-5-v0` | 5 | Linear corridor with side streets |
+| `osm-manhattan-v0` | 52 | Midtown Manhattan from OpenStreetMap |
+| `osm-shanghai-v0` | 48 | Lujiazui / Pudong, Shanghai |
+| `osm-beijing-v0` | 59 | Wangfujing area, Beijing |
+| `osm-shenzhen-v0` | 40 | Futian CBD, Shenzhen |
+| `osm-losangeles-v0` | 36 | Downtown Los Angeles |
+| `osm-sanfrancisco-v0` | 65 | Financial District, San Francisco |
 
 ## Project Structure
 
