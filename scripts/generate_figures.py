@@ -20,19 +20,38 @@ OVERLEAF = Path(r"C:\Users\admin\Projects\69927a89543379cbbfcbc218\figures")
 RESULTS = Path(r"C:\Users\admin\Projects\lightsim\results")
 OVERLEAF.mkdir(parents=True, exist_ok=True)
 
-# Global style
+# Global academic style — white backgrounds, thin lines, Computer Modern fonts
 plt.rcParams.update({
     'font.family': 'serif',
-    'font.size': 10,
-    'axes.labelsize': 11,
+    'font.serif': ['CMU Serif', 'DejaVu Serif', 'Times New Roman', 'serif'],
+    'text.usetex': False,
+    'mathtext.fontset': 'cm',
+    'font.size': 9,
+    'axes.facecolor': 'white',
+    'figure.facecolor': 'white',
+    'axes.edgecolor': '#333333',
+    'axes.linewidth': 0.6,
+    'axes.labelsize': 10,
     'axes.titlesize': 11,
-    'legend.fontsize': 9,
-    'xtick.labelsize': 9,
-    'ytick.labelsize': 9,
+    'legend.fontsize': 8,
+    'xtick.labelsize': 8,
+    'ytick.labelsize': 8,
+    'grid.alpha': 0.3,
+    'grid.linewidth': 0.4,
     'figure.dpi': 150,
     'savefig.bbox': 'tight',
     'savefig.pad_inches': 0.05,
+    'savefig.facecolor': 'white',
 })
+
+# Muted academic color palette
+BLUE = '#4472C4'
+ORANGE = '#ED7D31'
+GREEN = '#548235'
+RED = '#C0504D'
+PURPLE = '#7030A0'
+GRAY = '#78909C'
+TEAL = '#2196F3'
 
 
 def fig_fundamental_diagram():
@@ -47,9 +66,9 @@ def fig_fundamental_diagram():
     r_squared = data['r_squared']
 
     fig, ax = plt.subplots(figsize=(4.5, 3.2))
-    ax.plot(k_theory * 1000, q_theory, 'r-', linewidth=2, label='Theoretical', zorder=2)
-    ax.scatter(densities * 1000, flows, c='steelblue', s=30, alpha=0.8,
-               edgecolors='navy', linewidth=0.5, label=f'LightSim ($R^2={r_squared:.3f}$)', zorder=3)
+    ax.plot(k_theory * 1000, q_theory, color=RED, linewidth=1.5, label='Theoretical', zorder=2)
+    ax.scatter(densities * 1000, flows, c=BLUE, s=20, alpha=0.7,
+               edgecolors='#2B4570', linewidth=0.4, label=f'LightSim ($R^2={r_squared:.3f}$)', zorder=3)
 
     ax.set_xlabel('Density (veh/km/lane)')
     ax.set_ylabel('Flow (veh/s/lane)')
@@ -74,9 +93,9 @@ def fig_speed_comparison():
     steps_per_sec = [s['steps_per_sec'] for s in scenarios]
 
     fig, ax = plt.subplots(figsize=(6, 3.5))
-    colors = ['#2196F3' if 'grid' in n else '#4CAF50' if 'arterial' in n else '#FF9800'
+    colors = [BLUE if 'grid' in n else GREEN if 'arterial' in n else ORANGE
               for n in names]
-    bars = ax.bar(range(len(names)), steps_per_sec, color=colors, edgecolor='white', linewidth=0.5)
+    bars = ax.bar(range(len(names)), steps_per_sec, color=colors, edgecolor='#333333', linewidth=0.3)
 
     # Add value labels
     for bar, val in zip(bars, steps_per_sec):
@@ -95,9 +114,9 @@ def fig_speed_comparison():
     # Legend
     from matplotlib.patches import Patch
     legend_elements = [
-        Patch(facecolor='#FF9800', label='Single intersection'),
-        Patch(facecolor='#2196F3', label='Grid'),
-        Patch(facecolor='#4CAF50', label='Arterial'),
+        Patch(facecolor=ORANGE, label='Single intersection'),
+        Patch(facecolor=BLUE, label='Grid'),
+        Patch(facecolor=GREEN, label='Arterial'),
     ]
     ax.legend(handles=legend_elements, loc='upper right')
 
@@ -125,10 +144,10 @@ def fig_sumo_comparison():
     width = 0.35
 
     fig, ax = plt.subplots(figsize=(6, 3.5))
-    bars1 = ax.bar(x - width/2, ls_sps, width, label='LightSim', color='#2196F3',
-                   edgecolor='white', linewidth=0.5)
-    bars2 = ax.bar(x + width/2, sumo_sps, width, label='SUMO (standalone)', color='#FF5722',
-                   edgecolor='white', linewidth=0.5)
+    bars1 = ax.bar(x - width/2, ls_sps, width, label='LightSim', color=BLUE,
+                   edgecolor='#333333', linewidth=0.3)
+    bars2 = ax.bar(x + width/2, sumo_sps, width, label='SUMO (standalone)', color=RED,
+                   edgecolor='#333333', linewidth=0.3)
 
     ax.set_xticks(x)
     ax.set_xticklabels([n.replace('single-intersection', '1-intx') for n in names],
@@ -158,7 +177,7 @@ def fig_learning_curves():
 
     fig, ax = plt.subplots(figsize=(5.5, 3.5))
 
-    colors = {'DQN': '#2196F3', 'PPO': '#4CAF50'}
+    colors = {'DQN': BLUE, 'PPO': GREEN}
 
     for algo_name in ['DQN', 'PPO']:
         if algo_name not in data['rl']:
@@ -175,18 +194,18 @@ def fig_learning_curves():
         mean = all_rewards.mean(axis=0)
         std = all_rewards.std(axis=0)
 
-        ax.plot(all_timesteps, mean, color=colors[algo_name], linewidth=2, label=algo_name)
+        ax.plot(all_timesteps, mean, color=colors[algo_name], linewidth=1.2, label=algo_name)
         ax.fill_between(all_timesteps, mean - std, mean + std,
-                        color=colors[algo_name], alpha=0.2)
+                        color=colors[algo_name], alpha=0.15)
 
     # Add baseline lines (already per-step)
     baselines = data.get('baselines', {})
     if 'FixedTime' in baselines:
-        ax.axhline(y=baselines['FixedTime']['avg_reward'], color='#FF9800',
-                   linestyle='--', linewidth=1.5, label='FixedTime')
+        ax.axhline(y=baselines['FixedTime']['avg_reward'], color=ORANGE,
+                   linestyle='--', linewidth=1.0, label='FixedTime')
     if 'MaxPressure' in baselines:
-        ax.axhline(y=baselines['MaxPressure']['avg_reward'], color='#F44336',
-                   linestyle='--', linewidth=1.5, label='MaxPressure')
+        ax.axhline(y=baselines['MaxPressure']['avg_reward'], color=RED,
+                   linestyle='--', linewidth=1.0, label='MaxPressure')
 
     ax.set_xlabel('Training Timesteps')
     ax.set_ylabel('Per-Step Reward (queue)')
@@ -215,8 +234,8 @@ def fig_cross_validation():
         ("single-intersection-v0", "Single Intersection"),
         ("grid-4x4-v0", "4x4 Grid"),
     ]
-    ls_color = '#2196F3'
-    sumo_color = '#E91E63'
+    ls_color = BLUE
+    sumo_color = RED
 
     for ax_idx, (scenario, title) in enumerate(scenarios):
         ax = axes[ax_idx]
@@ -266,9 +285,9 @@ def fig_cross_validation():
         x = np.arange(len(labels))
         width = 0.35
         bars_ls = ax.bar(x - width / 2, ls_vals, width, label='LightSim',
-                         color=ls_color, edgecolor='white', linewidth=0.5)
+                         color=ls_color, edgecolor='#333333', linewidth=0.3)
         bars_su = ax.bar(x + width / 2, sumo_vals, width, label='SUMO',
-                         color=sumo_color, edgecolor='white', linewidth=0.5)
+                         color=sumo_color, edgecolor='#333333', linewidth=0.3)
 
         # Zoom y-axis to data range
         all_vals = [v for v in ls_vals + sumo_vals if v > 0]
@@ -307,7 +326,7 @@ def fig_mesoscopic_crossval():
     short_labels = ["Fixed\nTime", "SOTL", "MP\nmg5", "MP\nmg15", "LT-Aware\nMP"]
     modes = ["default", "mesoscopic"]
     mode_labels = {"default": "Default", "mesoscopic": "Mesoscopic"}
-    mode_colors = {"default": "#78909C", "mesoscopic": "#2196F3"}
+    mode_colors = {"default": GRAY, "mesoscopic": BLUE}
 
     def _plot_crossval(scenario_data, title, out_name, show_sumo=True):
         fig, axes = plt.subplots(1, 2, figsize=(7, 3.2))
@@ -331,17 +350,17 @@ def fig_mesoscopic_crossval():
                 offset = (m_i - 0.5) * width
                 ax.bar(x + offset, vals, width,
                        label=mode_labels[mode], color=mode_colors[mode],
-                       edgecolor="white", linewidth=0.5)
+                       edgecolor="#333333", linewidth=0.3)
 
             # SUMO reference lines
             if show_sumo:
                 for sumo_r in [r for r in scenario_data if r["mode"] == "sumo"]:
                     ctrl_short = "FT" if "Fixed" in sumo_r["controller"] else "MP"
                     val = sumo_r[metric]
-                    ax.axhline(y=val, color="#F44336", linestyle="--",
-                               linewidth=1, alpha=0.7)
+                    ax.axhline(y=val, color=RED, linestyle="--",
+                               linewidth=0.8, alpha=0.7)
                     ax.text(len(key_ctrls) - 0.5, val, f"SUMO {ctrl_short}",
-                            fontsize=6, color="#F44336", va="bottom")
+                            fontsize=6, color=RED, va="bottom")
 
             ax.set_xticks(x)
             ax.set_xticklabels(short_labels, fontsize=7)
@@ -400,11 +419,11 @@ def fig_mesoscopic_rl():
 
     fig, axes = plt.subplots(1, 2, figsize=(7, 3.2), sharey=True)
 
-    algo_colors = {"DQN": "#2196F3", "PPO": "#4CAF50"}
+    algo_colors = {"DQN": BLUE, "PPO": GREEN}
     baseline_styles = {
-        "FixedTime": ("#FF9800", "--"),
-        "MaxPressure-mg15": ("#9C27B0", "--"),
-        "LT-Aware-MP-mg5": ("#F44336", ":"),
+        "FixedTime": (ORANGE, "--"),
+        "MaxPressure-mg15": (PURPLE, "--"),
+        "LT-Aware-MP-mg5": (RED, ":"),
     }
 
     # Collect final converged values (baselines + last RL eval) for y-range
@@ -429,9 +448,9 @@ def fig_mesoscopic_rl():
             std = all_rewards.std(axis=0)
 
             ax.plot(timesteps, mean, color=algo_colors[algo],
-                    linewidth=2, label=algo)
+                    linewidth=1.2, label=algo)
             ax.fill_between(timesteps, mean - std, mean + std,
-                            color=algo_colors[algo], alpha=0.15)
+                            color=algo_colors[algo], alpha=0.12)
             # Only use final converged value for y-range
             ylim_vals.append(mean[-1])
             ylim_vals.append(mean[-1] - std[-1])
@@ -475,7 +494,7 @@ def fig_mesoscopic_summary():
     with open(rl_file) as f:
         data = json.load(f)
 
-    fig, ax = plt.subplots(figsize=(7, 3.5))
+    fig, ax = plt.subplots(figsize=(6.5, 3.2))
 
     # Collect all methods and their rewards for both modes
     # Exclude MP-mg5 — its -143 mesoscopic collapse compresses the useful range
@@ -511,11 +530,11 @@ def fig_mesoscopic_summary():
     width = 0.35
 
     ax.bar(x - width / 2, default_vals, width, yerr=default_errs,
-           label="Default", color="#78909C", edgecolor="white",
-           linewidth=0.5, capsize=3, error_kw={"linewidth": 0.8})
+           label="Default", color=GRAY, edgecolor="#333333",
+           linewidth=0.3, capsize=3, error_kw={"linewidth": 0.6})
     ax.bar(x + width / 2, meso_vals, width, yerr=meso_errs,
-           label="Mesoscopic", color="#2196F3", edgecolor="white",
-           linewidth=0.5, capsize=3, error_kw={"linewidth": 0.8})
+           label="Mesoscopic", color=BLUE, edgecolor="#333333",
+           linewidth=0.3, capsize=3, error_kw={"linewidth": 0.6})
 
     # Add value labels on bars
     for i, (dv, mv) in enumerate(zip(default_vals, meso_vals)):
@@ -586,7 +605,7 @@ def fig_rl_crossval():
         }
 
     # --- Figure: 2 panels ---
-    fig, (ax1, ax2) = plt.subplots(1, 2, figsize=(10, 4))
+    fig, (ax1, ax2) = plt.subplots(1, 2, figsize=(7, 3.5))
 
     # Panel 1: Normalized rank comparison
     # Rank within each simulator (lower reward rank = worse)
@@ -606,10 +625,10 @@ def fig_rl_crossval():
         ls_key = ("LightSim", v)
         su_key = ("SUMO", v)
         if ls_key in stats and su_key in stats and "rank" in stats[ls_key] and "rank" in stats[su_key]:
-            color = "#2196F3" if "pressure" not in v else "#FF9800"
+            color = BLUE if "pressure" not in v else ORANGE
             marker = "o" if "pressure" not in v else "s"
             ax1.scatter(stats[ls_key]["rank"], stats[su_key]["rank"],
-                       c=color, marker=marker, s=100, zorder=3, edgecolors="white")
+                       c=color, marker=marker, s=80, zorder=3, edgecolors="#333333", linewidths=0.4)
             ax1.annotate(v, (stats[ls_key]["rank"], stats[su_key]["rank"]),
                         textcoords="offset points", xytext=(8, 4), fontsize=7)
 
@@ -626,9 +645,9 @@ def fig_rl_crossval():
     # Custom legend
     from matplotlib.lines import Line2D
     legend_elements = [
-        Line2D([0], [0], marker="o", color="w", markerfacecolor="#2196F3",
+        Line2D([0], [0], marker="o", color="w", markerfacecolor=BLUE,
                markersize=8, label="Default reward"),
-        Line2D([0], [0], marker="s", color="w", markerfacecolor="#FF9800",
+        Line2D([0], [0], marker="s", color="w", markerfacecolor=ORANGE,
                markersize=8, label="Pressure reward"),
     ]
     ax1.legend(handles=legend_elements, fontsize=7, loc="lower right")
@@ -652,11 +671,11 @@ def fig_rl_crossval():
 
     width = 0.35
     ax2.bar(x - width / 2, ls_times, width, yerr=[ls_err_lo, ls_err_hi],
-            label="LightSim", color="#4CAF50", edgecolor="white",
-            linewidth=0.5, capsize=3, error_kw={"linewidth": 0.8})
+            label="LightSim", color=GREEN, edgecolor="#333333",
+            linewidth=0.3, capsize=3, error_kw={"linewidth": 0.6})
     ax2.bar(x + width / 2, su_times, width, yerr=[su_err_lo, su_err_hi],
-            label="SUMO", color="#FF5722", edgecolor="white",
-            linewidth=0.5, capsize=3, error_kw={"linewidth": 0.8})
+            label="SUMO", color=RED, edgecolor="#333333",
+            linewidth=0.3, capsize=3, error_kw={"linewidth": 0.6})
 
     # Speedup annotations
     for i, v in enumerate(available_variants):
@@ -679,25 +698,302 @@ def fig_rl_crossval():
     print("  Saved rl_crossval.pdf")
 
 
+def fig_grid_visualization():
+    """Figure: 3x3 grid under MaxPressure control — spatial density map."""
+    try:
+        from lightsim.networks.grid import create_grid_network
+        from lightsim.core.engine import SimulationEngine
+        from lightsim.core.signal import MaxPressureController
+        from lightsim.core.demand import DemandProfile
+        from lightsim.core.types import NodeType, LinkID
+        from matplotlib.collections import LineCollection
+    except ImportError:
+        print("  Skipping grid_visualization.pdf (lightsim not installed)")
+        return
+
+    # Create 3x3 grid
+    net = create_grid_network(rows=3, cols=3, link_length=300.0, lanes=2,
+                              n_cells_per_link=3)
+
+    # Add demand on all origin links
+    demand = []
+    for link in net.links.values():
+        fn = net.nodes.get(link.from_node)
+        if fn and fn.node_type == NodeType.ORIGIN:
+            demand.append(DemandProfile(link.link_id, [0.0], [0.15]))
+
+    engine = SimulationEngine(network=net, dt=1.0,
+                              controller=MaxPressureController(min_green=15.0),
+                              demand_profiles=demand)
+    engine.reset(seed=42)
+
+    # Run to t=300s
+    for _ in range(300):
+        engine.step()
+
+    compiled = engine.net
+    density = engine.state.density
+
+    # Color mapping: density ratio -> color
+    def density_to_color(ratio):
+        ratio = min(max(ratio, 0.0), 1.0)
+        # Blue (free-flow) -> Yellow -> Red (congested)
+        if ratio < 0.5:
+            t = ratio / 0.5
+            r = 0.27 + t * 0.73
+            g = 0.44 + t * (0.72 - 0.44)
+            b = 0.77 - t * 0.57
+        else:
+            t = (ratio - 0.5) / 0.5
+            r = 1.0 - t * 0.25
+            g = 0.72 - t * 0.41
+            b = 0.20 - t * 0.10
+        return (r, g, b)
+
+    fig, ax = plt.subplots(figsize=(5, 5))
+
+    # Draw each link as cell segments colored by density
+    # Filter out diagonal links (only render axis-aligned NSEW links)
+    for lid, link in net.links.items():
+        fn = net.nodes.get(link.from_node)
+        tn = net.nodes.get(link.to_node)
+        if fn is None or tn is None:
+            continue
+
+        x1, y1 = fn.x, fn.y
+        x2, y2 = tn.x, tn.y
+
+        # Skip diagonal links (turning movements rendered as node-to-node)
+        dx, dy = abs(x2 - x1), abs(y2 - y1)
+        if dx > 1.0 and dy > 1.0:
+            continue
+
+        cell_ids = compiled.link_cells[lid]
+        n = len(cell_ids)
+
+        # Draw road background (thin gray)
+        ax.plot([x1, x2], [y1, y2], color='#D0D0D0', linewidth=3.5,
+                solid_capstyle='round', zorder=1)
+
+        # Draw density-colored cell segments
+        for i, cid in enumerate(cell_ids):
+            t0 = i / n
+            t1 = (i + 1) / n
+            sx = x1 + (x2 - x1) * t0
+            sy = y1 + (y2 - y1) * t0
+            ex = x1 + (x2 - x1) * t1
+            ey = y1 + (y2 - y1) * t1
+
+            d = float(density[cid])
+            kj = float(compiled.kj[cid])
+            ratio = d / kj if kj > 0 else 0
+            if ratio > 0.005:
+                color = density_to_color(ratio)
+                ax.plot([sx, ex], [sy, ey], color=color, linewidth=2.5,
+                        solid_capstyle='round', zorder=2)
+
+    # Draw intersection nodes
+    for nid, node in net.nodes.items():
+        if node.node_type == NodeType.SIGNALIZED:
+            ax.plot(node.x, node.y, 'o', color=BLUE, markersize=6,
+                    markeredgecolor='#333333', markeredgewidth=0.4, zorder=5)
+        elif node.node_type == NodeType.ORIGIN:
+            ax.plot(node.x, node.y, 's', color=GREEN, markersize=4,
+                    markeredgecolor='#333333', markeredgewidth=0.3, zorder=4)
+        elif node.node_type == NodeType.DESTINATION:
+            ax.plot(node.x, node.y, 's', color=ORANGE, markersize=4,
+                    markeredgecolor='#333333', markeredgewidth=0.3, zorder=4)
+
+    # Colorbar
+    from matplotlib.colors import LinearSegmentedColormap
+    cmap_colors = [density_to_color(r) for r in np.linspace(0, 1, 256)]
+    cmap = LinearSegmentedColormap.from_list('density', cmap_colors)
+    sm = plt.cm.ScalarMappable(cmap=cmap, norm=plt.Normalize(0, 1))
+    sm.set_array([])
+    cbar = fig.colorbar(sm, ax=ax, fraction=0.046, pad=0.04, shrink=0.8)
+    cbar.set_label('Density / Jam Density', fontsize=8)
+    cbar.ax.tick_params(labelsize=7)
+
+    ax.set_aspect('equal')
+    ax.set_title(f'3x3 Grid, MaxPressure Control, $t = {int(engine.state.time)}$s',
+                 fontsize=10)
+    ax.set_xlabel('x (m)', fontsize=9)
+    ax.set_ylabel('y (m)', fontsize=9)
+    ax.grid(False)
+    for spine in ax.spines.values():
+        spine.set_linewidth(0.4)
+
+    fig.savefig(OVERLEAF / "grid_visualization.pdf")
+    plt.close(fig)
+    print("  Saved grid_visualization.pdf")
+
+
+def fig_sim_dynamics():
+    """Figure: Single-intersection simulation dynamics (spatial + time series)."""
+    try:
+        from lightsim.benchmarks.single_intersection import create_single_intersection
+        from lightsim.core.engine import SimulationEngine
+        from lightsim.core.signal import FixedTimeController
+        from lightsim.core.types import NodeType, LinkID
+    except ImportError:
+        print("  Skipping visualization.pdf (lightsim not installed)")
+        return
+
+    net, demand = create_single_intersection()
+    engine = SimulationEngine(network=net, dt=1.0,
+                              controller=FixedTimeController(),
+                              demand_profiles=demand)
+    engine.reset(seed=42)
+
+    # Collect time series over 600 seconds
+    times = []
+    total_queue_series = []
+    throughput_series = []
+    avg_density_series = []
+
+    for step in range(600):
+        engine.step()
+        times.append(engine.state.time)
+
+        # Total queue across all links
+        total_q = 0.0
+        for lid in engine.net.link_cells:
+            total_q += engine.get_link_queue(lid)
+        total_queue_series.append(total_q)
+
+        throughput_series.append(engine.state.total_exited)
+        metrics = engine.get_network_metrics()
+        avg_density_series.append(metrics['avg_density'])
+
+    compiled = engine.net
+    density = engine.state.density
+
+    # --- Figure: 2 panels ---
+    fig, (ax1, ax2) = plt.subplots(1, 2, figsize=(7.5, 3.5),
+                                    gridspec_kw={'width_ratios': [1, 1.4]})
+
+    # Left: spatial density at t=300 (we re-run to get t=300 snapshot)
+    engine2 = SimulationEngine(network=net, dt=1.0,
+                               controller=FixedTimeController(),
+                               demand_profiles=demand)
+    engine2.reset(seed=42)
+    for _ in range(300):
+        engine2.step()
+
+    density_300 = engine2.state.density
+
+    def density_to_color(ratio):
+        ratio = min(max(ratio, 0.0), 1.0)
+        if ratio < 0.5:
+            t = ratio / 0.5
+            r = 0.27 + t * 0.73
+            g = 0.44 + t * (0.72 - 0.44)
+            b = 0.77 - t * 0.57
+        else:
+            t = (ratio - 0.5) / 0.5
+            r = 1.0 - t * 0.25
+            g = 0.72 - t * 0.41
+            b = 0.20 - t * 0.10
+        return (r, g, b)
+
+    for lid, link in net.links.items():
+        fn = net.nodes.get(link.from_node)
+        tn = net.nodes.get(link.to_node)
+        if fn is None or tn is None:
+            continue
+
+        x1, y1 = fn.x, fn.y
+        x2, y2 = tn.x, tn.y
+        cell_ids = compiled.link_cells[lid]
+        n = len(cell_ids)
+
+        ax1.plot([x1, x2], [y1, y2], color='#D0D0D0', linewidth=4.0,
+                 solid_capstyle='round', zorder=1)
+
+        for i, cid in enumerate(cell_ids):
+            t0 = i / n
+            t1 = (i + 1) / n
+            sx = x1 + (x2 - x1) * t0
+            sy = y1 + (y2 - y1) * t0
+            ex = x1 + (x2 - x1) * t1
+            ey = y1 + (y2 - y1) * t1
+            d = float(density_300[cid])
+            kj = float(compiled.kj[cid])
+            ratio = d / kj if kj > 0 else 0
+            if ratio > 0.005:
+                color = density_to_color(ratio)
+                ax1.plot([sx, ex], [sy, ey], color=color, linewidth=3.0,
+                         solid_capstyle='round', zorder=2)
+
+    # Draw intersection node with label
+    for nid, node in net.nodes.items():
+        if node.node_type == NodeType.SIGNALIZED:
+            ax1.plot(node.x, node.y, 'o', color=BLUE, markersize=8,
+                     markeredgecolor='#333333', markeredgewidth=0.5, zorder=5)
+            # Place P1 label offset to avoid occlusion
+            ax1.text(node.x + 25, node.y + 25, '$P_1$', fontsize=9,
+                     color='#333333', fontweight='bold', zorder=6)
+
+    ax1.set_aspect('equal')
+    ax1.set_title('Spatial Density ($t = 300$s)', fontsize=9)
+    ax1.set_xlabel('x (m)', fontsize=8)
+    ax1.set_ylabel('y (m)', fontsize=8)
+    ax1.grid(False)
+    for spine in ax1.spines.values():
+        spine.set_linewidth(0.4)
+
+    # Right: time series
+    times_arr = np.array(times)
+    ax2.plot(times_arr, total_queue_series, color=RED, linewidth=1.0,
+             label='Total Queue (veh)', alpha=0.9)
+    ax2_twin = ax2.twinx()
+    ax2_twin.plot(times_arr, throughput_series, color=BLUE, linewidth=1.0,
+                  label='Cumulative Throughput', alpha=0.9)
+
+    ax2.set_xlabel('Time (s)', fontsize=9)
+    ax2.set_ylabel('Queue (vehicles)', fontsize=9, color=RED)
+    ax2_twin.set_ylabel('Throughput (vehicles)', fontsize=9, color=BLUE)
+    ax2.tick_params(axis='y', labelcolor=RED)
+    ax2_twin.tick_params(axis='y', labelcolor=BLUE)
+    ax2.set_title('Traffic Metrics Over Time', fontsize=9)
+    ax2.grid(True, alpha=0.2)
+
+    # Combined legend
+    lines1, labels1 = ax2.get_legend_handles_labels()
+    lines2, labels2 = ax2_twin.get_legend_handles_labels()
+    ax2.legend(lines1 + lines2, labels1 + labels2, fontsize=7, loc='center left')
+
+    fig.tight_layout()
+    fig.savefig(OVERLEAF / "visualization.pdf")
+    plt.close(fig)
+    print("  Saved visualization.pdf")
+
+
 if __name__ == "__main__":
     print("Generating figures for LightSim paper...\n")
 
-    print("Figure 2: Fundamental diagram")
+    print("Figure: Grid visualization")
+    fig_grid_visualization()
+
+    print("Figure: Simulation dynamics")
+    fig_sim_dynamics()
+
+    print("Figure: Fundamental diagram")
     fig_fundamental_diagram()
 
-    print("Figure 3: Speed benchmark")
+    print("Figure: Speed benchmark")
     fig_speed_comparison()
 
     print("Figure: SUMO comparison")
     fig_sumo_comparison()
 
-    print("Figure 4: Learning curves")
+    print("Figure: Learning curves")
     fig_learning_curves()
 
-    print("Figure 5: Cross-validation")
+    print("Figure: Cross-validation")
     fig_cross_validation()
 
-    print("\nFigure: Mesoscopic cross-validation (single)")
+    print("\nFigure: Mesoscopic cross-validation")
     fig_mesoscopic_crossval()
 
     print("Figure: Mesoscopic RL curves")

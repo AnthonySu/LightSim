@@ -7,12 +7,16 @@ import matplotlib.patches as mpatches
 from matplotlib.patches import FancyArrowPatch, FancyBboxPatch
 import numpy as np
 
-# Use LaTeX-like rendering
+# Use LaTeX-like rendering — academic style
 plt.rcParams.update({
     "font.family": "serif",
-    "font.size": 9,
+    "font.serif": ["CMU Serif", "DejaVu Serif", "Times New Roman", "serif"],
+    "text.usetex": False,
     "mathtext.fontset": "cm",
+    "font.size": 9,
     "axes.linewidth": 0.5,
+    "figure.facecolor": "white",
+    "savefig.facecolor": "white",
 })
 
 fig = plt.figure(figsize=(12, 3.2))
@@ -36,7 +40,7 @@ ax_a.text(2.5, 1.6, r"$\Delta x = v_f \cdot \Delta t$", ha="center",
 
 # Cells
 densities = [0.02, 0.04, 0.08, 0.12, 0.05]
-colors = ["#4CAF50", "#8BC34A", "#FFC107", "#FF9800", "#66BB6A"]
+colors = ["#548235", "#7EA454", "#D4A843", "#C0784D", "#6BA35C"]
 cell_labels = ["Cell 1", "Cell 2", "Cell 3", "Cell 4", "Cell 5"]
 
 for i, (k, c, label) in enumerate(zip(densities, colors, cell_labels)):
@@ -90,15 +94,15 @@ ax_b.annotate("", xy=(2.7, 0.4), xytext=(1.3, 0.4),
 
 # Sending flow formula (above Cell i)
 ax_b.text(0.2, 1.7, r"$S_i = \min(v_f k_i,\, Q) \cdot \ell_i$",
-          ha="center", fontsize=8.5, color="#E65100",
-          bbox=dict(boxstyle="round,pad=0.15", facecolor="#FFF3E0",
-                    edgecolor="#FFB74D", linewidth=0.5))
+          ha="center", fontsize=8.5, color="#8B4513",
+          bbox=dict(boxstyle="round,pad=0.15", facecolor="#FFF8F0",
+                    edgecolor="#C0A080", linewidth=0.4))
 
 # Receiving flow formula (above Cell i+1)
 ax_b.text(3.8, 1.7, r"$R_{i+1} = \min(Q,\, w(k_j\!-\!k_{i+1})) \cdot \ell$",
-          ha="center", fontsize=8, color="#1B5E20",
-          bbox=dict(boxstyle="round,pad=0.15", facecolor="#E8F5E9",
-                    edgecolor="#81C784", linewidth=0.5))
+          ha="center", fontsize=8, color="#2E5020",
+          bbox=dict(boxstyle="round,pad=0.15", facecolor="#F0F8F0",
+                    edgecolor="#80A080", linewidth=0.4))
 
 # Flow equation on arrow
 ax_b.text(2.0, -0.7, r"$q = \min(S_i,\, R_{i+1}) \cdot \Delta t$",
@@ -122,8 +126,8 @@ ax_c.text(0, 3.2, r"$\mathbf{(c)}$ Signal-Controlled Intersection",
           ha="center", fontsize=10, fontweight="bold")
 
 # Central node
-circle = plt.Circle((0, 0), 0.55, facecolor="#00BCD4", edgecolor="#333",
-                      linewidth=1.2)
+circle = plt.Circle((0, 0), 0.55, facecolor="#4472C4", edgecolor="#333",
+                      linewidth=0.8)
 ax_c.add_patch(circle)
 ax_c.text(0, 0, r"$P_0$", ha="center", va="center", fontsize=11,
           fontweight="bold", color="white")
@@ -181,8 +185,8 @@ ax_c.text(0.55, -2.55, "GREEN", ha="left", fontsize=7.5, color="#2E7D32",
 
 # Sigma label
 ax_c.text(2.2, -2.0, r"$\sigma_m \in \{0, 1\}$", ha="center", fontsize=8.5,
-          bbox=dict(boxstyle="round,pad=0.15", facecolor="#E0F7FA",
-                    edgecolor="#80DEEA", linewidth=0.5))
+          bbox=dict(boxstyle="round,pad=0.15", facecolor="#F0F4FA",
+                    edgecolor="#90A4C4", linewidth=0.4))
 
 # N/S/E/W compass
 ax_c.text(0, -2.55, "S", ha="center", fontsize=7, color="#999")

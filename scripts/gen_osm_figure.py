@@ -12,8 +12,12 @@ import numpy as np
 
 plt.rcParams.update({
     "font.family": "serif",
-    "font.size": 9,
+    "font.serif": ["CMU Serif", "DejaVu Serif", "Times New Roman", "serif"],
+    "text.usetex": False,
     "mathtext.fontset": "cm",
+    "font.size": 9,
+    "figure.facecolor": "white",
+    "savefig.facecolor": "white",
 })
 
 from lightsim.benchmarks.scenarios import get_scenario
@@ -41,7 +45,7 @@ def plot_network(ax, net, title):
         segments.append([(fn.x, fn.y), (tn.x, tn.y)])
 
     if segments:
-        lc = LineCollection(segments, colors="#78909C", linewidths=0.8, alpha=0.6)
+        lc = LineCollection(segments, colors="#78909C", linewidths=0.5, alpha=0.5)
         ax.add_collection(lc)
 
     # Plot nodes by type
@@ -61,13 +65,13 @@ def plot_network(ax, net, title):
             other_y.append(node.y)
 
     if other_x:
-        ax.scatter(other_x, other_y, s=4, c="#B0BEC5", zorder=2, alpha=0.5)
+        ax.scatter(other_x, other_y, s=2, c="#B0BEC5", zorder=2, alpha=0.4)
     if orig_x:
-        ax.scatter(orig_x, orig_y, s=15, c="#4CAF50", zorder=3, marker="^",
-                   edgecolors="#2E7D32", linewidths=0.3, label="Origin")
+        ax.scatter(orig_x, orig_y, s=10, c="#548235", zorder=3, marker="^",
+                   edgecolors="#2E5020", linewidths=0.2, label="Origin")
     if sig_x:
-        ax.scatter(sig_x, sig_y, s=20, c="#FF5722", zorder=4,
-                   edgecolors="#BF360C", linewidths=0.3, label="Signalized")
+        ax.scatter(sig_x, sig_y, s=14, c="#C0504D", zorder=4,
+                   edgecolors="#802020", linewidths=0.2, label="Signalized")
 
     ax.set_aspect("equal")
     ax.set_title(title, fontsize=9, fontweight="bold", pad=4)
@@ -102,8 +106,8 @@ for i, (scenario_name, city_label) in enumerate(CITIES):
 
 # Add legend to last axis
 handles = [
-    mpatches.Patch(color="#FF5722", label="Signalized intersection"),
-    mpatches.Patch(color="#4CAF50", label="Origin / entry point"),
+    mpatches.Patch(color="#C0504D", label="Signalized intersection"),
+    mpatches.Patch(color="#548235", label="Origin / entry point"),
     mpatches.Patch(color="#78909C", label="Road link"),
 ]
 fig.legend(handles=handles, loc="lower center", ncol=3, fontsize=8,
