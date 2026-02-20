@@ -176,7 +176,10 @@ class TestServerImport:
             path = f.name
         recorder.save(path)
 
-        app = create_app(replay_path=path)
+        try:
+            app = create_app(replay_path=path)
+        except ImportError:
+            pytest.skip("fastapi/uvicorn not installed")
         assert app.state.replay_data is not None
         assert len(app.state.replay_data["frames"]) == 5
         Path(path).unlink()
