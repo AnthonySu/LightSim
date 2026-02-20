@@ -60,11 +60,7 @@ class DefaultObservation(ObservationBuilder):
 
     def _get_incoming_links(self, engine: SimulationEngine, node_id: NodeID):
         """Get link IDs of links whose to_node is node_id."""
-        incoming = []
-        for link in engine.network.links.values():
-            if link.to_node == node_id:
-                incoming.append(link.link_id)
-        return sorted(incoming)
+        return engine.net.node_incoming_links.get(node_id, [])
 
     def _obs_size(self, engine: SimulationEngine, node_id: NodeID) -> int:
         n_phases = engine.net.n_phases_per_node.get(node_id, 1)

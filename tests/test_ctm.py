@@ -142,6 +142,128 @@ class TestFlowConservation:
             assert (engine.state.density >= -1e-12).all(), "Negative density detected"
 
 
+class TestMergeDiverge:
+    """Test merge/diverge flow resolution at signalized intersections."""
+
+    def _make_merge_network(self):
+        """3 inbound links merging into 1 outbound through a signalized node.
+
+              O(1) ──┐
+              O(2) ──┤── S(0) ── D(3)
+              O(4) ──┘
+        """
+        from lightsim.core.types import TurnType
+        net = Network()
+        net.add_node(NodeID(0), NodeType.SIGNALIZED, x=0, y=0)
+        net.add_node(NodeID(1), NodeType.ORIGIN, x=-300, y=100)
+        net.add_node(NodeID(2), NodeType.ORIGIN, x=-300, y=0)
+        net.add_node(NodeID(3), NodeType.DESTINATION, x=300, y=0)
+        net.add_node(NodeID(4), NodeType.ORIGIN, x=-300, y=-100)
+
+        kwargs = dict(length=300, lanes=2, n_cells=3,
+                      free_flow_speed=13.89, wave_speed=5.56,
+                      jam_density=0.15, capacity=0.5)
+
+        # 3 inbound + 1 outbound
+        net.add_link(LinkID(0), NodeID(1), NodeID(0), **kwargs)
+        net.add_link(LinkID(1), NodeID(2), NodeID(0), **kwargs)
+        net.add_link(LinkID(2), NodeID(4), NodeID(0), **kwargs)
+        net.add_link(LinkID(3), NodeID(0), NodeID(3), **kwargs)
+
+        # 3 through movements, all feeding LinkID(3)
+        m0 = net.add_movement(LinkID(0), LinkID(3), NodeID(0),
+                              TurnType.THROUGH, turn_ratio=1.0)
+        m1 = net.add_movement(LinkID(1), LinkID(3), NodeID(0),
+                              TurnType.THROUGH, turn_ratio=1.0)
+        m2 = net.add_movement(LinkID(2), LinkID(3), NodeID(0),
+                              TurnType.THROUGH, turn_ratio=1.0)
+        net.add_phase(NodeID(0), [m0.movement_id, m1.movement_id, m2.movement_id])
+        return net
+
+    def test_merge_flow_does_not_exceed_receiving(self):
+        """When 3 movements merge into 1 cell, total flow <= receiving capacity."""
+        net = self._make_merge_network()
+        demand = [
+            DemandProfile(LinkID(0), [0.0], [0.4]),
+            DemandProfile(LinkID(1), [0.0], [0.4]),
+            DemandProfile(LinkID(2), [0.0], [0.4]),
+        ]
+        engine = SimulationEngine(net, dt=1.0, demand_profiles=demand)
+        engine.reset(seed=42)
+
+        for _ in range(200):
+            engine.step()
+
+        # The downstream link's first cell density should not exceed jam density
+        first_cell = engine.net.link_first_cell[LinkID(3)]
+        k = engine.state.density[first_cell]
+        kj = engine.net.kj[first_cell]
+        assert k <= kj + 1e-6, (
+            f"Merge violation: density {k:.4f} exceeds jam density {kj:.4f}"
+        )
+
+    def test_merge_proportional_scaling(self):
+        """Verify movements scale proportionally when merge is saturated."""
+        net = self._make_merge_network()
+        model = CTMFlowModel()
+        compiled = net.compile(dt=1.0)
+
+        # Fill inbound cells to capacity (all sending at Q)
+        density = np.zeros(compiled.n_cells, dtype=FLOAT)
+        for lid in [LinkID(0), LinkID(1), LinkID(2)]:
+            for cid in compiled.link_cells[lid]:
+                density[cid] = compiled.kj[cid] * 0.5  # well above k_crit
+
+        # Outbound cell: half full so receiving is limited
+        for cid in compiled.link_cells[LinkID(3)]:
+            density[cid] = compiled.kj[cid] * 0.8
+
+        sending = model.compute_sending_flow(density, compiled)
+        receiving = model.compute_receiving_flow(density, compiled)
+        signal_mask = np.ones(compiled.n_movements, dtype=FLOAT)
+
+        _, mov_flow = model.compute_flow(
+            density, sending, receiving, signal_mask, compiled, dt=1.0
+        )
+
+        # All 3 movements should get equal share (same upstream density)
+        if mov_flow.sum() > 1e-6:
+            ratios = mov_flow / mov_flow.sum()
+            np.testing.assert_allclose(
+                ratios, [1/3, 1/3, 1/3], atol=0.05,
+                err_msg="Merge flows not proportional"
+            )
+
+        # Total movement flow should not exceed receiving capacity of first cell
+        first_cell = compiled.link_first_cell[LinkID(3)]
+        max_receiving = receiving[first_cell] * 1.0  # dt=1.0
+        assert mov_flow.sum() <= max_receiving + 1e-6, (
+            f"Total merge flow {mov_flow.sum():.4f} > receiving {max_receiving:.4f}"
+        )
+
+    def test_merge_conservation(self):
+        """Total vehicles conserved with merge: entered = exited + in_network."""
+        net = self._make_merge_network()
+        demand = [
+            DemandProfile(LinkID(0), [0.0], [0.3]),
+            DemandProfile(LinkID(1), [0.0], [0.2]),
+            DemandProfile(LinkID(2), [0.0], [0.1]),
+        ]
+        engine = SimulationEngine(net, dt=1.0, demand_profiles=demand)
+        engine.reset(seed=42)
+
+        for _ in range(500):
+            engine.step()
+
+        in_network = engine.get_total_vehicles()
+        entered = engine.state.total_entered
+        exited = engine.state.total_exited
+        np.testing.assert_allclose(
+            entered, exited + in_network, rtol=0.05,
+            err_msg="Flow conservation violated in merge network"
+        )
+
+
 class TestFundamentalDiagram:
     """Test that CTM reproduces the triangular fundamental diagram."""
 

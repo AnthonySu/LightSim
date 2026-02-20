@@ -122,26 +122,19 @@ class CTMFlowModel(FlowModel):
 
         # Merge resolution: if multiple movements feed the same to-cell,
         # scale proportionally if total exceeds receiving capacity.
-        # Group by to-cell
-        to_cells_unique = np.unique(net.mov_to_cell)
-        for tc in to_cells_unique:
-            mask = net.mov_to_cell == tc
-            total_demand = effective_sending[mask].sum()
+        for tc, idxs in net.merge_groups.items():
+            total_demand = effective_sending[idxs].sum()
             cap = receiving[tc]
             if total_demand > cap and total_demand > 1e-12:
-                scale = cap / total_demand
-                effective_sending[mask] *= scale
+                effective_sending[idxs] *= cap / total_demand
 
         # Diverge resolution: if multiple movements draw from the same from-cell,
         # ensure total doesn't exceed sending capacity.
-        from_cells_unique = np.unique(net.mov_from_cell)
-        for fc in from_cells_unique:
-            mask = net.mov_from_cell == fc
-            total_demand = effective_sending[mask].sum()
+        for fc, idxs in net.diverge_groups.items():
+            total_demand = effective_sending[idxs].sum()
             cap = sending[fc]
             if total_demand > cap and total_demand > 1e-12:
-                scale = cap / total_demand
-                effective_sending[mask] *= scale
+                effective_sending[idxs] *= cap / total_demand
 
         movement_flow[:] = effective_sending * dt
 

@@ -151,6 +151,16 @@ class CompiledNetwork:
     node_phases: dict[NodeID, list[PhaseID]] = field(default_factory=dict)
     global_phase_list: list[tuple[NodeID, PhaseID]] = field(default_factory=list)
 
+    # --- pre-computed merge/diverge groups for O(M) flow resolution ---
+    # merge_groups[to_cell] = array of movement indices feeding that cell
+    merge_groups: dict[int, np.ndarray] = field(default_factory=dict)
+    # diverge_groups[from_cell] = array of movement indices drawing from that cell
+    diverge_groups: dict[int, np.ndarray] = field(default_factory=dict)
+
+    # --- pre-computed node link maps for O(1) lookup ---
+    node_incoming_links: dict[NodeID, list[LinkID]] = field(default_factory=dict)
+    node_outgoing_links: dict[NodeID, list[LinkID]] = field(default_factory=dict)
+
 
 # ---------------------------------------------------------------------------
 # Network
@@ -385,6 +395,31 @@ class Network:
             [p.all_red for p in all_phases], dtype=FLOAT
         ) if all_phases else np.empty(0, dtype=FLOAT)
 
+        # Pre-compute node → incoming/outgoing link maps
+        node_incoming_links: dict[NodeID, list[LinkID]] = {}
+        node_outgoing_links: dict[NodeID, list[LinkID]] = {}
+        for link in self.links.values():
+            node_incoming_links.setdefault(link.to_node, []).append(link.link_id)
+            node_outgoing_links.setdefault(link.from_node, []).append(link.link_id)
+        # Sort for deterministic ordering
+        for k in node_incoming_links:
+            node_incoming_links[k].sort()
+        for k in node_outgoing_links:
+            node_outgoing_links[k].sort()
+
+        # Pre-compute merge/diverge groups for O(M) flow resolution
+        merge_groups: dict[int, np.ndarray] = {}
+        diverge_groups: dict[int, np.ndarray] = {}
+        if n_movements > 0:
+            for m in range(n_movements):
+                tc = int(mov_to_cell[m])
+                merge_groups.setdefault(tc, []).append(m)
+                fc = int(mov_from_cell[m])
+                diverge_groups.setdefault(fc, []).append(m)
+            # Convert lists to arrays for fast indexing
+            merge_groups = {k: np.array(v, dtype=INT) for k, v in merge_groups.items()}
+            diverge_groups = {k: np.array(v, dtype=INT) for k, v in diverge_groups.items()}
+
         return CompiledNetwork(
             n_cells=n_cells,
             n_movements=n_movements,
@@ -414,4 +449,8 @@ class Network:
             node_movements=node_movements,
             node_phases=node_phases,
             global_phase_list=global_phase_list,
+            merge_groups=merge_groups,
+            diverge_groups=diverge_groups,
+            node_incoming_links=node_incoming_links,
+            node_outgoing_links=node_outgoing_links,
         )

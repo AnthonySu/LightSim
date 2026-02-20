@@ -44,11 +44,9 @@ class QueueReward(RewardFunction):
     def compute(
         self, engine: SimulationEngine, node_id: NodeID,
     ) -> float:
-        net = engine.net
         total_queue = 0.0
-        for link in engine.network.links.values():
-            if link.to_node == node_id:
-                total_queue += engine.get_link_queue(link.link_id)
+        for lid in engine.net.node_incoming_links.get(node_id, []):
+            total_queue += engine.get_link_queue(lid)
         return -total_queue
 
 
@@ -72,9 +70,8 @@ class DelayReward(RewardFunction):
     ) -> float:
         from ..utils.metrics import compute_link_delay
         total_delay = 0.0
-        for link in engine.network.links.values():
-            if link.to_node == node_id:
-                total_delay += compute_link_delay(engine, link.link_id)
+        for lid in engine.net.node_incoming_links.get(node_id, []):
+            total_delay += compute_link_delay(engine, lid)
         return -total_delay
 
 
