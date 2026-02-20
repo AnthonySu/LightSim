@@ -225,6 +225,9 @@ try:
     class TrajectoryDataset(Dataset):
         """PyTorch Dataset that samples fixed-length subsequences from trajectories.
 
+        RTG values are normalized to zero mean and unit variance to prevent
+        the large magnitude of cumulative rewards from dominating embeddings.
+
         Parameters
         ----------
         trajectories : list[Trajectory]
@@ -237,12 +240,21 @@ try:
             self.context_len = context_len
             self.trajectories = trajectories
 
+            # Compute RTG normalization statistics across all trajectories
+            all_rtg = np.concatenate([t.returns_to_go for t in trajectories])
+            self.rtg_mean = float(all_rtg.mean())
+            self.rtg_std = float(all_rtg.std()) + 1e-8
+
             # Build index: (traj_idx, start_timestep) for all valid windows
             self._indices: list[tuple[int, int]] = []
             for i, traj in enumerate(trajectories):
                 # Allow starting from any position (left-pad short sequences)
                 for t in range(traj.length):
                     self._indices.append((i, t))
+
+        def normalize_rtg(self, rtg: np.ndarray) -> np.ndarray:
+            """Normalize RTG values to zero mean, unit variance."""
+            return (rtg - self.rtg_mean) / self.rtg_std
 
         def __len__(self) -> int:
             return len(self._indices)
@@ -258,7 +270,7 @@ try:
 
             obs = traj.observations[start:end_pos + 1]
             act = traj.actions[start:end_pos + 1]
-            rtg = traj.returns_to_go[start:end_pos + 1]
+            rtg = self.normalize_rtg(traj.returns_to_go[start:end_pos + 1])
             ts = traj.timesteps[start:end_pos + 1]
 
             # Left-pad if shorter than context_len

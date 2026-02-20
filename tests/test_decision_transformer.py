@@ -201,16 +201,17 @@ class TestTrainDT:
 
     def test_train_runs(self):
         trajs = self._make_trajectories()
-        model, losses = train_dt(
+        model, losses, rtg_stats = train_dt(
             trajs, epochs=3, batch_size=16, context_len=10, verbose=False,
         )
         assert len(losses) == 3
         assert all(isinstance(l, float) for l in losses)
+        assert "mean" in rtg_stats and "std" in rtg_stats
 
     def test_loss_decreases(self):
         np.random.seed(42)
         trajs = self._make_trajectories(n=10, T=50)
-        model, losses = train_dt(
+        model, losses, _ = train_dt(
             trajs, epochs=10, batch_size=32, context_len=10,
             verbose=False, lr=1e-3,
         )
@@ -219,11 +220,14 @@ class TestTrainDT:
 
     def test_save_load(self, tmp_path):
         trajs = self._make_trajectories()
-        model, _ = train_dt(trajs, epochs=2, batch_size=16, context_len=10, verbose=False)
+        model, _, rtg_stats = train_dt(trajs, epochs=2, batch_size=16, context_len=10, verbose=False)
 
         path = tmp_path / "model.pt"
-        save_dt_model(model, path)
-        loaded = load_dt_model(path)
+        save_dt_model(model, path, rtg_stats=rtg_stats)
+        loaded, loaded_stats = load_dt_model(path)
+
+        assert loaded_stats["mean"] == rtg_stats["mean"]
+        assert loaded_stats["std"] == rtg_stats["std"]
 
         # Compare predictions
         obs = torch.randn(1, 10, 12)
@@ -316,7 +320,7 @@ class TestEndToEnd:
         )
         assert len(trajs) == 2
 
-        model, losses = train_dt(
+        model, losses, rtg_stats = train_dt(
             trajs, epochs=3, batch_size=8, context_len=10, verbose=False,
         )
         assert len(losses) == 3
@@ -324,7 +328,8 @@ class TestEndToEnd:
         # Use model as controller
         network, demand = create_single_intersection()
         controller = DecisionTransformerController(
-            model, target_return=-50.0, sim_steps_per_action=5,
+            model, target_return=-50.0, rtg_stats=rtg_stats,
+            sim_steps_per_action=5,
         )
         engine = SimulationEngine(
             network=network, dt=1.0,

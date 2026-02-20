@@ -1,0 +1,58 @@
+[
+  {
+    "policy": "FixedTime",
+    "avg_reward": -165.6496671327295,
+    "total_throughput": 2290.282490087669,
+    "avg_delay": 33.60949701526454,
+    "avg_vehicles": 206.56653913180486,
+    "wall_time": 1.9701241999864578
+  },
+  {
+    "policy": "Webster",
+    "avg_reward": -163.3236354888884,
+    "total_throughput": 2414.350286422015,
+    "avg_delay": 33.37511115483484,
+    "avg_vehicles": 208.05293967098342,
+    "wall_time": 1.8644061999802943
+  },
+  {
+    "policy": "SOTL",
+    "avg_reward": -8.573121383093454,
+    "total_throughput": 3540.683656379292,
+    "avg_delay": 0.7041148809709838,
+    "avg_vehicles": 59.31634362069383,
+    "wall_time": 1.8737452999921516
+  },
+  {
+    "policy": "MaxPressure",
+    "avg_reward": -8.619204641823234,
+    "total_throughput": 3540.7235980336322,
+    "avg_delay": 0.20411488097097852,
+    "avg_vehicles": 59.27640196635231,
+    "wall_time": 1.8838462000130676
+  },
+  {
+    "policy": "DT-Expert",
+    "avg_reward": -9.136801176418583,
+    "total_throughput": 3540.1833999739347,
+    "avg_delay": 0.0,
+    "avg_vehicles": 59.81660002605238,
+    "wall_time": 17.59724499998265
+  },
+  {
+    "policy": "DT-Mixed(hi)",
+    "avg_reward": -168.27853351059028,
+    "total_throughput": 2134.082073433986,
+    "avg_delay": 34.200864080885424,
+    "avg_vehicles": 205.91792656587427,
+    "wall_time": 17.602331899979617
+  },
+  {
+    "policy": "DT-Mixed(lo)",
+    "avg_reward": -168.27853351059028,
+    "total_throughput": 2134.082073433986,
+    "avg_delay": 34.200864080885424,
+    "avg_vehicles": 205.91792656587427,
+    "wall_time": 17.673221300006844
+  }
+]

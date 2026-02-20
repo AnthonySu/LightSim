@@ -3,6 +3,7 @@
 from __future__ import annotations
 
 import math
+import time
 from pathlib import Path
 
 import numpy as np
@@ -14,6 +15,20 @@ from .dataset import Trajectory, TrajectoryDataset
 from .model import DTConfig, DecisionTransformer
 
 
+def get_device(device: str = "auto") -> torch.device:
+    """Resolve device string to a torch.device.
+
+    Parameters
+    ----------
+    device : str
+        ``"auto"`` picks CUDA if available, else CPU.
+        Also accepts ``"cpu"``, ``"cuda"``, ``"cuda:0"``, etc.
+    """
+    if device == "auto":
+        return torch.device("cuda" if torch.cuda.is_available() else "cpu")
+    return torch.device(device)
+
+
 def train_dt(
     trajectories: list[Trajectory],
     config: DTConfig | None = None,
@@ -23,7 +38,7 @@ def train_dt(
     weight_decay: float = 1e-4,
     warmup_steps: int = 100,
     context_len: int = 20,
-    device: str = "cpu",
+    device: str = "auto",
     verbose: bool = True,
 ) -> tuple[DecisionTransformer, list[float]]:
     """Train a Decision Transformer on collected trajectories.
@@ -47,17 +62,23 @@ def train_dt(
     context_len : int
         Subsequence length for training.
     device : str
-        Device string ("cpu" or "cuda").
+        ``"auto"`` (default) uses CUDA if available.
+        Also accepts ``"cpu"``, ``"cuda"``, ``"cuda:0"``, etc.
     verbose : bool
         Print epoch losses.
 
     Returns
     -------
     model : DecisionTransformer
-        Trained model.
+        Trained model (moved to CPU for portability).
     losses : list[float]
         Per-epoch average loss.
+    rtg_stats : dict
+        RTG normalization stats (``"mean"`` and ``"std"``).
+        Pass to ``DTPolicy`` for correct inference conditioning.
     """
+    dev = get_device(device)
+
     # Infer dimensions from data
     obs_dim = trajectories[0].observations.shape[1]
     act_dim = int(max(t.actions.max() for t in trajectories)) + 1
@@ -70,11 +91,18 @@ def train_dt(
         )
 
     dataset = TrajectoryDataset(trajectories, context_len=context_len)
+    rtg_stats = {"mean": dataset.rtg_mean, "std": dataset.rtg_std}
+    use_cuda = dev.type == "cuda"
     loader = DataLoader(
-        dataset, batch_size=batch_size, shuffle=True, drop_last=len(dataset) > batch_size,
+        dataset,
+        batch_size=batch_size,
+        shuffle=True,
+        drop_last=len(dataset) > batch_size,
+        pin_memory=use_cuda,
+        num_workers=0,
     )
 
-    model = DecisionTransformer(config).to(device)
+    model = DecisionTransformer(config).to(dev)
     optimizer = torch.optim.AdamW(model.parameters(), lr=lr, weight_decay=weight_decay)
 
     # Cosine schedule with linear warmup
@@ -84,19 +112,26 @@ def train_dt(
         lr_lambda=lambda step: _cosine_warmup(step, warmup_steps, total_steps),
     )
 
+    if verbose:
+        n_params = sum(p.numel() for p in model.parameters())
+        print(f"  Device: {dev} | Params: {n_params:,} | "
+              f"Dataset: {len(dataset):,} samples | "
+              f"Batches/epoch: {len(loader)}")
+
     epoch_losses: list[float] = []
     model.train()
+    t0 = time.perf_counter()
 
     for epoch in range(epochs):
         total_loss = 0.0
         n_batches = 0
 
         for batch in loader:
-            obs = batch["observations"].to(device)
-            act = batch["actions"].to(device)
-            rtg = batch["returns_to_go"].to(device)
-            ts = batch["timesteps"].to(device)
-            mask = batch["mask"].to(device)
+            obs = batch["observations"].to(dev, non_blocking=use_cuda)
+            act = batch["actions"].to(dev, non_blocking=use_cuda)
+            rtg = batch["returns_to_go"].to(dev, non_blocking=use_cuda)
+            ts = batch["timesteps"].to(dev, non_blocking=use_cuda)
+            mask = batch["mask"].to(dev, non_blocking=use_cuda)
 
             logits = model(obs, act, rtg, ts, mask)  # (B, K, act_dim)
 
@@ -125,9 +160,19 @@ def train_dt(
         epoch_losses.append(avg_loss)
 
         if verbose and (epoch + 1) % max(1, epochs // 10) == 0:
-            print(f"  Epoch {epoch + 1}/{epochs}  loss={avg_loss:.4f}")
+            elapsed = time.perf_counter() - t0
+            print(f"  Epoch {epoch + 1}/{epochs}  loss={avg_loss:.4f}  "
+                  f"[{elapsed:.1f}s elapsed]")
 
-    return model, epoch_losses
+    # Move model to CPU for portable saving / inference
+    model.cpu()
+    model.eval()
+
+    if verbose:
+        total_time = time.perf_counter() - t0
+        print(f"  Training complete: {total_time:.1f}s total")
+
+    return model, epoch_losses, rtg_stats
 
 
 def _cosine_warmup(step: int, warmup: int, total: int) -> float:
@@ -138,22 +183,46 @@ def _cosine_warmup(step: int, warmup: int, total: int) -> float:
     return 0.5 * (1.0 + math.cos(math.pi * progress))
 
 
-def save_dt_model(model: DecisionTransformer, path: str | Path) -> None:
-    """Save model config + state dict to a .pt file."""
+def save_dt_model(
+    model: DecisionTransformer,
+    path: str | Path,
+    rtg_stats: dict | None = None,
+) -> None:
+    """Save model config + state dict + RTG stats to a .pt file."""
     torch.save({
         "config": model.config,
         "state_dict": model.state_dict(),
+        "rtg_stats": rtg_stats,
     }, str(path))
 
 
-def load_dt_model(path: str | Path, device: str = "cpu") -> DecisionTransformer:
-    """Load a saved Decision Transformer."""
-    checkpoint = torch.load(str(path), map_location=device, weights_only=False)
+def load_dt_model(
+    path: str | Path, device: str = "cpu",
+) -> tuple[DecisionTransformer, dict | None]:
+    """Load a saved Decision Transformer.
+
+    Parameters
+    ----------
+    path : str | Path
+        Path to .pt checkpoint.
+    device : str
+        Target device. Defaults to ``"cpu"`` for portable inference.
+        Use ``"auto"`` or ``"cuda"`` for GPU inference.
+
+    Returns
+    -------
+    model : DecisionTransformer
+    rtg_stats : dict | None
+        RTG normalization stats (``"mean"`` and ``"std"``), or None.
+    """
+    dev = get_device(device)
+    checkpoint = torch.load(str(path), map_location=dev, weights_only=False)
     config = checkpoint["config"]
-    model = DecisionTransformer(config).to(device)
+    model = DecisionTransformer(config).to(dev)
     model.load_state_dict(checkpoint["state_dict"])
     model.eval()
-    return model
+    rtg_stats = checkpoint.get("rtg_stats")
+    return model, rtg_stats
 
 
 if __name__ == "__main__":
@@ -170,6 +239,8 @@ if __name__ == "__main__":
     parser.add_argument("--batch-size", type=int, default=64)
     parser.add_argument("--context-len", type=int, default=20)
     parser.add_argument("--lr", type=float, default=1e-3)
+    parser.add_argument("--device", default="auto",
+                        help="Device: 'auto', 'cpu', 'cuda', 'cuda:0'")
     parser.add_argument("--save", default="dt_model.pt")
     parser.add_argument("--save-data", default=None,
                         help="Save trajectory data to .npz")
@@ -191,13 +262,15 @@ if __name__ == "__main__":
         print(f"  Saved to {args.save_data}")
 
     print("Training Decision Transformer...")
-    model, losses = train_dt(
+    model, losses, rtg_stats = train_dt(
         trajectories,
         epochs=args.epochs,
         batch_size=args.batch_size,
         context_len=args.context_len,
         lr=args.lr,
+        device=args.device,
     )
-    save_dt_model(model, args.save)
+    save_dt_model(model, args.save, rtg_stats=rtg_stats)
     print(f"  Saved model to {args.save}")
     print(f"  Final loss: {losses[-1]:.4f}")
+    print(f"  RTG stats: mean={rtg_stats['mean']:.1f}, std={rtg_stats['std']:.1f}")

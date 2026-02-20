@@ -29,6 +29,10 @@ class DTPolicy:
         Trained DT model.
     target_return : float
         Target cumulative return for conditioning.
+    rtg_stats : dict | None
+        RTG normalization stats (``"mean"``, ``"std"``) from training.
+        If provided, target_return and RTG buffer values are normalized
+        using these stats before being fed to the model.
     context_len : int
         Maximum context window. Defaults to model config.
     device : str
@@ -39,6 +43,7 @@ class DTPolicy:
         self,
         model: DecisionTransformer,
         target_return: float,
+        rtg_stats: dict | None = None,
         context_len: int | None = None,
         device: str = "cpu",
     ):
@@ -47,12 +52,18 @@ class DTPolicy:
         self.device = device
         self.context_len = context_len or model.config.context_len
         self.target_return = target_return
+        self.rtg_mean = rtg_stats["mean"] if rtg_stats else 0.0
+        self.rtg_std = rtg_stats["std"] if rtg_stats else 1.0
 
         self._obs_buffer: list[np.ndarray] = []
         self._act_buffer: list[int] = []
         self._rtg_buffer: list[float] = []
         self._timestep = 0
         self._current_rtg = target_return
+
+    def _normalize_rtg(self, rtg: np.ndarray) -> np.ndarray:
+        """Normalize RTG to match training distribution."""
+        return (rtg - self.rtg_mean) / self.rtg_std
 
     def reset(self, target_return: float | None = None) -> None:
         """Reset for a new episode."""
@@ -89,7 +100,9 @@ class DTPolicy:
         seq_len = T - start
 
         obs_seq = np.array(self._obs_buffer[start:], dtype=np.float32)
-        rtg_seq = np.array(self._rtg_buffer[start:], dtype=np.float32)
+        rtg_seq = self._normalize_rtg(
+            np.array(self._rtg_buffer[start:], dtype=np.float32)
+        )
 
         # Actions: use previous actions (shifted by 1). For the first step,
         # use action 0 as placeholder.
@@ -170,10 +183,11 @@ class DecisionTransformerController(SignalController):
         self,
         model: DecisionTransformer,
         target_return: float,
+        rtg_stats: dict | None = None,
         sim_steps_per_action: int = 5,
         device: str = "cpu",
     ):
-        self._policy = DTPolicy(model, target_return, device=device)
+        self._policy = DTPolicy(model, target_return, rtg_stats=rtg_stats, device=device)
         self.sim_steps_per_action = sim_steps_per_action
         self._obs_builder = DefaultObservation()
         self._reward_fn = QueueReward()
