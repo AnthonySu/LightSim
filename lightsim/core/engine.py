@@ -187,6 +187,26 @@ class SimulationEngine:
              * self.net.lanes[cells][queued]).sum()
         )
 
+    def get_link_speed(self, link_id: LinkID) -> float:
+        """Average speed (m/s) on a link, weighted by cell length."""
+        cells = self.net.link_cells[link_id]
+        density = self.state.density[cells]
+        vf = self.net.vf[cells]
+        Q = self.net.Q[cells]
+        lanes = self.net.lanes[cells]
+        length = self.net.length[cells]
+        k_crit = Q / vf
+        speed = np.where(
+            density <= k_crit,
+            vf,
+            np.where(density > 1e-9, Q * lanes / (density * lanes + 1e-9), vf),
+        )
+        speed = np.maximum(speed, 0.1)
+        total_length = float(length.sum())
+        if total_length < 1e-9:
+            return 0.0
+        return float((speed * length).sum() / total_length)
+
     def get_total_vehicles(self) -> float:
         """Total vehicles in the network."""
         return float(
