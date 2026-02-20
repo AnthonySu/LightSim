@@ -75,6 +75,15 @@ class SimulationEngine:
             density=np.zeros(self.net.n_cells, dtype=FLOAT),
         )
 
+        # Pre-compute topology masks and reusable buffers
+        net = self.net
+        self._lane_length = net.length * net.lanes  # constant per cell
+        self._has_ds = net.downstream_cell >= 0
+        self._has_us = net.upstream_cell >= 0
+        self._us_src = net.upstream_cell[self._has_us]
+        self._vehicles = np.zeros(net.n_cells, dtype=FLOAT)
+        self._sink_flow = np.zeros(net.n_cells, dtype=FLOAT)
+
     def reset(self, seed: int | None = None) -> SimState:
         """Reset the simulation to time zero."""
         self._rng = np.random.default_rng(seed)
@@ -112,53 +121,45 @@ class SimulationEngine:
             capacity_factor=capacity_factor,
         )
 
-        # 4. Update densities from intra-link flows
-        # intra_flow[i] = vehicles moving from cell i to downstream_cell[i]
-        vehicles = density * net.length * net.lanes  # current vehicles per cell
+        # 4. Update densities from intra-link flows (reuse pre-allocated buffer)
+        vehicles = self._vehicles
+        np.multiply(density, self._lane_length, out=vehicles)
 
         # Subtract outgoing intra-link flow
-        has_ds = net.downstream_cell >= 0
-        vehicles[has_ds] -= intra_flow[has_ds]
+        vehicles[self._has_ds] -= intra_flow[self._has_ds]
 
         # Add incoming intra-link flow
-        has_us = net.upstream_cell >= 0
-        src_cells = net.upstream_cell[has_us]
-        vehicles[has_us] += intra_flow[src_cells]
+        vehicles[self._has_us] += intra_flow[self._us_src]
 
         # 5. Update densities from movement flows
         if net.n_movements > 0:
-            # Subtract from source cells (last cell of from-link)
             np.subtract.at(vehicles, net.mov_from_cell, movement_flow)
-            # Add to destination cells (first cell of to-link)
             np.add.at(vehicles, net.mov_to_cell, movement_flow)
 
         # 6. Inject demand at sources
         injection = self.demand_manager.get_injection(s.time, dt, density)
         vehicles += injection
-        s.total_entered += injection.sum()
+        s.total_entered += float(injection.sum())
 
-        # 7. Remove vehicles at sinks
-        sink_flow = np.zeros(net.n_cells, dtype=FLOAT)
+        # 7. Remove vehicles at sinks (reuse pre-allocated buffer)
+        sink_flow = self._sink_flow
+        sink_flow[:] = 0.0
         sink_mask = net.is_sink
-        # Sinks absorb the sending flow from their cell
         sink_sending = sending[sink_mask] * dt
-        # But cap by available vehicles
         sink_flow[sink_mask] = np.minimum(sink_sending, vehicles[sink_mask])
         vehicles -= sink_flow
-        s.total_exited += sink_flow.sum()
+        s.total_exited += float(sink_flow.sum())
 
-        # 8. Convert back to density, clamp non-negative
-        lane_length = net.length * net.lanes
-        density_new = np.maximum(vehicles / lane_length, 0.0)
-        # Also clamp at jam density
-        density_new = np.minimum(density_new, net.kj)
+        # 8. Convert back to density, clamp to [0, kj]
+        np.divide(vehicles, self._lane_length, out=density)
+        np.maximum(density, 0.0, out=density)
+        np.minimum(density, net.kj, out=density)
 
-        s.density = density_new
         s.time += dt
         s.step_count += 1
 
         # 9. Advance signals
-        self.signal_manager.step(dt, density_new)
+        self.signal_manager.step(dt, density)
 
         return s
 

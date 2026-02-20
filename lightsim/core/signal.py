@@ -419,6 +419,110 @@ class WebsterController(SignalController):
         return state.current_phase_idx
 
 
+class GreenWaveController(SignalController):
+    """Arterial green wave (coordinated fixed-time) controller.
+
+    Sets offsets along an arterial corridor so that a platoon traveling
+    at free-flow speed hits green at each successive intersection.
+
+    The controller uses a common cycle length for all intersections.
+    Phase 0 is the main (arterial) phase; subsequent phases share the
+    remaining cycle time equally.
+
+    Parameters
+    ----------
+    cycle_length : float
+        Common cycle length for all intersections (seconds).
+    green_ratio : float
+        Fraction of cycle allocated to the main (phase 0) green.
+    offsets : dict[NodeID, float]
+        Per-node offset in seconds.  The offset shifts when the cycle
+        "starts" at that node — a positive offset delays the start of
+        phase 0 by that many seconds.
+    """
+
+    def __init__(
+        self,
+        cycle_length: float = 60.0,
+        green_ratio: float = 0.6,
+        offsets: dict[NodeID, float] | None = None,
+    ) -> None:
+        self.cycle_length = cycle_length
+        self.green_ratio = green_ratio
+        self._offsets = offsets or {}
+
+    def _splits(self, n_phases: int) -> list[float]:
+        """Compute green splits: [main_green, side_time, side_time, ...]."""
+        green_time = self.cycle_length * self.green_ratio
+        side_time = (self.cycle_length - green_time) / max(n_phases - 1, 1)
+        return [green_time] + [side_time] * (n_phases - 1)
+
+    def initial_state(self, node_id: NodeID, net: CompiledNetwork) -> SignalState:
+        """Return the initial signal state with offset applied."""
+        n_phases = net.n_phases_per_node.get(node_id, 1)
+        offset = self._offsets.get(node_id, 0.0)
+        if n_phases < 2 or offset == 0.0:
+            return SignalState()
+        cycle_pos = offset % self.cycle_length
+        splits = self._splits(n_phases)
+        cumulative = 0.0
+        for i, g in enumerate(splits):
+            if cycle_pos < cumulative + g:
+                return SignalState(
+                    current_phase_idx=i,
+                    time_in_phase=cycle_pos - cumulative,
+                )
+            cumulative += g
+        return SignalState()
+
+    def get_phase_index(
+        self,
+        node_id: NodeID,
+        state: SignalState,
+        net: CompiledNetwork,
+        density: np.ndarray,
+    ) -> int:
+        n_phases = net.n_phases_per_node.get(node_id, 1)
+        if n_phases < 2:
+            return 0
+
+        splits = self._splits(n_phases)
+        current_green = splits[state.current_phase_idx]
+        if state.time_in_phase >= current_green:
+            return (state.current_phase_idx + 1) % n_phases
+        return state.current_phase_idx
+
+    @staticmethod
+    def compute_offsets(
+        nodes: list[NodeID],
+        distances: list[float],
+        speed: float = 13.89,
+    ) -> dict[NodeID, float]:
+        """Compute progression offsets from inter-node distances.
+
+        Parameters
+        ----------
+        nodes : list[NodeID]
+            Ordered list of signalized nodes along the arterial.
+        distances : list[float]
+            Distance in metres between consecutive nodes.
+            Length must be ``len(nodes) - 1``.
+        speed : float
+            Progression speed in m/s.
+
+        Returns
+        -------
+        offsets : dict[NodeID, float]
+            Per-node offset in seconds.
+        """
+        offsets = {nodes[0]: 0.0}
+        cumulative = 0.0
+        for i in range(1, len(nodes)):
+            cumulative += distances[i - 1]
+            offsets[nodes[i]] = cumulative / speed
+        return offsets
+
+
 class SignalManager:
     """Manages signal states for all signalised nodes."""
 
@@ -431,7 +535,10 @@ class SignalManager:
         self.controller = controller
         self.states: dict[NodeID, SignalState] = {}
         for node_id in net.node_phases:
-            self.states[node_id] = SignalState()
+            if hasattr(controller, 'initial_state'):
+                self.states[node_id] = controller.initial_state(node_id, net)
+            else:
+                self.states[node_id] = SignalState()
 
         # Per-movement green timer tracking for capacity factor
         self._time_since_green = np.zeros(net.n_movements, dtype=FLOAT)

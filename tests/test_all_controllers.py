@@ -7,6 +7,7 @@ from lightsim.core.engine import SimulationEngine
 from lightsim.core.signal import (
     EfficientMaxPressureController,
     FixedTimeController,
+    GreenWaveController,
     LostTimeAwareMaxPressureController,
     MaxPressureController,
     SOTLController,
@@ -20,6 +21,7 @@ CONTROLLERS = [
     ("MaxPressure", MaxPressureController(min_green=5.0)),
     ("LTAwareMP", LostTimeAwareMaxPressureController(min_green=5.0)),
     ("EfficientMP", EfficientMaxPressureController(min_green=5.0)),
+    ("GreenWave", GreenWaveController(cycle_length=60.0, green_ratio=0.6)),
 ]
 
 
