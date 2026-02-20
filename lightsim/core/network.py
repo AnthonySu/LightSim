@@ -164,6 +164,19 @@ class CompiledNetwork:
     # --- phase → movement list for O(|M_per_phase|) controller lookups ---
     phase_movements: dict[int, list[int]] = field(default_factory=dict)
 
+    def summary(self) -> dict:
+        """Return a dict of network statistics for reporting."""
+        total_length = float((self.length * self.lanes).sum())
+        return {
+            "n_cells": self.n_cells,
+            "n_links": len(self.link_cells),
+            "n_movements": self.n_movements,
+            "n_signalized_nodes": len(self.node_phases),
+            "n_phases": len(self.phase_movements),
+            "total_lane_metres": total_length,
+            "total_lane_km": total_length / 1000.0,
+        }
+
 
 # ---------------------------------------------------------------------------
 # Network
@@ -276,6 +289,69 @@ class Network:
         )
         self.nodes[node_id].phases.append(phase)
         return phase
+
+    # -- validation -----------------------------------------------------------
+
+    def validate(self) -> list[str]:
+        """Check the network for common configuration errors.
+
+        Returns a list of warning/error messages.  An empty list means
+        the network is valid.
+        """
+        errors: list[str] = []
+
+        # Check link endpoints reference existing nodes
+        for lid, link in self.links.items():
+            if link.from_node not in self.nodes:
+                errors.append(f"Link {lid}: from_node {link.from_node} not found")
+            if link.to_node not in self.nodes:
+                errors.append(f"Link {lid}: to_node {link.to_node} not found")
+            if link.num_cells == 0:
+                errors.append(f"Link {lid}: has 0 cells")
+
+        # Check movements reference existing links and nodes
+        for mid, mov in self.movements.items():
+            if mov.from_link not in self.links:
+                errors.append(f"Movement {mid}: from_link {mov.from_link} not found")
+            if mov.to_link not in self.links:
+                errors.append(f"Movement {mid}: to_link {mov.to_link} not found")
+            if mov.node_id not in self.nodes:
+                errors.append(f"Movement {mid}: node {mov.node_id} not found")
+            elif mov.from_link in self.links:
+                link = self.links[mov.from_link]
+                if link.to_node != mov.node_id:
+                    errors.append(
+                        f"Movement {mid}: from_link {mov.from_link} doesn't "
+                        f"terminate at node {mov.node_id}"
+                    )
+            if mov.turn_ratio <= 0 or mov.turn_ratio > 1:
+                errors.append(f"Movement {mid}: turn_ratio {mov.turn_ratio} not in (0,1]")
+
+        # Check phases reference existing movements
+        for nid, node in self.nodes.items():
+            for phase in node.phases:
+                for mid in phase.movements:
+                    if mid not in self.movements:
+                        errors.append(
+                            f"Phase {phase.phase_id} at node {nid}: "
+                            f"movement {mid} not found"
+                        )
+
+        # Warn about signalized nodes with no phases
+        for nid, node in self.nodes.items():
+            if node.node_type == NodeType.SIGNALIZED and not node.phases:
+                errors.append(f"Node {nid}: signalized but has no phases")
+
+        # Warn about disconnected nodes (no links)
+        connected_nodes: set[NodeID] = set()
+        for link in self.links.values():
+            connected_nodes.add(link.from_node)
+            connected_nodes.add(link.to_node)
+        for nid in self.nodes:
+            if nid not in connected_nodes:
+                errors.append(f"Node {nid}: disconnected (no links)")
+
+        return errors
 
     # -- compile to flat arrays ----------------------------------------------
 
