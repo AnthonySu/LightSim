@@ -115,3 +115,31 @@ class ThroughputReward(RewardFunction):
             q = min(net.vf[from_cell] * k, net.Q[from_cell]) * net.lanes[from_cell]
             total_flow += q
         return total_flow
+
+
+@register_reward("normalized_throughput")
+class NormalizedThroughputReward(RewardFunction):
+    """Reward = throughput / max_possible_throughput, in [0, 1].
+
+    Normalizes throughput by the sum of saturation rates across all
+    movements at the node, making it network-agnostic.
+    """
+
+    def compute(
+        self, engine: SimulationEngine, node_id: NodeID,
+    ) -> float:
+        net = engine.net
+        movs = net.node_movements.get(node_id, [])
+        if not movs:
+            return 0.0
+        total_flow = 0.0
+        total_capacity = 0.0
+        for mid in movs:
+            from_cell = net.mov_from_cell[mid]
+            k = engine.state.density[from_cell]
+            q = min(net.vf[from_cell] * k, net.Q[from_cell]) * net.lanes[from_cell]
+            total_flow += q
+            total_capacity += net.mov_sat_rate[mid]
+        if total_capacity < 1e-9:
+            return 0.0
+        return min(total_flow / total_capacity, 1.0)
