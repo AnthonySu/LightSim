@@ -32,15 +32,15 @@ class DemandProfile:
     time_points: list[float] = field(default_factory=lambda: [0.0])
     flow_rates: list[float] = field(default_factory=lambda: [0.0])
 
+    def __post_init__(self) -> None:
+        self._tp = np.asarray(self.time_points, dtype=FLOAT)
+        self._rates = np.asarray(self.flow_rates, dtype=FLOAT)
+
     def get_rate(self, t: float) -> float:
-        """Return demand rate (veh/s) at time t."""
-        rate = self.flow_rates[0]
-        for i, tp in enumerate(self.time_points):
-            if t >= tp:
-                rate = self.flow_rates[min(i, len(self.flow_rates) - 1)]
-            else:
-                break
-        return rate
+        """Return demand rate (veh/s) at time t (O(log n) binary search)."""
+        idx = int(np.searchsorted(self._tp, t, side="right")) - 1
+        idx = max(0, min(idx, len(self._rates) - 1))
+        return float(self._rates[idx])
 
 
 class DemandManager:
@@ -62,6 +62,16 @@ class DemandManager:
         for p in self.profiles:
             if p.link_id in net.link_first_cell:
                 self._source_cells[p.link_id] = net.link_first_cell[p.link_id]
+
+        # Pre-compute per-source-cell capacity (kj * lanes * length)
+        # and lane_length (lanes * length) to avoid recomputing each step
+        self._cell_cap: dict[CellID, float] = {}
+        self._lane_length: dict[CellID, float] = {}
+        for cid in self._source_cells.values():
+            self._cell_cap[cid] = float(
+                net.kj[cid] * net.lanes[cid] * net.length[cid]
+            )
+            self._lane_length[cid] = float(net.length[cid] * net.lanes[cid])
 
     def get_injection(self, t: float, dt: float, density: np.ndarray) -> np.ndarray:
         """Compute vehicles to inject into source cells.
@@ -86,11 +96,8 @@ class DemandManager:
                 demand_veh = float(self.rng.poisson(mean_veh))
             else:
                 demand_veh = mean_veh
-            # Cap by available space
-            cell_cap = (
-                self.net.kj[cid] * self.net.lanes[cid] * self.net.length[cid]
-            )
-            current_veh = density[cid] * self.net.length[cid] * self.net.lanes[cid]
-            space = max(0.0, cell_cap - current_veh)
+            # Cap by available space (using pre-computed cell capacity)
+            current_veh = density[cid] * self._lane_length[cid]
+            space = max(0.0, self._cell_cap[cid] - current_veh)
             injection[cid] = min(demand_veh, space)
         return injection

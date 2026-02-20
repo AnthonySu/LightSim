@@ -13,6 +13,7 @@ import gymnasium as gym
 import numpy as np
 
 from ..core.engine import SimulationEngine
+from ..core.signal import SignalState
 from ..core.types import FLOAT, NodeID
 
 _OBS_REGISTRY: dict[str, type[ObservationBuilder]] = {}
@@ -32,6 +33,15 @@ def get_obs_builder(name: str, **kwargs) -> ObservationBuilder:
         raise KeyError(f"Unknown observation builder: {name!r}. "
                        f"Available: {list(_OBS_REGISTRY.keys())}")
     return _OBS_REGISTRY[name](**kwargs)
+
+
+def _phase_one_hot(engine: SimulationEngine, node_id: NodeID) -> np.ndarray:
+    """Build phase one-hot vector for a node."""
+    n_phases = engine.net.n_phases_per_node.get(node_id, 1)
+    sig_state = engine.signal_manager.states.get(node_id, SignalState())
+    phase_oh = np.zeros(n_phases, dtype=np.float32)
+    phase_oh[sig_state.current_phase_idx] = 1.0
+    return phase_oh
 
 
 class ObservationBuilder(ABC):
@@ -77,17 +87,9 @@ class DefaultObservation(ObservationBuilder):
         self, engine: SimulationEngine, node_id: NodeID,
     ) -> np.ndarray:
         net = engine.net
-        n_phases = net.n_phases_per_node.get(node_id, 1)
         incoming = self._get_incoming_links(engine, node_id)
 
-        obs = []
-
-        # Phase one-hot
-        from ..core.signal import SignalState
-        sig_state = engine.signal_manager.states.get(node_id, SignalState())
-        phase_oh = np.zeros(n_phases, dtype=np.float32)
-        phase_oh[sig_state.current_phase_idx] = 1.0
-        obs.append(phase_oh)
+        obs = [_phase_one_hot(engine, node_id)]
 
         # Incoming link densities (normalized by jam density)
         for lid in incoming:
@@ -122,15 +124,9 @@ class PressureObservation(ObservationBuilder):
         self, engine: SimulationEngine, node_id: NodeID,
     ) -> np.ndarray:
         net = engine.net
-        n_phases = net.n_phases_per_node.get(node_id, 1)
         movs = net.node_movements.get(node_id, [])
 
-        obs = []
-        from ..core.signal import SignalState
-        sig_state = engine.signal_manager.states.get(node_id, SignalState())
-        phase_oh = np.zeros(n_phases, dtype=np.float32)
-        phase_oh[sig_state.current_phase_idx] = 1.0
-        obs.append(phase_oh)
+        obs = [_phase_one_hot(engine, node_id)]
 
         for mid in movs:
             from_cell = net.mov_from_cell[mid]
@@ -158,14 +154,8 @@ class FullDensityObservation(ObservationBuilder):
         self, engine: SimulationEngine, node_id: NodeID,
     ) -> np.ndarray:
         net = engine.net
-        n_phases = net.n_phases_per_node.get(node_id, 1)
 
-        obs = []
-        from ..core.signal import SignalState
-        sig_state = engine.signal_manager.states.get(node_id, SignalState())
-        phase_oh = np.zeros(n_phases, dtype=np.float32)
-        phase_oh[sig_state.current_phase_idx] = 1.0
-        obs.append(phase_oh)
+        obs = [_phase_one_hot(engine, node_id)]
 
         # All densities normalized
         norm_density = np.where(

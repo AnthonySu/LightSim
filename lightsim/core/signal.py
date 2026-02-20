@@ -274,7 +274,7 @@ class SOTLController(SignalController):
         self,
         min_green: float = 5.0,
         max_green: float = 50.0,
-        theta: float = 0.03,  # density threshold to extend green
+        theta: float = 0.2,  # fraction of kj; extend green if density > theta*kj
     ) -> None:
         self.min_green = min_green
         self.max_green = max_green
@@ -300,13 +300,17 @@ class SOTLController(SignalController):
 
         # Check if current green phase still has demand approaching
         current_pid = phase_ids[state.current_phase_idx]
-        approaching_density = 0.0
-        for mid in range(net.n_movements):
-            if net.phase_mov_mask[current_pid, mid]:
-                approaching_density += density[net.mov_from_cell[mid]]
+        approaching = 0.0
+        n_movs = 0
+        for mid in net.phase_movements.get(current_pid, []):
+            cell = net.mov_from_cell[mid]
+            kj = net.kj[cell]
+            approaching += density[cell] / kj if kj > 0 else 0.0
+            n_movs += 1
 
-        # Extend green if vehicles are approaching
-        if approaching_density > self.theta:
+        # Extend green if normalized density exceeds threshold
+        avg_occupancy = approaching / max(n_movs, 1)
+        if avg_occupancy > self.theta:
             return state.current_phase_idx
 
         # Otherwise, switch to next phase
@@ -436,20 +440,21 @@ class SignalManager:
     def get_movement_mask(self) -> np.ndarray:
         """Return boolean mask: True if movement is green."""
         mask = np.ones(self.net.n_movements, dtype=FLOAT)
+        net = self.net
         for node_id, state in self.states.items():
-            phase_ids = self.net.node_phases[node_id]
+            phase_ids = net.node_phases[node_id]
             if not phase_ids:
                 continue
-            current_pid = phase_ids[state.current_phase_idx]
-            # Zero out all movements at this node that are NOT in the current phase
-            node_movs = self.net.node_movements.get(node_id, [])
-            for mid in node_movs:
-                if not self.net.phase_mov_mask[current_pid, mid]:
-                    mask[mid] = 0.0
-            # If in yellow or all-red, all movements are red
+            node_movs = net.node_movements.get(node_id, [])
+            if not node_movs:
+                continue
+            movs = np.asarray(node_movs, dtype=np.intp)
             if state.in_yellow or state.in_all_red:
-                for mid in node_movs:
-                    mask[mid] = 0.0
+                mask[movs] = 0.0
+            else:
+                current_pid = phase_ids[state.current_phase_idx]
+                not_green = ~net.phase_mov_mask[current_pid, movs]
+                mask[movs[not_green]] = 0.0
         return mask
 
     def step(self, dt: float, density: np.ndarray) -> None:
@@ -517,19 +522,25 @@ class SignalManager:
         is always 1.0 (backward compatible).
         """
         factor = np.ones(self.net.n_movements, dtype=FLOAT)
+        net = self.net
         for node_id, state in self.states.items():
-            phase_ids = self.net.node_phases[node_id]
+            phase_ids = net.node_phases[node_id]
             if not phase_ids:
                 continue
             current_pid = phase_ids[state.current_phase_idx]
-            lost = self.net.phase_lost_time[current_pid]
+            lost = float(net.phase_lost_time[current_pid])
             if lost <= 0.0:
                 continue
-            node_movs = self.net.node_movements.get(node_id, [])
-            for mid in node_movs:
-                if self._was_green[mid]:
-                    factor[mid] = min(1.0, self._time_since_green[mid] / lost)
-                # Red movements already have factor=1.0 but will be zeroed by signal_mask
+            node_movs = net.node_movements.get(node_id, [])
+            if not node_movs:
+                continue
+            movs = np.asarray(node_movs, dtype=np.intp)
+            green = self._was_green[movs]
+            green_movs = movs[green]
+            if len(green_movs) > 0:
+                factor[green_movs] = np.minimum(
+                    1.0, self._time_since_green[green_movs] / lost
+                )
         return factor
 
     def _get_phase_yellow(self, phase_id: PhaseID) -> float:
