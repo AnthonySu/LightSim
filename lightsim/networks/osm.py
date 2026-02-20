@@ -123,7 +123,7 @@ def from_osm(
     # Project to UTM for metre coordinates
     G = ox.project_graph(G)
 
-    # --- 2. Identify boundary nodes (dead-ends) ---
+    # --- 2. Identify boundary nodes (dead-ends + spatial periphery) ---
     boundary_nodes = set()
     for node in G.nodes():
         # Nodes with only in-edges or only out-edges are boundary
@@ -135,6 +135,30 @@ def from_osm(
         total = in_deg + out_deg if G.is_directed() else G.degree(node)
         if total <= 1:
             boundary_nodes.add(node)
+
+    # Spatial boundary detection: in dense grids the degree-based check
+    # misses nodes at the edge of the clipped area.  Pick the closest
+    # nodes to each bbox edge so every side has entry/exit points.
+    if len(boundary_nodes) < 4:
+        nodes_xy = [(n, G.nodes[n].get("x", 0.0), G.nodes[n].get("y", 0.0))
+                     for n in G.nodes()]
+        if nodes_xy:
+            xs = [x for _, x, _ in nodes_xy]
+            ys = [y for _, _, y in nodes_xy]
+            x_min, x_max = min(xs), max(xs)
+            y_min, y_max = min(ys), max(ys)
+            per_side = 1
+            # For each bbox edge, pick the closest `per_side` nodes
+            edges = [
+                (lambda _, y: y - y_min),          # south
+                (lambda _, y: y_max - y),           # north
+                (lambda x, _: x - x_min),           # west
+                (lambda x, _: x_max - x),           # east
+            ]
+            for dist_fn in edges:
+                ranked = sorted(nodes_xy, key=lambda t: dist_fn(t[1], t[2]))
+                for n, _, _ in ranked[:per_side]:
+                    boundary_nodes.add(n)
 
     # --- 3. Build LightSim Network ---
     net = Network()
@@ -206,12 +230,16 @@ def from_osm(
             elif isinstance(maxspeed, (int, float)):
                 vf = float(maxspeed) / 3.6
 
-        # Number of cells: at least 1, aim for cells >= min_cell_length
+        # Number of cells: ensure cell_length >= vf * dt (CFL condition)
+        # For very short links, use 1 cell and cap vf to satisfy CFL
         n_cells = max(1, int(length / max(min_cell_length, vf * 1.0)))
-        # Ensure CFL: cell_length >= vf * dt (dt=1.0 default)
         cell_len = length / n_cells
         if cell_len < vf * 1.0:
-            n_cells = max(1, int(length / (vf * 1.0)))
+            n_cells = 1
+            cell_len = length
+        # If link is shorter than vf, reduce vf to satisfy CFL
+        if length < vf * 1.0:
+            vf = length * 0.95  # 5% margin
 
         lid = LinkID(link_counter)
         link_counter += 1
@@ -314,3 +342,33 @@ def from_osm_point(
 ) -> Network:
     """Convenience wrapper: import from a centre point + radius."""
     return from_osm(point=(lat, lon), dist=dist, **kwargs)
+
+
+def generate_demand(
+    net: Network,
+    rate: float = 0.3,
+) -> list["DemandProfile"]:
+    """Auto-generate constant demand for all origin links in the network.
+
+    Parameters
+    ----------
+    net : Network
+        A LightSim network (typically from OSM import).
+    rate : float
+        Constant flow rate in veh/s for each origin link.
+
+    Returns
+    -------
+    list[DemandProfile]
+        One DemandProfile per origin link.
+    """
+    from ..core.demand import DemandProfile
+
+    profiles = []
+    for link_id, link in net.links.items():
+        from_node = net.nodes.get(link.from_node)
+        if from_node is not None and from_node.node_type == NodeType.ORIGIN:
+            profiles.append(
+                DemandProfile(link_id, [0.0], [rate])
+            )
+    return profiles

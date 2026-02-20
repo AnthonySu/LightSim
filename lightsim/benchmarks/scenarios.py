@@ -41,3 +41,11 @@ from .arterial_5 import create_arterial_5
 register_scenario("single-intersection-v0")(create_single_intersection)
 register_scenario("grid-4x4-v0")(create_grid_4x4)
 register_scenario("arterial-5-v0")(create_arterial_5)
+
+# OSM city scenarios (requires osmnx)
+try:
+    from .osm_cities import city_factories as _osm_factories
+    for _name, _factory in _osm_factories.items():
+        register_scenario(_name)(_factory)
+except ImportError:
+    pass
