@@ -62,6 +62,7 @@ def from_osm(
     jam_density: float = 0.15,
     capacity: float = 0.5,
     min_cell_length: float = 15.0,
+    dt: float = 1.0,
     signal_degree_threshold: int = 4,
     simplify: bool = True,
 ) -> Network:
@@ -88,6 +89,10 @@ def from_osm(
         Capacity per lane (veh/s).
     min_cell_length : float
         Minimum cell length in metres.  Short links are collapsed to 1 cell.
+    dt : float
+        Simulation time step in seconds.  Used to size cells for CFL
+        stability (cell_length >= vf * dt).  Smaller dt allows shorter
+        cells, giving finer spatial resolution.
     signal_degree_threshold : int
         Nodes with degree >= this are treated as signalised if they lack
         an explicit traffic_signals tag.
@@ -232,14 +237,15 @@ def from_osm(
 
         # Number of cells: ensure cell_length >= vf * dt (CFL condition)
         # For very short links, use 1 cell and cap vf to satisfy CFL
-        n_cells = max(1, int(length / max(min_cell_length, vf * 1.0)))
+        cfl_min = vf * dt  # minimum cell length for CFL stability
+        n_cells = max(1, int(length / max(min_cell_length, cfl_min)))
         cell_len = length / n_cells
-        if cell_len < vf * 1.0:
+        if cell_len < cfl_min:
             n_cells = 1
             cell_len = length
-        # If link is shorter than vf, reduce vf to satisfy CFL
-        if length < vf * 1.0:
-            vf = length * 0.95  # 5% margin
+        # If link is shorter than CFL minimum, reduce vf to satisfy CFL
+        if length < cfl_min:
+            vf = length / dt * 0.95  # 5% margin
 
         lid = LinkID(link_counter)
         link_counter += 1
