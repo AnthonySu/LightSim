@@ -31,6 +31,14 @@ class SimState:
     total_entered: float = 0.0
     total_exited: float = 0.0
 
+    def __repr__(self) -> str:
+        n_cells = len(self.density) if self.density is not None else 0
+        return (
+            f"SimState(t={self.time:.1f}s, step={self.step_count}, "
+            f"{n_cells} cells, entered={self.total_entered:.0f}, "
+            f"exited={self.total_exited:.0f})"
+        )
+
 
 class SimulationEngine:
     """Main CTM simulation engine.

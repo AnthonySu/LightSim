@@ -164,6 +164,14 @@ class CompiledNetwork:
     # --- phase → movement list for O(|M_per_phase|) controller lookups ---
     phase_movements: dict[int, list[int]] = field(default_factory=dict)
 
+    def __repr__(self) -> str:
+        return (
+            f"CompiledNetwork({self.n_cells} cells, "
+            f"{len(self.link_cells)} links, "
+            f"{self.n_movements} movements, "
+            f"{len(self.node_phases)} signalized nodes)"
+        )
+
     def summary(self) -> dict:
         """Return a dict of network statistics for reporting."""
         total_length = float((self.length * self.lanes).sum())
@@ -184,6 +192,13 @@ class CompiledNetwork:
 
 class Network:
     """Mutable network builder.  Call ``compile(dt)`` to freeze."""
+
+    def __repr__(self) -> str:
+        n_phases = sum(len(n.phases) for n in self.nodes.values())
+        return (
+            f"Network({len(self.nodes)} nodes, {len(self.links)} links, "
+            f"{len(self.movements)} movements, {n_phases} phases)"
+        )
 
     def __init__(self) -> None:
         self.nodes: dict[NodeID, Node] = {}
