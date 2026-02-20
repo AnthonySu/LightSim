@@ -6,25 +6,36 @@
 <title>LightSim Visualization</title>
 <style>
   :root {
-    --bg: #1a1a2e;
-    --panel: #16213e;
-    --border: #0f3460;
-    --text: #e0e0e0;
+    --bg: #0f0f1a;
+    --bg2: #141425;
+    --panel: #1a1a2e;
+    --panel2: #1e1e36;
+    --border: #2a2a4a;
+    --border-light: #3a3a5a;
+    --text: #e8e8f0;
+    --text-dim: #a0a0c0;
+    --muted: #6a6a8a;
     --accent: #00b4d8;
+    --accent-dim: #007a9a;
     --green: #06d6a0;
     --yellow: #ffd166;
+    --orange: #ff9f43;
     --red: #ef476f;
-    --muted: #8892b0;
+    --road: #2a2a3e;
+    --road-edge: #1a1a2e;
+    --radius: 6px;
+    --shadow: 0 2px 8px rgba(0,0,0,0.4);
   }
   * { box-sizing: border-box; margin: 0; padding: 0; }
   body {
-    font-family: 'Segoe UI', -apple-system, BlinkMacSystemFont, sans-serif;
+    font-family: 'Inter', 'Segoe UI', -apple-system, BlinkMacSystemFont, system-ui, sans-serif;
     background: var(--bg);
     color: var(--text);
     display: flex;
     flex-direction: column;
     height: 100vh;
     overflow: hidden;
+    user-select: none;
   }
 
   /* Header */
@@ -32,21 +43,50 @@
     display: flex;
     align-items: center;
     justify-content: space-between;
-    padding: 8px 20px;
+    padding: 10px 20px;
     background: var(--panel);
     border-bottom: 1px solid var(--border);
     flex-shrink: 0;
+    z-index: 10;
   }
-  header h1 { font-size: 18px; font-weight: 600; }
+  .header-left {
+    display: flex;
+    align-items: center;
+    gap: 14px;
+  }
+  header h1 {
+    font-size: 17px;
+    font-weight: 700;
+    letter-spacing: -0.3px;
+  }
   header h1 span { color: var(--accent); }
   .mode-badge {
-    font-size: 11px;
-    padding: 2px 8px;
-    border-radius: 10px;
-    background: var(--border);
-    color: var(--accent);
+    font-size: 10px;
+    padding: 3px 10px;
+    border-radius: 12px;
+    background: var(--accent-dim);
+    color: #fff;
     text-transform: uppercase;
-    letter-spacing: 0.5px;
+    letter-spacing: 0.8px;
+    font-weight: 600;
+  }
+  .header-right {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+  }
+  .kbd-hint {
+    font-size: 10px;
+    color: var(--muted);
+    display: flex;
+    gap: 8px;
+  }
+  .kbd-hint kbd {
+    background: var(--border);
+    padding: 1px 6px;
+    border-radius: 3px;
+    font-family: inherit;
+    font-size: 10px;
   }
 
   /* Main layout */
@@ -66,135 +106,297 @@
     display: block;
     width: 100%;
     height: 100%;
+    cursor: grab;
   }
+  canvas.grabbing { cursor: grabbing; }
+
+  /* Tooltip */
+  .tooltip {
+    position: absolute;
+    pointer-events: none;
+    background: var(--panel);
+    border: 1px solid var(--border-light);
+    border-radius: var(--radius);
+    padding: 8px 12px;
+    font-size: 12px;
+    line-height: 1.5;
+    box-shadow: var(--shadow);
+    z-index: 20;
+    opacity: 0;
+    transition: opacity 0.12s;
+    max-width: 260px;
+  }
+  .tooltip.visible { opacity: 1; }
+  .tooltip-title {
+    font-weight: 600;
+    color: var(--accent);
+    margin-bottom: 4px;
+    font-size: 11px;
+    text-transform: uppercase;
+    letter-spacing: 0.5px;
+  }
+  .tooltip-row {
+    display: flex;
+    justify-content: space-between;
+    gap: 16px;
+  }
+  .tooltip-row .label { color: var(--text-dim); }
+  .tooltip-row .value { font-weight: 600; font-variant-numeric: tabular-nums; }
 
   /* Right panel */
   .panel {
-    width: 280px;
+    width: 300px;
     background: var(--panel);
     border-left: 1px solid var(--border);
     display: flex;
     flex-direction: column;
     flex-shrink: 0;
     overflow-y: auto;
+    overflow-x: hidden;
   }
+  .panel::-webkit-scrollbar { width: 4px; }
+  .panel::-webkit-scrollbar-track { background: transparent; }
+  .panel::-webkit-scrollbar-thumb { background: var(--border); border-radius: 2px; }
+
   .panel-section {
     padding: 14px 16px;
     border-bottom: 1px solid var(--border);
   }
   .panel-section h2 {
-    font-size: 11px;
+    font-size: 10px;
     text-transform: uppercase;
-    letter-spacing: 1px;
+    letter-spacing: 1.2px;
     color: var(--muted);
     margin-bottom: 10px;
+    font-weight: 600;
   }
 
   /* Metrics */
-  .metric-row {
-    display: flex;
-    justify-content: space-between;
-    align-items: baseline;
-    margin-bottom: 6px;
+  .metrics-grid {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 8px;
   }
-  .metric-label { font-size: 13px; color: var(--muted); }
-  .metric-value { font-size: 15px; font-weight: 600; font-variant-numeric: tabular-nums; }
+  .metric-card {
+    background: var(--bg2);
+    border-radius: var(--radius);
+    padding: 8px 10px;
+  }
+  .metric-card .label {
+    font-size: 10px;
+    color: var(--muted);
+    text-transform: uppercase;
+    letter-spacing: 0.5px;
+    margin-bottom: 2px;
+  }
+  .metric-card .value {
+    font-size: 18px;
+    font-weight: 700;
+    font-variant-numeric: tabular-nums;
+  }
+  .metric-card .value.accent { color: var(--accent); }
+  .metric-card.wide { grid-column: 1 / -1; }
 
   /* Controls */
   .controls {
     display: flex;
-    gap: 6px;
-    flex-wrap: wrap;
-    margin-bottom: 8px;
+    gap: 4px;
+    margin-bottom: 10px;
   }
   button {
-    background: var(--border);
+    background: var(--bg2);
     color: var(--text);
-    border: none;
-    padding: 6px 14px;
-    border-radius: 4px;
+    border: 1px solid var(--border);
+    padding: 7px 14px;
+    border-radius: var(--radius);
     cursor: pointer;
-    font-size: 13px;
-    transition: background 0.15s;
+    font-size: 12px;
+    font-weight: 500;
+    transition: all 0.12s;
+    display: flex;
+    align-items: center;
+    gap: 4px;
   }
-  button:hover { background: var(--accent); color: #000; }
-  button.active { background: var(--accent); color: #000; }
-  button:disabled { opacity: 0.4; cursor: default; }
+  button:hover { background: var(--border); border-color: var(--border-light); }
+  button.active { background: var(--accent-dim); border-color: var(--accent); color: #fff; }
+  button:disabled { opacity: 0.3; cursor: default; }
 
   .speed-control {
     display: flex;
     align-items: center;
     gap: 8px;
-    margin-top: 6px;
   }
-  .speed-control label { font-size: 13px; color: var(--muted); }
-  .speed-control input[type="range"] {
+  .speed-control label {
+    font-size: 11px;
+    color: var(--muted);
+    text-transform: uppercase;
+    letter-spacing: 0.5px;
+    min-width: 38px;
+  }
+  input[type="range"] {
     flex: 1;
-    accent-color: var(--accent);
+    -webkit-appearance: none;
+    height: 4px;
+    background: var(--border);
+    border-radius: 2px;
+    outline: none;
   }
-  .speed-val { font-size: 13px; font-weight: 600; min-width: 40px; text-align: right; }
+  input[type="range"]::-webkit-slider-thumb {
+    -webkit-appearance: none;
+    width: 14px;
+    height: 14px;
+    border-radius: 50%;
+    background: var(--accent);
+    cursor: pointer;
+    border: 2px solid var(--panel);
+  }
+  .speed-val {
+    font-size: 12px;
+    font-weight: 600;
+    min-width: 36px;
+    text-align: right;
+    color: var(--accent);
+  }
 
-  /* Legend */
-  .legend {
+  /* Layer toggles */
+  .layer-toggles {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 6px;
+  }
+  .layer-toggle {
+    font-size: 11px;
+    padding: 4px 10px;
+    border-radius: 12px;
+    background: var(--bg2);
+    border: 1px solid var(--border);
+    color: var(--text-dim);
+    cursor: pointer;
+    transition: all 0.12s;
+  }
+  .layer-toggle.on {
+    background: var(--accent-dim);
+    border-color: var(--accent);
+    color: #fff;
+  }
+
+  /* Selection info */
+  .selection-info {
+    display: none;
+  }
+  .selection-info.visible { display: block; }
+  .selection-header {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    margin-bottom: 8px;
+  }
+  .selection-title {
+    font-size: 13px;
+    font-weight: 600;
+    color: var(--accent);
+  }
+  .selection-close {
+    background: none;
+    border: none;
+    color: var(--muted);
+    cursor: pointer;
+    font-size: 14px;
+    padding: 2px 6px;
+  }
+  .selection-close:hover { color: var(--text); }
+  .selection-rows {
     display: flex;
     flex-direction: column;
     gap: 4px;
   }
-  .legend-item {
+  .selection-row {
     display: flex;
-    align-items: center;
-    gap: 8px;
+    justify-content: space-between;
     font-size: 12px;
   }
-  .legend-swatch {
-    width: 24px;
-    height: 12px;
-    border-radius: 2px;
-    flex-shrink: 0;
-  }
+  .selection-row .label { color: var(--text-dim); }
+  .selection-row .value { font-weight: 600; font-variant-numeric: tabular-nums; }
 
-  /* Signal states panel */
+  /* Signal list */
   .signal-list {
     display: flex;
     flex-direction: column;
-    gap: 6px;
+    gap: 4px;
   }
   .signal-item {
     display: flex;
     align-items: center;
     gap: 8px;
-    font-size: 13px;
+    font-size: 12px;
+    padding: 4px 8px;
+    background: var(--bg2);
+    border-radius: var(--radius);
   }
   .signal-dot {
-    width: 12px;
-    height: 12px;
+    width: 10px;
+    height: 10px;
     border-radius: 50%;
     flex-shrink: 0;
   }
   .signal-dot.green { background: var(--green); box-shadow: 0 0 6px var(--green); }
   .signal-dot.yellow { background: var(--yellow); box-shadow: 0 0 6px var(--yellow); }
   .signal-dot.red { background: var(--red); box-shadow: 0 0 6px var(--red); }
+  .signal-phase { color: var(--text-dim); }
 
   /* Charts */
   .chart-container {
-    height: 100px;
+    height: 110px;
     position: relative;
+    background: var(--bg2);
+    border-radius: var(--radius);
+    overflow: hidden;
   }
   .chart-canvas {
     width: 100%;
     height: 100%;
   }
+  .chart-legend {
+    display: flex;
+    gap: 12px;
+    margin-top: 6px;
+  }
+  .chart-legend-item {
+    display: flex;
+    align-items: center;
+    gap: 4px;
+    font-size: 10px;
+    color: var(--text-dim);
+  }
+  .chart-legend-dot {
+    width: 8px;
+    height: 3px;
+    border-radius: 1px;
+  }
 
-  /* Connection status */
+  /* Legend */
+  .density-gradient {
+    height: 12px;
+    border-radius: 3px;
+    margin-bottom: 6px;
+  }
+  .legend-labels {
+    display: flex;
+    justify-content: space-between;
+    font-size: 10px;
+    color: var(--muted);
+  }
+
+  /* Status bar */
   .status-bar {
-    padding: 4px 20px;
-    font-size: 11px;
+    padding: 5px 20px;
+    font-size: 10px;
     background: var(--panel);
     border-top: 1px solid var(--border);
     color: var(--muted);
     display: flex;
     align-items: center;
-    gap: 6px;
+    gap: 8px;
     flex-shrink: 0;
   }
   .status-dot {
@@ -202,58 +404,74 @@
     height: 6px;
     border-radius: 50%;
     background: var(--red);
+    transition: background 0.2s;
   }
   .status-dot.connected { background: var(--green); }
+  .status-sep { color: var(--border); }
+  .fps-counter { margin-left: auto; }
 </style>
 </head>
 <body>
 
 <header>
-  <h1><span>Light</span>Sim</h1>
-  <span class="mode-badge" id="modeBadge">connecting...</span>
+  <div class="header-left">
+    <h1><span>Light</span>Sim</h1>
+    <span class="mode-badge" id="modeBadge">connecting</span>
+  </div>
+  <div class="header-right">
+    <div class="kbd-hint">
+      <span><kbd>Space</kbd> Play/Pause</span>
+      <span><kbd>&rarr;</kbd> Step</span>
+      <span><kbd>R</kbd> Reset</span>
+      <span><kbd>F</kbd> Fit</span>
+    </div>
+  </div>
 </header>
 
 <div class="main">
   <div class="canvas-wrap">
     <canvas id="netCanvas"></canvas>
+    <div class="tooltip" id="tooltip"></div>
   </div>
 
   <div class="panel">
     <div class="panel-section">
       <h2>Simulation</h2>
-      <div class="metric-row">
-        <span class="metric-label">Time</span>
-        <span class="metric-value" id="mTime">0.0 s</span>
-      </div>
-      <div class="metric-row">
-        <span class="metric-label">Step</span>
-        <span class="metric-value" id="mStep">0</span>
-      </div>
-      <div class="metric-row">
-        <span class="metric-label">Vehicles</span>
-        <span class="metric-value" id="mVehicles">0</span>
-      </div>
-      <div class="metric-row">
-        <span class="metric-label">Entered</span>
-        <span class="metric-value" id="mEntered">0</span>
-      </div>
-      <div class="metric-row">
-        <span class="metric-label">Exited</span>
-        <span class="metric-value" id="mExited">0</span>
-      </div>
-      <div class="metric-row">
-        <span class="metric-label">Avg Density</span>
-        <span class="metric-value" id="mDensity">0.000</span>
+      <div class="metrics-grid">
+        <div class="metric-card">
+          <div class="label">Time</div>
+          <div class="value accent" id="mTime">0.0s</div>
+        </div>
+        <div class="metric-card">
+          <div class="label">Step</div>
+          <div class="value" id="mStep">0</div>
+        </div>
+        <div class="metric-card">
+          <div class="label">Vehicles</div>
+          <div class="value" id="mVehicles">0</div>
+        </div>
+        <div class="metric-card">
+          <div class="label">Density</div>
+          <div class="value" id="mDensity">0.000</div>
+        </div>
+        <div class="metric-card">
+          <div class="label">Entered</div>
+          <div class="value" style="color:var(--green)" id="mEntered">0</div>
+        </div>
+        <div class="metric-card">
+          <div class="label">Exited</div>
+          <div class="value" style="color:var(--orange)" id="mExited">0</div>
+        </div>
       </div>
     </div>
 
     <div class="panel-section">
       <h2>Controls</h2>
       <div class="controls">
-        <button id="btnPlay" class="active">Play</button>
-        <button id="btnPause">Pause</button>
-        <button id="btnStep" disabled>Step</button>
-        <button id="btnReset">Reset</button>
+        <button id="btnPlay" class="active" title="Play (Space)">&#9654; Play</button>
+        <button id="btnPause" title="Pause (Space)">&#10074;&#10074; Pause</button>
+        <button id="btnStep" disabled title="Step (Right Arrow)">&#9654;| Step</button>
+        <button id="btnReset" title="Reset (R)">&#8635; Reset</button>
       </div>
       <div class="speed-control">
         <label>Speed</label>
@@ -263,20 +481,58 @@
     </div>
 
     <div class="panel-section">
+      <h2>Layers</h2>
+      <div class="layer-toggles">
+        <span class="layer-toggle on" data-layer="density">Density</span>
+        <span class="layer-toggle on" data-layer="particles">Flow</span>
+        <span class="layer-toggle on" data-layer="lanes">Lanes</span>
+        <span class="layer-toggle on" data-layer="signals">Signals</span>
+        <span class="layer-toggle" data-layer="labels">Labels</span>
+      </div>
+    </div>
+
+    <div class="panel-section selection-info" id="selectionInfo">
+      <div class="selection-header">
+        <span class="selection-title" id="selTitle">Link 0</span>
+        <span class="selection-close" id="selClose">&times;</span>
+      </div>
+      <div class="selection-rows" id="selRows"></div>
+    </div>
+
+    <div class="panel-section">
       <h2>Signals</h2>
       <div class="signal-list" id="signalList"></div>
     </div>
 
     <div class="panel-section">
-      <h2>Vehicles Over Time</h2>
+      <h2>Traffic Flow</h2>
       <div class="chart-container">
-        <canvas class="chart-canvas" id="chartVehicles"></canvas>
+        <canvas class="chart-canvas" id="chartCanvas"></canvas>
+      </div>
+      <div class="chart-legend">
+        <div class="chart-legend-item">
+          <div class="chart-legend-dot" style="background:var(--accent)"></div>
+          <span>Vehicles</span>
+        </div>
+        <div class="chart-legend-item">
+          <div class="chart-legend-dot" style="background:var(--green)"></div>
+          <span>Entered</span>
+        </div>
+        <div class="chart-legend-item">
+          <div class="chart-legend-dot" style="background:var(--orange)"></div>
+          <span>Exited</span>
+        </div>
       </div>
     </div>
 
     <div class="panel-section">
-      <h2>Density Legend</h2>
-      <div class="legend" id="legend"></div>
+      <h2>Density Scale</h2>
+      <div class="density-gradient" id="densityGradient"></div>
+      <div class="legend-labels">
+        <span>0% Free</span>
+        <span>50% Moderate</span>
+        <span>100% Jammed</span>
+      </div>
     </div>
   </div>
 </div>
@@ -284,34 +540,85 @@
 <div class="status-bar">
   <div class="status-dot" id="statusDot"></div>
   <span id="statusText">Disconnected</span>
+  <span class="status-sep">|</span>
+  <span id="statusInfo"></span>
+  <span class="fps-counter" id="fpsCounter"></span>
 </div>
 
 <script>
 (function() {
-  // ------------------------------------------------------------------
+  'use strict';
+
+  // ====================================================================
+  // Configuration
+  // ====================================================================
+  const CONFIG = {
+    maxParticles: 600,
+    particleBaseSize: 2.0,
+    particleGlow: true,
+    roadWidthMin: 6,
+    roadWidthMax: 24,
+    roadWidthScale: 10,
+    roadEdgeWidth: 2,
+    laneMarkingDash: [4, 6],
+    nodeSize: { signalized: 12, origin: 6, destination: 6, other: 4 },
+    hoverHighlightWidth: 3,
+    maxHistory: 600,
+    densityColors: [
+      [0.00, [16, 185, 145]],   // teal-green
+      [0.25, [6, 214, 160]],    // green
+      [0.45, [255, 209, 102]],  // yellow
+      [0.65, [255, 159, 67]],   // orange
+      [0.85, [239, 71, 111]],   // red
+      [1.00, [180, 30, 70]],    // dark red
+    ],
+  };
+
+  // ====================================================================
   // State
-  // ------------------------------------------------------------------
+  // ====================================================================
   let topology = null;
   let ws = null;
   let paused = false;
   let speed = 10;
   let connected = false;
+  let lastFrame = null;
 
-  // View transform (pan & zoom)
+  // View transform
   let viewX = 0, viewY = 0, viewScale = 1;
   let isPanning = false, panStartX = 0, panStartY = 0;
 
-  // Chart data
-  const chartHistory = { time: [], vehicles: [], entered: [], exited: [] };
-  const MAX_HISTORY = 500;
+  // Layers
+  const layers = { density: true, particles: true, lanes: true, signals: true, labels: false };
 
-  // ------------------------------------------------------------------
-  // DOM
-  // ------------------------------------------------------------------
+  // Interactivity
+  let hoveredLink = -1;
+  let hoveredNode = -1;
+  let selectedLink = -1;
+  let selectedNode = -1;
+  let mouseX = 0, mouseY = 0;
+
+  // Particle system
+  let particles = [];
+  let lastAnimTime = 0;
+
+  // Chart history
+  const history = { time: [], vehicles: [], entered: [], exited: [] };
+
+  // FPS tracking
+  let frameCount = 0, fpsTime = 0, currentFps = 0;
+
+  // Pre-computed link geometry (computed once when topology arrives)
+  let linkGeom = [];
+
+  // ====================================================================
+  // DOM Elements
+  // ====================================================================
   const canvas = document.getElementById('netCanvas');
   const ctx = canvas.getContext('2d');
-  const chartCanvas = document.getElementById('chartVehicles');
+  const chartCanvas = document.getElementById('chartCanvas');
   const chartCtx = chartCanvas.getContext('2d');
+  const tooltipEl = document.getElementById('tooltip');
 
   const mTime = document.getElementById('mTime');
   const mStep = document.getElementById('mStep');
@@ -323,52 +630,82 @@
   const signalList = document.getElementById('signalList');
   const statusDot = document.getElementById('statusDot');
   const statusText = document.getElementById('statusText');
+  const statusInfo = document.getElementById('statusInfo');
+  const fpsCounter = document.getElementById('fpsCounter');
+  const selectionInfo = document.getElementById('selectionInfo');
+  const selTitle = document.getElementById('selTitle');
+  const selRows = document.getElementById('selRows');
+  const selClose = document.getElementById('selClose');
+
   const btnPlay = document.getElementById('btnPlay');
   const btnPause = document.getElementById('btnPause');
   const btnStep = document.getElementById('btnStep');
   const btnReset = document.getElementById('btnReset');
   const speedSlider = document.getElementById('speedSlider');
   const speedVal = document.getElementById('speedVal');
-  const legendDiv = document.getElementById('legend');
 
-  // ------------------------------------------------------------------
-  // Color scale (green → yellow → red)
-  // ------------------------------------------------------------------
+  // ====================================================================
+  // Color Utilities
+  // ====================================================================
   function densityColor(ratio) {
-    // ratio = density / jam_density, clamped 0..1
-    const r = Math.min(1, Math.max(0, ratio));
-    if (r < 0.5) {
-      // green → yellow
-      const t = r * 2;
-      return `rgb(${Math.round(6 + 249*t)}, ${Math.round(214 - 47*t)}, ${Math.round(160 - 58*t)})`;
-    } else {
-      // yellow → red
-      const t = (r - 0.5) * 2;
-      return `rgb(${Math.round(255 - 16*t)}, ${Math.round(167 - 96*t)}, ${Math.round(102 - 0*t)})`;
+    const r = Math.max(0, Math.min(1, ratio));
+    const stops = CONFIG.densityColors;
+
+    // Find surrounding stops
+    let lo = 0, hi = stops.length - 1;
+    for (let i = 0; i < stops.length - 1; i++) {
+      if (r >= stops[i][0] && r <= stops[i + 1][0]) {
+        lo = i; hi = i + 1; break;
+      }
     }
+
+    const t = stops[hi][0] - stops[lo][0];
+    const f = t > 0 ? (r - stops[lo][0]) / t : 0;
+    const c0 = stops[lo][1];
+    const c1 = stops[hi][1];
+
+    const cr = Math.round(c0[0] + (c1[0] - c0[0]) * f);
+    const cg = Math.round(c0[1] + (c1[1] - c0[1]) * f);
+    const cb = Math.round(c0[2] + (c1[2] - c0[2]) * f);
+
+    return `rgb(${cr},${cg},${cb})`;
   }
 
-  function buildLegend() {
-    const stops = [
-      { ratio: 0, label: 'Empty (0%)' },
-      { ratio: 0.25, label: 'Light (25%)' },
-      { ratio: 0.5, label: 'Moderate (50%)' },
-      { ratio: 0.75, label: 'Heavy (75%)' },
-      { ratio: 1.0, label: 'Jammed (100%)' },
-    ];
-    legendDiv.innerHTML = '';
-    for (const s of stops) {
-      const item = document.createElement('div');
-      item.className = 'legend-item';
-      item.innerHTML = `<div class="legend-swatch" style="background:${densityColor(s.ratio)}"></div><span>${s.label}</span>`;
-      legendDiv.appendChild(item);
+  function densityColorRGBA(ratio, alpha) {
+    const r = Math.max(0, Math.min(1, ratio));
+    const stops = CONFIG.densityColors;
+    let lo = 0, hi = stops.length - 1;
+    for (let i = 0; i < stops.length - 1; i++) {
+      if (r >= stops[i][0] && r <= stops[i + 1][0]) {
+        lo = i; hi = i + 1; break;
+      }
     }
+    const t = stops[hi][0] - stops[lo][0];
+    const f = t > 0 ? (r - stops[lo][0]) / t : 0;
+    const c0 = stops[lo][1];
+    const c1 = stops[hi][1];
+    const cr = Math.round(c0[0] + (c1[0] - c0[0]) * f);
+    const cg = Math.round(c0[1] + (c1[1] - c0[1]) * f);
+    const cb = Math.round(c0[2] + (c1[2] - c0[2]) * f);
+    return `rgba(${cr},${cg},${cb},${alpha})`;
   }
-  buildLegend();
 
-  // ------------------------------------------------------------------
-  // Canvas resize
-  // ------------------------------------------------------------------
+  // Build density gradient for legend
+  function buildDensityGradient() {
+    const el = document.getElementById('densityGradient');
+    const stops = CONFIG.densityColors;
+    let grad = 'linear-gradient(to right';
+    for (const [pos, [r, g, b]] of stops) {
+      grad += `, rgb(${r},${g},${b}) ${pos * 100}%`;
+    }
+    grad += ')';
+    el.style.background = grad;
+  }
+  buildDensityGradient();
+
+  // ====================================================================
+  // Canvas Resize
+  // ====================================================================
   function resizeCanvas() {
     const rect = canvas.parentElement.getBoundingClientRect();
     const dpr = window.devicePixelRatio || 1;
@@ -376,7 +713,6 @@
     canvas.height = rect.height * dpr;
     ctx.setTransform(dpr, 0, 0, dpr, 0, 0);
 
-    // Chart canvas
     const cr = chartCanvas.parentElement.getBoundingClientRect();
     chartCanvas.width = cr.width * dpr;
     chartCanvas.height = cr.height * dpr;
@@ -385,9 +721,9 @@
   window.addEventListener('resize', resizeCanvas);
   resizeCanvas();
 
-  // ------------------------------------------------------------------
-  // Auto-fit view to topology
-  // ------------------------------------------------------------------
+  // ====================================================================
+  // View Transform
+  // ====================================================================
   function fitView() {
     if (!topology || !topology.nodes.length) return;
     let minX = Infinity, minY = Infinity, maxX = -Infinity, maxY = -Infinity;
@@ -405,17 +741,303 @@
     const rangeY = maxY - minY || 1;
     viewScale = Math.min(w / rangeX, h / rangeY);
     viewX = pad + (w - rangeX * viewScale) / 2 - minX * viewScale;
-    viewY = pad + (h - rangeY * viewScale) / 2 + maxY * viewScale;  // flip Y
+    viewY = pad + (h - rangeY * viewScale) / 2 + maxY * viewScale;
   }
 
   function toScreen(x, y) {
     return [viewX + x * viewScale, viewY - y * viewScale];
   }
 
-  // ------------------------------------------------------------------
+  function toWorld(sx, sy) {
+    return [(sx - viewX) / viewScale, -(sy - viewY) / viewScale];
+  }
+
+  // ====================================================================
+  // Pre-compute Link Geometry
+  // ====================================================================
+  function computeLinkGeometry() {
+    if (!topology) return;
+    linkGeom = [];
+    for (const link of topology.links) {
+      const [x1, y1] = toScreen(link.from_x, link.from_y);
+      const [x2, y2] = toScreen(link.to_x, link.to_y);
+      const dx = x2 - x1;
+      const dy = y2 - y1;
+      const len = Math.sqrt(dx * dx + dy * dy);
+      const nx = len > 0 ? dx / len : 1;
+      const ny = len > 0 ? dy / len : 0;
+      linkGeom.push({ x1, y1, x2, y2, dx, dy, len, nx, ny });
+    }
+  }
+
+  // ====================================================================
+  // Link Metrics (computed client-side from density + topology)
+  // ====================================================================
+  function getLinkMetrics(linkIdx) {
+    if (!topology || !lastFrame) return null;
+    const link = topology.links[linkIdx];
+    const density = lastFrame.density;
+    let totalVehicles = 0, totalLength = 0, speedWeighted = 0;
+    let maxOcc = 0, totalOcc = 0;
+
+    for (const cid of link.cells) {
+      const d = density[cid] || 0;
+      const cell = topology.cells[cid];
+      const length = cell.length;
+      const kj = cell.kj;
+      const vf = cell.vf;
+      const Q = cell.Q;
+      const lanes = link.lanes;
+
+      totalVehicles += d * length * lanes;
+      totalLength += length;
+
+      const kCrit = Q / vf;
+      let spd = d <= kCrit ? vf : (d > 1e-9 ? Q / d : vf);
+      spd = Math.max(spd, 0.1);
+      speedWeighted += spd * length;
+
+      const occ = kj > 0 ? d / kj : 0;
+      totalOcc += occ;
+      maxOcc = Math.max(maxOcc, occ);
+    }
+
+    const nCells = link.cells.length || 1;
+    return {
+      vehicles: totalVehicles,
+      avgSpeed: totalLength > 0 ? speedWeighted / totalLength : 0,
+      avgOccupancy: totalOcc / nCells,
+      maxOccupancy: maxOcc,
+      totalLength: totalLength,
+      lanes: link.lanes,
+    };
+  }
+
+  // ====================================================================
+  // Hit Testing
+  // ====================================================================
+  function pointToSegmentDistSq(px, py, x1, y1, x2, y2) {
+    const dx = x2 - x1, dy = y2 - y1;
+    const lenSq = dx * dx + dy * dy;
+    if (lenSq < 1e-6) return (px - x1) * (px - x1) + (py - y1) * (py - y1);
+    let t = ((px - x1) * dx + (py - y1) * dy) / lenSq;
+    t = Math.max(0, Math.min(1, t));
+    const cx = x1 + t * dx, cy = y1 + t * dy;
+    return (px - cx) * (px - cx) + (py - cy) * (py - cy);
+  }
+
+  function hitTestLink(sx, sy) {
+    if (!topology || linkGeom.length === 0) return -1;
+    const threshold = Math.max(12, cellWidth() * 0.6);
+    const thrSq = threshold * threshold;
+    let best = -1, bestDist = Infinity;
+    for (let i = 0; i < linkGeom.length; i++) {
+      const g = linkGeom[i];
+      const d = pointToSegmentDistSq(sx, sy, g.x1, g.y1, g.x2, g.y2);
+      if (d < thrSq && d < bestDist) {
+        bestDist = d;
+        best = i;
+      }
+    }
+    return best;
+  }
+
+  function hitTestNode(sx, sy) {
+    if (!topology) return -1;
+    const threshold = 18;
+    const thrSq = threshold * threshold;
+    let best = -1, bestDist = Infinity;
+    for (let i = 0; i < topology.nodes.length; i++) {
+      const n = topology.nodes[i];
+      const [nx, ny] = toScreen(n.x, n.y);
+      const d = (sx - nx) * (sx - nx) + (sy - ny) * (sy - ny);
+      if (d < thrSq && d < bestDist) {
+        bestDist = d;
+        best = i;
+      }
+    }
+    return best;
+  }
+
+  // ====================================================================
+  // Tooltip
+  // ====================================================================
+  function showTooltip(x, y, html) {
+    tooltipEl.innerHTML = html;
+    tooltipEl.classList.add('visible');
+    // Position with bounds check
+    const rect = canvas.parentElement.getBoundingClientRect();
+    let tx = x + 16, ty = y - 10;
+    if (tx + 240 > rect.width) tx = x - 250;
+    if (ty + 120 > rect.height) ty = y - 120;
+    if (ty < 0) ty = 10;
+    tooltipEl.style.left = tx + 'px';
+    tooltipEl.style.top = ty + 'px';
+  }
+
+  function hideTooltip() {
+    tooltipEl.classList.remove('visible');
+  }
+
+  function formatLinkTooltip(linkIdx) {
+    const link = topology.links[linkIdx];
+    const m = getLinkMetrics(linkIdx);
+    if (!m) return '';
+    return `<div class="tooltip-title">Link ${link.id}</div>
+      <div class="tooltip-row"><span class="label">Vehicles</span><span class="value">${m.vehicles.toFixed(1)}</span></div>
+      <div class="tooltip-row"><span class="label">Speed</span><span class="value">${(m.avgSpeed * 3.6).toFixed(1)} km/h</span></div>
+      <div class="tooltip-row"><span class="label">Occupancy</span><span class="value">${(m.avgOccupancy * 100).toFixed(1)}%</span></div>
+      <div class="tooltip-row"><span class="label">Lanes</span><span class="value">${m.lanes}</span></div>
+      <div class="tooltip-row"><span class="label">Length</span><span class="value">${m.totalLength.toFixed(0)} m</span></div>`;
+  }
+
+  function formatNodeTooltip(nodeIdx) {
+    const node = topology.nodes[nodeIdx];
+    let html = `<div class="tooltip-title">Node ${node.id} (${node.type})</div>`;
+    if (lastFrame && lastFrame.signals) {
+      const sig = lastFrame.signals[String(node.id)];
+      if (sig) {
+        let state = sig.in_all_red ? 'All Red' : sig.in_yellow ? 'Yellow' : `Phase ${sig.phase_idx}`;
+        html += `<div class="tooltip-row"><span class="label">State</span><span class="value">${state}</span></div>`;
+        html += `<div class="tooltip-row"><span class="label">Time</span><span class="value">${sig.time_in_phase.toFixed(1)}s</span></div>`;
+        html += `<div class="tooltip-row"><span class="label">Phases</span><span class="value">${node.n_phases}</span></div>`;
+      }
+    }
+    return html;
+  }
+
+  // ====================================================================
+  // Selection Panel
+  // ====================================================================
+  function updateSelectionPanel() {
+    if (selectedLink >= 0) {
+      const link = topology.links[selectedLink];
+      const m = getLinkMetrics(selectedLink);
+      if (!m) { clearSelection(); return; }
+      selTitle.textContent = `Link ${link.id}`;
+      selRows.innerHTML = `
+        <div class="selection-row"><span class="label">Vehicles</span><span class="value">${m.vehicles.toFixed(1)}</span></div>
+        <div class="selection-row"><span class="label">Avg Speed</span><span class="value">${(m.avgSpeed * 3.6).toFixed(1)} km/h</span></div>
+        <div class="selection-row"><span class="label">Avg Occupancy</span><span class="value">${(m.avgOccupancy * 100).toFixed(1)}%</span></div>
+        <div class="selection-row"><span class="label">Max Occupancy</span><span class="value">${(m.maxOccupancy * 100).toFixed(1)}%</span></div>
+        <div class="selection-row"><span class="label">Lanes</span><span class="value">${m.lanes}</span></div>
+        <div class="selection-row"><span class="label">Cells</span><span class="value">${link.cells.length}</span></div>
+        <div class="selection-row"><span class="label">Length</span><span class="value">${m.totalLength.toFixed(0)} m</span></div>`;
+      selectionInfo.classList.add('visible');
+    } else if (selectedNode >= 0) {
+      const node = topology.nodes[selectedNode];
+      selTitle.textContent = `Node ${node.id} (${node.type})`;
+      let rows = '';
+      if (lastFrame && lastFrame.signals) {
+        const sig = lastFrame.signals[String(node.id)];
+        if (sig) {
+          let state = sig.in_all_red ? 'All Red' : sig.in_yellow ? 'Yellow' : `Phase ${sig.phase_idx}`;
+          rows += `<div class="selection-row"><span class="label">Signal State</span><span class="value">${state}</span></div>`;
+          rows += `<div class="selection-row"><span class="label">Time in Phase</span><span class="value">${sig.time_in_phase.toFixed(1)}s</span></div>`;
+          rows += `<div class="selection-row"><span class="label">Total Phases</span><span class="value">${node.n_phases}</span></div>`;
+        }
+      }
+      selRows.innerHTML = rows || '<div class="selection-row"><span class="label">No signal data</span></div>';
+      selectionInfo.classList.add('visible');
+    } else {
+      selectionInfo.classList.remove('visible');
+    }
+  }
+
+  function clearSelection() {
+    selectedLink = -1;
+    selectedNode = -1;
+    selectionInfo.classList.remove('visible');
+  }
+
+  selClose.addEventListener('click', clearSelection);
+
+  // ====================================================================
+  // Particle System
+  // ====================================================================
+  function initParticles() {
+    particles = [];
+  }
+
+  function updateParticles(dt) {
+    if (!topology || !lastFrame || !layers.particles) return;
+
+    // Update existing particles
+    for (let i = particles.length - 1; i >= 0; i--) {
+      const p = particles[i];
+      p.pos += p.speed * dt;
+      if (p.pos >= 1.0) {
+        particles.splice(i, 1);
+      }
+    }
+
+    // Spawn new particles proportional to link flow
+    const budget = CONFIG.maxParticles - particles.length;
+    if (budget <= 0) return;
+
+    // Compute spawn weights per link (based on density * speed ≈ flow)
+    let totalWeight = 0;
+    const weights = [];
+    for (let i = 0; i < topology.links.length; i++) {
+      const link = topology.links[i];
+      let w = 0;
+      for (const cid of link.cells) {
+        const d = lastFrame.density[cid] || 0;
+        const cell = topology.cells[cid];
+        const vf = cell.vf;
+        const Q = cell.Q;
+        const kCrit = Q / vf;
+        const spd = d <= kCrit ? vf : (d > 1e-9 ? Q / d : vf);
+        w += d * spd * cell.length * link.lanes;
+      }
+      weights.push(w);
+      totalWeight += w;
+    }
+
+    if (totalWeight < 1e-9) return;
+
+    // Spawn proportionally
+    const spawnRate = Math.min(budget, Math.ceil(CONFIG.maxParticles * 0.08));
+    for (let s = 0; s < spawnRate; s++) {
+      let r = Math.random() * totalWeight;
+      let linkIdx = 0;
+      for (let i = 0; i < weights.length; i++) {
+        r -= weights[i];
+        if (r <= 0) { linkIdx = i; break; }
+      }
+
+      const link = topology.links[linkIdx];
+      // Compute average speed for this link
+      let avgSpeed = 0, totalLen = 0;
+      for (const cid of link.cells) {
+        const d = lastFrame.density[cid] || 0;
+        const cell = topology.cells[cid];
+        const vf = cell.vf;
+        const Q = cell.Q;
+        const kCrit = Q / vf;
+        const spd = d <= kCrit ? vf : (d > 1e-9 ? Q / d : vf);
+        avgSpeed += spd * cell.length;
+        totalLen += cell.length;
+      }
+      avgSpeed = totalLen > 0 ? avgSpeed / totalLen : 10;
+
+      // Speed as fraction of link length per second
+      const linkLen = totalLen > 0 ? totalLen : 100;
+      particles.push({
+        linkIdx: linkIdx,
+        pos: Math.random() * 0.1,  // Start near beginning
+        speed: avgSpeed / linkLen,  // Normalized speed
+        size: 1.5 + Math.random() * 1.0,
+      });
+    }
+  }
+
+  // ====================================================================
   // Drawing
-  // ------------------------------------------------------------------
-  let lastFrame = null;
+  // ====================================================================
+  function cellWidth() {
+    return Math.max(CONFIG.roadWidthMin, Math.min(CONFIG.roadWidthMax, viewScale * CONFIG.roadWidthScale));
+  }
 
   function draw() {
     const rect = canvas.parentElement.getBoundingClientRect();
@@ -424,134 +1046,298 @@
     ctx.clearRect(0, 0, w, h);
 
     if (!topology || !lastFrame) {
-      ctx.fillStyle = '#8892b0';
-      ctx.font = '16px sans-serif';
+      ctx.fillStyle = '#6a6a8a';
+      ctx.font = '14px sans-serif';
       ctx.textAlign = 'center';
-      ctx.fillText('Waiting for data...', w / 2, h / 2);
+      ctx.textBaseline = 'middle';
+      ctx.fillText('Waiting for simulation data...', w / 2, h / 2);
       return;
     }
 
+    computeLinkGeometry();
     const density = lastFrame.density;
     const signals = lastFrame.signals || {};
+    const cw = cellWidth();
 
-    // Draw links as sequences of colored cells
-    for (const link of topology.links) {
-      const [x1, y1] = toScreen(link.from_x, link.from_y);
-      const [x2, y2] = toScreen(link.to_x, link.to_y);
-      const dx = x2 - x1;
-      const dy = y2 - y1;
-      const len = Math.sqrt(dx * dx + dy * dy);
-      if (len < 1) continue;
-      const nx = dx / len;
-      const ny = dy / len;
-      // Perpendicular for width
-      const px = -ny;
-      const py = nx;
-      const cellWidth = Math.max(4, Math.min(16, viewScale * 8));
-      const laneOffset = link.lanes > 1 ? cellWidth * 0.3 : 0;
+    // === Layer 1: Road backgrounds ===
+    for (let li = 0; li < topology.links.length; li++) {
+      const g = linkGeom[li];
+      if (g.len < 1) continue;
+      const link = topology.links[li];
+      const roadW = cw + CONFIG.roadEdgeWidth * 2;
 
-      const nCells = link.cells.length;
-      const cellLen = len / nCells;
+      // Road edge (dark outline)
+      ctx.beginPath();
+      ctx.moveTo(g.x1, g.y1);
+      ctx.lineTo(g.x2, g.y2);
+      ctx.strokeStyle = '#0a0a14';
+      ctx.lineWidth = roadW + 2;
+      ctx.lineCap = 'round';
+      ctx.stroke();
 
-      for (let i = 0; i < nCells; i++) {
-        const cid = link.cells[i];
-        const d = density[cid] || 0;
-        const kj = topology.cells[cid] ? topology.cells[cid].kj : 0.15;
-        const ratio = kj > 0 ? d / kj : 0;
+      // Road surface
+      ctx.beginPath();
+      ctx.moveTo(g.x1, g.y1);
+      ctx.lineTo(g.x2, g.y2);
+      ctx.strokeStyle = layers.density ? '#1e1e30' : '#2a2a3e';
+      ctx.lineWidth = roadW;
+      ctx.lineCap = 'round';
+      ctx.stroke();
+    }
 
-        const cx = x1 + nx * cellLen * (i + 0.5);
-        const cy = y1 + ny * cellLen * (i + 0.5);
+    // === Layer 2: Density cells ===
+    if (layers.density) {
+      for (let li = 0; li < topology.links.length; li++) {
+        const g = linkGeom[li];
+        if (g.len < 1) continue;
+        const link = topology.links[li];
+        const nCells = link.cells.length;
+        const cellLen = g.len / nCells;
 
-        ctx.fillStyle = densityColor(ratio);
-        ctx.strokeStyle = 'rgba(0,0,0,0.3)';
-        ctx.lineWidth = 0.5;
+        for (let i = 0; i < nCells; i++) {
+          const cid = link.cells[i];
+          const d = density[cid] || 0;
+          const kj = topology.cells[cid] ? topology.cells[cid].kj : 0.15;
+          const ratio = kj > 0 ? d / kj : 0;
 
-        // Draw cell as a rectangle aligned to the link
-        ctx.save();
-        ctx.translate(cx, cy);
-        ctx.rotate(Math.atan2(dy, dx));
-        const cw = cellLen - 1;
-        const ch = cellWidth;
-        ctx.fillRect(-cw / 2, -ch / 2, cw, ch);
-        ctx.strokeRect(-cw / 2, -ch / 2, cw, ch);
-        ctx.restore();
+          if (ratio < 0.001) continue;  // Skip empty cells
+
+          const cx = g.x1 + g.nx * cellLen * (i + 0.5);
+          const cy = g.y1 + g.ny * cellLen * (i + 0.5);
+
+          ctx.save();
+          ctx.translate(cx, cy);
+          ctx.rotate(Math.atan2(g.dy, g.dx));
+          const rw = cellLen - 0.5;
+          const rh = cw;
+          ctx.fillStyle = densityColorRGBA(ratio, 0.85);
+          ctx.fillRect(-rw / 2, -rh / 2, rw, rh);
+          ctx.restore();
+        }
       }
     }
 
-    // Draw nodes
-    for (const node of topology.nodes) {
-      const [sx, sy] = toScreen(node.x, node.y);
-      const r = node.type === 'signalized' ? 10 : 5;
+    // === Layer 3: Lane markings ===
+    if (layers.lanes && cw > 8) {
+      ctx.save();
+      ctx.setLineDash(CONFIG.laneMarkingDash);
+      ctx.strokeStyle = 'rgba(255,255,255,0.08)';
+      ctx.lineWidth = 0.5;
+      for (let li = 0; li < topology.links.length; li++) {
+        const g = linkGeom[li];
+        if (g.len < 2) continue;
+        const link = topology.links[li];
+        if (link.lanes <= 1) continue;
 
-      if (node.type === 'signalized') {
-        // Draw signal state
-        const sig = signals[String(node.id)];
-        let color = '#555';
-        if (sig) {
-          if (sig.in_all_red) color = '#ef476f';
-          else if (sig.in_yellow) color = '#ffd166';
-          else color = '#06d6a0';
+        const px = -g.ny, py = g.nx;
+        for (let lane = 1; lane < link.lanes; lane++) {
+          const offset = (lane / link.lanes - 0.5) * cw;
+          ctx.beginPath();
+          ctx.moveTo(g.x1 + px * offset, g.y1 + py * offset);
+          ctx.lineTo(g.x2 + px * offset, g.y2 + py * offset);
+          ctx.stroke();
         }
-        // Outer glow
+      }
+      ctx.restore();
+    }
+
+    // === Layer 4: Flow particles ===
+    if (layers.particles && particles.length > 0) {
+      for (const p of particles) {
+        const g = linkGeom[p.linkIdx];
+        if (!g || g.len < 1) continue;
+        const px = g.x1 + g.dx * p.pos;
+        const py = g.y1 + g.dy * p.pos;
+        const sz = p.size * Math.min(1.5, viewScale * 0.15 + 0.3);
+
+        if (CONFIG.particleGlow) {
+          ctx.beginPath();
+          ctx.arc(px, py, sz + 2, 0, Math.PI * 2);
+          ctx.fillStyle = 'rgba(255,255,255,0.06)';
+          ctx.fill();
+        }
+
         ctx.beginPath();
-        ctx.arc(sx, sy, r + 4, 0, Math.PI * 2);
-        ctx.fillStyle = color + '40';
+        ctx.arc(px, py, sz, 0, Math.PI * 2);
+        ctx.fillStyle = 'rgba(255,255,255,0.55)';
         ctx.fill();
-        // Inner circle
+      }
+    }
+
+    // === Layer 5: Hover / Selection highlight ===
+    if (hoveredLink >= 0 && hoveredLink !== selectedLink) {
+      const g = linkGeom[hoveredLink];
+      if (g && g.len > 0) {
         ctx.beginPath();
-        ctx.arc(sx, sy, r, 0, Math.PI * 2);
-        ctx.fillStyle = color;
-        ctx.fill();
-        ctx.strokeStyle = '#fff';
-        ctx.lineWidth = 1.5;
+        ctx.moveTo(g.x1, g.y1);
+        ctx.lineTo(g.x2, g.y2);
+        ctx.strokeStyle = 'rgba(0,180,216,0.3)';
+        ctx.lineWidth = cw + 6;
+        ctx.lineCap = 'round';
         ctx.stroke();
+      }
+    }
+    if (selectedLink >= 0) {
+      const g = linkGeom[selectedLink];
+      if (g && g.len > 0) {
+        ctx.beginPath();
+        ctx.moveTo(g.x1, g.y1);
+        ctx.lineTo(g.x2, g.y2);
+        ctx.strokeStyle = 'rgba(0,180,216,0.5)';
+        ctx.lineWidth = cw + 8;
+        ctx.lineCap = 'round';
+        ctx.stroke();
+        // Inner border
+        ctx.beginPath();
+        ctx.moveTo(g.x1, g.y1);
+        ctx.lineTo(g.x2, g.y2);
+        ctx.strokeStyle = 'rgba(0,180,216,0.8)';
+        ctx.lineWidth = cw + 4;
+        ctx.lineCap = 'round';
+        ctx.setLineDash([3, 3]);
+        ctx.stroke();
+        ctx.setLineDash([]);
+      }
+    }
 
-        // Phase label
-        if (sig) {
-          ctx.fillStyle = '#fff';
-          ctx.font = 'bold 9px sans-serif';
-          ctx.textAlign = 'center';
-          ctx.textBaseline = 'middle';
-          ctx.fillText('P' + sig.phase_idx, sx, sy);
+    // === Layer 6: Nodes ===
+    if (layers.signals) {
+      for (let i = 0; i < topology.nodes.length; i++) {
+        const node = topology.nodes[i];
+        const [sx, sy] = toScreen(node.x, node.y);
+        const isHovered = (i === hoveredNode);
+
+        if (node.type === 'signalized') {
+          const r = CONFIG.nodeSize.signalized;
+          const sig = signals[String(node.id)];
+          let color = '#555';
+          let glowColor = 'rgba(85,85,85,0.3)';
+          if (sig) {
+            if (sig.in_all_red) {
+              color = '#ef476f';
+              glowColor = 'rgba(239,71,111,0.35)';
+            } else if (sig.in_yellow) {
+              color = '#ffd166';
+              glowColor = 'rgba(255,209,102,0.35)';
+            } else {
+              color = '#06d6a0';
+              glowColor = 'rgba(6,214,160,0.35)';
+            }
+          }
+
+          // Outer glow
+          ctx.beginPath();
+          ctx.arc(sx, sy, r + 6, 0, Math.PI * 2);
+          ctx.fillStyle = glowColor;
+          ctx.fill();
+
+          // Body — rounded square
+          const half = r * 0.85;
+          const cr = 3;
+          ctx.beginPath();
+          ctx.moveTo(sx - half + cr, sy - half);
+          ctx.lineTo(sx + half - cr, sy - half);
+          ctx.quadraticCurveTo(sx + half, sy - half, sx + half, sy - half + cr);
+          ctx.lineTo(sx + half, sy + half - cr);
+          ctx.quadraticCurveTo(sx + half, sy + half, sx + half - cr, sy + half);
+          ctx.lineTo(sx - half + cr, sy + half);
+          ctx.quadraticCurveTo(sx - half, sy + half, sx - half, sy + half - cr);
+          ctx.lineTo(sx - half, sy - half + cr);
+          ctx.quadraticCurveTo(sx - half, sy - half, sx - half + cr, sy - half);
+          ctx.closePath();
+          ctx.fillStyle = color;
+          ctx.fill();
+          ctx.strokeStyle = isHovered ? '#fff' : 'rgba(255,255,255,0.6)';
+          ctx.lineWidth = isHovered ? 2 : 1;
+          ctx.stroke();
+
+          // Phase label
+          if (sig && r > 8) {
+            ctx.fillStyle = sig.in_all_red || !sig.in_yellow ? '#fff' : '#333';
+            ctx.font = `bold ${Math.max(8, r * 0.7)}px sans-serif`;
+            ctx.textAlign = 'center';
+            ctx.textBaseline = 'middle';
+            ctx.fillText('P' + sig.phase_idx, sx, sy);
+          }
+        } else if (node.type === 'origin') {
+          const r = CONFIG.nodeSize.origin;
+          // Diamond shape
+          ctx.beginPath();
+          ctx.moveTo(sx, sy - r);
+          ctx.lineTo(sx + r, sy);
+          ctx.lineTo(sx, sy + r);
+          ctx.lineTo(sx - r, sy);
+          ctx.closePath();
+          ctx.fillStyle = isHovered ? '#00d4f8' : '#00b4d8';
+          ctx.fill();
+          ctx.strokeStyle = 'rgba(255,255,255,0.3)';
+          ctx.lineWidth = 0.5;
+          ctx.stroke();
+        } else if (node.type === 'destination') {
+          const r = CONFIG.nodeSize.destination;
+          ctx.beginPath();
+          ctx.moveTo(sx, sy - r);
+          ctx.lineTo(sx + r, sy);
+          ctx.lineTo(sx, sy + r);
+          ctx.lineTo(sx - r, sy);
+          ctx.closePath();
+          ctx.fillStyle = isHovered ? '#8892c0' : '#5a5a7a';
+          ctx.fill();
+          ctx.strokeStyle = 'rgba(255,255,255,0.2)';
+          ctx.lineWidth = 0.5;
+          ctx.stroke();
+        } else {
+          const r = CONFIG.nodeSize.other;
+          ctx.beginPath();
+          ctx.arc(sx, sy, r, 0, Math.PI * 2);
+          ctx.fillStyle = isHovered ? '#666' : '#444';
+          ctx.fill();
         }
-      } else if (node.type === 'origin') {
-        ctx.beginPath();
-        ctx.arc(sx, sy, r, 0, Math.PI * 2);
-        ctx.fillStyle = '#00b4d8';
-        ctx.fill();
-      } else if (node.type === 'destination') {
-        ctx.beginPath();
-        ctx.arc(sx, sy, r, 0, Math.PI * 2);
-        ctx.fillStyle = '#8892b0';
-        ctx.fill();
-      } else {
-        ctx.beginPath();
-        ctx.arc(sx, sy, r, 0, Math.PI * 2);
-        ctx.fillStyle = '#555';
-        ctx.fill();
+      }
+    }
+
+    // === Layer 7: Labels ===
+    if (layers.labels) {
+      ctx.font = '9px sans-serif';
+      ctx.textAlign = 'center';
+      ctx.textBaseline = 'top';
+      ctx.fillStyle = 'rgba(255,255,255,0.5)';
+      for (let li = 0; li < topology.links.length; li++) {
+        const g = linkGeom[li];
+        if (g.len < 20) continue;
+        const link = topology.links[li];
+        const mx = (g.x1 + g.x2) / 2;
+        const my = (g.y1 + g.y2) / 2 + cw / 2 + 4;
+        ctx.fillText('L' + link.id, mx, my);
       }
     }
   }
 
-  // ------------------------------------------------------------------
-  // Mini chart
-  // ------------------------------------------------------------------
+  // ====================================================================
+  // Chart Drawing
+  // ====================================================================
   function drawChart() {
     const rect = chartCanvas.parentElement.getBoundingClientRect();
     const w = rect.width;
     const h = rect.height;
     chartCtx.clearRect(0, 0, w, h);
 
-    const data = chartHistory.vehicles;
+    const data = history.vehicles;
     if (data.length < 2) return;
 
-    const maxVal = Math.max(1, ...data);
-    const pad = { l: 30, r: 6, t: 4, b: 14 };
+    const pad = { l: 32, r: 8, t: 8, b: 4 };
     const cw = w - pad.l - pad.r;
     const ch = h - pad.t - pad.b;
 
+    // Find max across all series
+    const maxVal = Math.max(1,
+      Math.max(...history.vehicles),
+      Math.max(...history.entered),
+      Math.max(...history.exited)
+    );
+
     // Grid lines
-    chartCtx.strokeStyle = '#0f346040';
+    chartCtx.strokeStyle = 'rgba(42,42,74,0.5)';
     chartCtx.lineWidth = 0.5;
     for (let i = 0; i <= 4; i++) {
       const y = pad.t + ch * (1 - i / 4);
@@ -562,61 +1348,78 @@
     }
 
     // Y-axis labels
-    chartCtx.fillStyle = '#8892b0';
+    chartCtx.fillStyle = '#6a6a8a';
     chartCtx.font = '9px sans-serif';
     chartCtx.textAlign = 'right';
     chartCtx.textBaseline = 'middle';
     for (let i = 0; i <= 4; i++) {
       const y = pad.t + ch * (1 - i / 4);
-      chartCtx.fillText(Math.round(maxVal * i / 4).toString(), pad.l - 4, y);
+      const val = Math.round(maxVal * i / 4);
+      chartCtx.fillText(val.toString(), pad.l - 4, y);
     }
 
-    // Line
-    chartCtx.beginPath();
-    chartCtx.strokeStyle = '#00b4d8';
-    chartCtx.lineWidth = 1.5;
-    for (let i = 0; i < data.length; i++) {
-      const x = pad.l + (i / (data.length - 1)) * cw;
-      const y = pad.t + ch * (1 - data[i] / maxVal);
-      if (i === 0) chartCtx.moveTo(x, y);
-      else chartCtx.lineTo(x, y);
-    }
-    chartCtx.stroke();
+    // Draw series
+    function drawSeries(data, color, fillAlpha) {
+      if (data.length < 2) return;
+      chartCtx.beginPath();
+      chartCtx.strokeStyle = color;
+      chartCtx.lineWidth = 1.5;
+      for (let i = 0; i < data.length; i++) {
+        const x = pad.l + (i / (data.length - 1)) * cw;
+        const y = pad.t + ch * (1 - data[i] / maxVal);
+        if (i === 0) chartCtx.moveTo(x, y);
+        else chartCtx.lineTo(x, y);
+      }
+      chartCtx.stroke();
 
-    // Fill under
-    chartCtx.lineTo(pad.l + cw, pad.t + ch);
-    chartCtx.lineTo(pad.l, pad.t + ch);
-    chartCtx.closePath();
-    chartCtx.fillStyle = '#00b4d820';
-    chartCtx.fill();
+      if (fillAlpha) {
+        chartCtx.lineTo(pad.l + cw, pad.t + ch);
+        chartCtx.lineTo(pad.l, pad.t + ch);
+        chartCtx.closePath();
+        chartCtx.fillStyle = color.replace(')', `,${fillAlpha})`).replace('rgb', 'rgba');
+        chartCtx.fill();
+      }
+    }
+
+    drawSeries(history.entered, 'rgb(6,214,160)', 0.08);
+    drawSeries(history.exited, 'rgb(255,159,67)', 0.08);
+    drawSeries(history.vehicles, 'rgb(0,180,216)', 0.12);
   }
 
-  // ------------------------------------------------------------------
-  // Update UI from frame
-  // ------------------------------------------------------------------
+  // ====================================================================
+  // Update UI from Frame
+  // ====================================================================
   function onFrame(frame) {
     lastFrame = frame;
     const m = frame.metrics || {};
 
-    mTime.textContent = (m.time || 0).toFixed(1) + ' s';
+    mTime.textContent = (m.time || 0).toFixed(1) + 's';
     mStep.textContent = frame.step || 0;
     mVehicles.textContent = (m.total_vehicles || 0).toFixed(1);
     mEntered.textContent = Math.round(m.total_entered || 0);
     mExited.textContent = Math.round(m.total_exited || 0);
     mDensity.textContent = (m.avg_density || 0).toFixed(4);
 
-    // Chart history
-    chartHistory.time.push(m.time || 0);
-    chartHistory.vehicles.push(m.total_vehicles || 0);
-    if (chartHistory.time.length > MAX_HISTORY) {
-      chartHistory.time.shift();
-      chartHistory.vehicles.shift();
+    // Chart
+    history.time.push(m.time || 0);
+    history.vehicles.push(m.total_vehicles || 0);
+    history.entered.push(m.total_entered || 0);
+    history.exited.push(m.total_exited || 0);
+    while (history.time.length > CONFIG.maxHistory) {
+      history.time.shift();
+      history.vehicles.shift();
+      history.entered.shift();
+      history.exited.shift();
     }
 
     // Signals
     updateSignals(frame.signals || {});
 
-    draw();
+    // Update selection panel (live data)
+    if (selectedLink >= 0 || selectedNode >= 0) {
+      updateSelectionPanel();
+    }
+
     drawChart();
   }
 
@@ -632,46 +1435,145 @@
 
       const item = document.createElement('div');
       item.className = 'signal-item';
-      item.innerHTML = `<div class="signal-dot ${cls}"></div><span>Node ${nid}: ${label} (${s.time_in_phase.toFixed(0)}s)</span>`;
+      item.innerHTML = `<div class="signal-dot ${cls}"></div>
+        <span>Node ${nid}: ${label}</span>
+        <span class="signal-phase">${s.time_in_phase.toFixed(0)}s</span>`;
       signalList.appendChild(item);
     }
   }
 
-  // ------------------------------------------------------------------
+  // ====================================================================
   // Pan & Zoom
-  // ------------------------------------------------------------------
+  // ====================================================================
   canvas.addEventListener('wheel', (e) => {
     e.preventDefault();
     const rect = canvas.getBoundingClientRect();
     const mx = e.clientX - rect.left;
     const my = e.clientY - rect.top;
-    const factor = e.deltaY < 0 ? 1.15 : 1 / 1.15;
+    const factor = e.deltaY < 0 ? 1.12 : 1 / 1.12;
     viewX = mx - (mx - viewX) * factor;
     viewY = my - (my - viewY) * factor;
     viewScale *= factor;
-    draw();
   }, { passive: false });
 
   canvas.addEventListener('mousedown', (e) => {
-    isPanning = true;
-    panStartX = e.clientX - viewX;
-    panStartY = e.clientY - viewY;
-    canvas.style.cursor = 'grabbing';
-  });
-  window.addEventListener('mousemove', (e) => {
-    if (!isPanning) return;
-    viewX = e.clientX - panStartX;
-    viewY = e.clientY - panStartY;
-    draw();
-  });
-  window.addEventListener('mouseup', () => {
-    isPanning = false;
-    canvas.style.cursor = 'default';
+    if (e.button === 0) {
+      isPanning = true;
+      panStartX = e.clientX - viewX;
+      panStartY = e.clientY - viewY;
+      canvas.classList.add('grabbing');
+    }
   });
 
-  // ------------------------------------------------------------------
+  window.addEventListener('mousemove', (e) => {
+    const rect = canvas.getBoundingClientRect();
+    mouseX = e.clientX - rect.left;
+    mouseY = e.clientY - rect.top;
+
+    if (isPanning) {
+      viewX = e.clientX - panStartX;
+      viewY = e.clientY - panStartY;
+      return;
+    }
+
+    // Hit testing for hover
+    if (topology && lastFrame) {
+      const ni = hitTestNode(mouseX, mouseY);
+      if (ni >= 0) {
+        hoveredNode = ni;
+        hoveredLink = -1;
+        showTooltip(mouseX, mouseY, formatNodeTooltip(ni));
+        canvas.style.cursor = 'pointer';
+      } else {
+        hoveredNode = -1;
+        const li = hitTestLink(mouseX, mouseY);
+        if (li >= 0) {
+          hoveredLink = li;
+          showTooltip(mouseX, mouseY, formatLinkTooltip(li));
+          canvas.style.cursor = 'pointer';
+        } else {
+          hoveredLink = -1;
+          hideTooltip();
+          if (!isPanning) canvas.style.cursor = 'grab';
+        }
+      }
+    }
+  });
+
+  window.addEventListener('mouseup', (e) => {
+    if (isPanning) {
+      isPanning = false;
+      canvas.classList.remove('grabbing');
+      canvas.style.cursor = 'grab';
+    }
+  });
+
+  canvas.addEventListener('click', (e) => {
+    if (hoveredNode >= 0) {
+      selectedNode = hoveredNode;
+      selectedLink = -1;
+      updateSelectionPanel();
+    } else if (hoveredLink >= 0) {
+      selectedLink = hoveredLink;
+      selectedNode = -1;
+      updateSelectionPanel();
+    } else {
+      clearSelection();
+    }
+  });
+
+  // ====================================================================
+  // Keyboard Shortcuts
+  // ====================================================================
+  document.addEventListener('keydown', (e) => {
+    // Don't capture if user is typing in an input
+    if (e.target.tagName === 'INPUT' || e.target.tagName === 'TEXTAREA') return;
+
+    switch (e.key) {
+      case ' ':
+        e.preventDefault();
+        if (paused) { btnPlay.click(); } else { btnPause.click(); }
+        break;
+      case 'ArrowRight':
+        e.preventDefault();
+        if (paused) btnStep.click();
+        break;
+      case 'r':
+      case 'R':
+        btnReset.click();
+        break;
+      case 'f':
+      case 'F':
+        fitView();
+        break;
+      case 'Escape':
+        clearSelection();
+        break;
+      case '+':
+      case '=':
+        viewScale *= 1.2;
+        break;
+      case '-':
+      case '_':
+        viewScale /= 1.2;
+        break;
+    }
+  });
+
+  // ====================================================================
+  // Layer Toggles
+  // ====================================================================
+  document.querySelectorAll('.layer-toggle').forEach(el => {
+    el.addEventListener('click', () => {
+      const layer = el.dataset.layer;
+      layers[layer] = !layers[layer];
+      el.classList.toggle('on', layers[layer]);
+    });
+  });
+
+  // ====================================================================
   // Controls
-  // ------------------------------------------------------------------
+  // ====================================================================
   btnPlay.addEventListener('click', () => {
     paused = false;
     btnPlay.classList.add('active');
@@ -690,8 +1592,11 @@
     send({ cmd: 'step' });
   });
   btnReset.addEventListener('click', () => {
-    chartHistory.time.length = 0;
-    chartHistory.vehicles.length = 0;
+    history.time.length = 0;
+    history.vehicles.length = 0;
+    history.entered.length = 0;
+    history.exited.length = 0;
+    initParticles();
     send({ cmd: 'reset' });
   });
   speedSlider.addEventListener('input', () => {
@@ -700,9 +1605,36 @@
     send({ cmd: 'speed', value: speed });
   });
 
-  // ------------------------------------------------------------------
+  // ====================================================================
+  // Animation Loop
+  // ====================================================================
+  function tick(timestamp) {
+    // FPS
+    frameCount++;
+    if (timestamp - fpsTime >= 1000) {
+      currentFps = frameCount;
+      frameCount = 0;
+      fpsTime = timestamp;
+      fpsCounter.textContent = currentFps + ' fps';
+    }
+
+    // Particle update
+    const dt = lastAnimTime > 0 ? Math.min((timestamp - lastAnimTime) / 1000, 0.1) : 0.016;
+    lastAnimTime = timestamp;
+    if (!paused || particles.length > 0) {
+      updateParticles(dt);
+    }
+
+    // Draw
+    draw();
+
+    requestAnimationFrame(tick);
+  }
+  requestAnimationFrame(tick);
+
+  // ====================================================================
   // WebSocket
-  // ------------------------------------------------------------------
+  // ====================================================================
   function send(obj) {
     if (ws && ws.readyState === WebSocket.OPEN) {
       ws.send(JSON.stringify(obj));
@@ -722,7 +1654,7 @@
     ws.onclose = () => {
       connected = false;
       statusDot.classList.remove('connected');
-      statusText.textContent = 'Disconnected — retrying...';
+      statusText.textContent = 'Reconnecting...';
       setTimeout(connect, 2000);
     };
 
@@ -735,11 +1667,11 @@
       if (msg.type === 'topology') {
         topology = msg.data;
         fitView();
-        // Fetch mode info
+        initParticles();
+        statusInfo.textContent = `${topology.nodes.length} nodes, ${topology.links.length} links, ${topology.n_cells} cells`;
         fetch('/api/info').then(r => r.json()).then(info => {
           modeBadge.textContent = info.mode + ' | ' + info.scenario;
         }).catch(() => {});
-        draw();
       } else if (msg.type === 'frame') {
         onFrame(msg);
       } else if (msg.type === 'end') {
@@ -750,10 +1682,6 @@
   }
 
   connect();
-
-  // Initial draw
-  draw();
-  drawChart();
 })();
 </script>
 </body>
