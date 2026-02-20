@@ -14,3 +14,22 @@ venv/
 env/
 .env
 *.log
+
+# Editor / OS
+.DS_Store
+.vscode/
+.idea/
+*.swp
+*.swo
+
+# SUMO artifacts
+*.rou.xml
+*.sumocfg
+*.net.xml
+
+# Training artifacts
+*.npz
+results/rl_curves/
+
+# Screenshots (kept locally, not in repo)
+screenshots/
