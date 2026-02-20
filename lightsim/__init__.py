@@ -89,7 +89,7 @@ def parallel_env(
     render_mode: str | None = None,
     stochastic: bool = False,
     **scenario_kwargs: Any,
-):
+) -> "LightSimParallelEnv":  # noqa: F821
     """Create a multi-agent LightSim PettingZoo ParallelEnv.
 
     Requires ``pettingzoo`` to be installed.
