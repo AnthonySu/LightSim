@@ -10,33 +10,25 @@
 [![Gymnasium](https://img.shields.io/badge/gymnasium-%E2%89%A50.29-0081A5.svg)](https://gymnasium.farama.org/)
 [![PettingZoo](https://img.shields.io/badge/pettingzoo-multi--agent-8B5CF6.svg)](https://pettingzoo.farama.org/)
 
-[Paper (arXiv)](#) &nbsp;&middot;&nbsp; [Documentation](#quick-start) &nbsp;&middot;&nbsp; [Scenarios](#built-in-scenarios-19) &nbsp;&middot;&nbsp; [Citation](#citation)
-
 </div>
 
 ---
 
 LightSim is a pure-Python traffic simulator built on the **Cell Transmission Model** (CTM) for reinforcement learning research in traffic signal control.
-It replaces individual vehicle tracking with macroscopic flow dynamics, achieving thousands of simulation steps per second while preserving the controller performance rankings observed in microscopic simulators such as SUMO.
+It replaces individual vehicle tracking with macroscopic flow dynamics &mdash; running at **21,000 steps/s** on a single intersection and training RL agents **3&ndash;7x faster** than SUMO &mdash; while preserving controller performance rankings across simulators.
 
-<p align="center">
-  <img src="docs/lightsim_shanghai.gif" alt="Shanghai Lujiazui" width="420">
-  &nbsp;&nbsp;
-  <img src="docs/lightsim_sf.gif" alt="San Francisco FiDi" width="420">
-</p>
-<p align="center"><sub>Real-world road networks from OpenStreetMap running in real time with MaxPressure signal control.</sub></p>
-
----
-
-## Performance
-
-|  | **LightSim** | **SUMO** | **CityFlow** |
-|---|:---:|:---:|:---:|
-| **Install** | `pip install lightsim` | Platform binaries + env vars | C++ compilation |
-| **Simulation speed** (1 intersection) | **21,000** steps/s | 5,000 steps/s | ~8,000 steps/s |
-| **RL training speedup** | **3--7x** vs SUMO | baseline | --- |
-| **Gymnasium / PettingZoo** | Native | Via wrapper | Via wrapper |
-| **Lines to create env** | **3** | ~50 (XML + Python) | ~30 (JSON + Python) |
+<table align="center" border="0" cellspacing="0" cellpadding="0">
+<tr>
+<td align="center"><img src="docs/lightsim_shanghai.gif" alt="Shanghai Lujiazui" width="400"></td>
+<td width="16"></td>
+<td align="center"><img src="docs/lightsim_sf.gif" alt="San Francisco FiDi" width="400"></td>
+</tr>
+<tr>
+<td align="center"><sub>Shanghai, Lujiazui</sub></td>
+<td></td>
+<td align="center"><sub>San Francisco, Financial District</sub></td>
+</tr>
+</table>
 
 ---
 
@@ -58,11 +50,7 @@ pip install -e ".[osm]"           # + OpenStreetMap import (osmnx)
 
 </details>
 
-**For LLM coding assistants** (Claude Code, Cursor, Copilot, etc.):
-
-```bash
-git clone https://github.com/AnthonySu/LightSim.git && cd LightSim && pip install -e ".[all]"
-```
+> **For LLM coding assistants:** *Clone and install LightSim from `github.com/AnthonySu/LightSim` with all extras enabled.*
 
 ---
 
