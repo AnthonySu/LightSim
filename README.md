@@ -12,8 +12,11 @@
 </div>
 
 <p align="center">
-  <img src="docs/viz_hero.png" alt="LightSim visualization — 4x4 grid with MaxPressure controller" width="800">
+  <img src="docs/lightsim_shanghai.gif" alt="Shanghai Lujiazui — real-time CTM simulation" width="420">
+  &nbsp;
+  <img src="docs/lightsim_sf.gif" alt="San Francisco Financial District — real-time CTM simulation" width="420">
 </p>
+<p align="center"><em>Real-world road networks from OpenStreetMap running in real-time with MaxPressure signal control</em></p>
 
 LightSim fills the gap between heavyweight microscopic simulators (SUMO, CityFlow) and the need for fast, flexible RL environments. Built on vectorised NumPy, it provides native Gymnasium and PettingZoo interfaces with pluggable observations, actions, and rewards.
 
