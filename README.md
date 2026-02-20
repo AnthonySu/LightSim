@@ -89,17 +89,27 @@ print(engine.get_network_metrics())
 
 ## Built-in Scenarios
 
-| Scenario | Intersections | Description |
+| Scenario | Signals | Description |
 |---|---|---|
 | `single-intersection-v0` | 1 | Four-leg intersection with NS/EW phases |
 | `grid-4x4-v0` | 16 | 4x4 signalized grid with boundary demand |
 | `arterial-5-v0` | 5 | Linear corridor with coordinated signals |
 | `osm-manhattan-v0` | 52 | Midtown Manhattan, New York |
 | `osm-shanghai-v0` | 48 | Lujiazui / Pudong, Shanghai |
-| `osm-beijing-v0` | 59 | Wangfujing area, Beijing |
+| `osm-beijing-v0` | 59 | Wangfujing, Beijing |
 | `osm-shenzhen-v0` | 40 | Futian CBD, Shenzhen |
 | `osm-losangeles-v0` | 36 | Downtown Los Angeles |
 | `osm-sanfrancisco-v0` | 65 | Financial District, San Francisco |
+| `osm-siouxfalls-v0` | 61 | Downtown Sioux Falls, SD |
+| `osm-tokyo-v0` | 130 | Shibuya, Tokyo |
+| `osm-chicago-v0` | 58 | The Loop, Chicago |
+| `osm-london-v0` | 131 | City of London |
+| `osm-paris-v0` | 40 | Champs-Elysees, Paris |
+| `osm-singapore-v0` | 40 | Orchard Road, Singapore |
+| `osm-seoul-v0` | 55 | Gangnam, Seoul |
+| `osm-toronto-v0` | 59 | Downtown, Toronto |
+| `osm-mumbai-v0` | 17 | Bandra-Kurla Complex, Mumbai |
+| `osm-sydney-v0` | 43 | CBD, Sydney |
 
 ## Signal Controllers
 
