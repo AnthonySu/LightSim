@@ -2,8 +2,11 @@
 
 import subprocess
 import sys
+from pathlib import Path
 
 import pytest
+
+REPO_ROOT = Path(__file__).resolve().parent.parent
 
 EXAMPLES = [
     "examples/quickstart.py",
@@ -22,7 +25,7 @@ def test_example_runs(script):
         capture_output=True,
         text=True,
         timeout=60,
-        cwd="C:/Users/admin/Projects/lightsim",
+        cwd=str(REPO_ROOT),
     )
     assert result.returncode == 0, (
         f"{script} failed with:\n"

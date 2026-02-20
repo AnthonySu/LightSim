@@ -195,6 +195,19 @@ lightsim/
 | `osmnx>=1.6` | OpenStreetMap import | `[osm]` |
 | `stable-baselines3` | RL training (DQN, PPO, A2C) | &mdash; |
 
+## Citation
+
+If you use LightSim in your research, please cite:
+
+```bibtex
+@software{su2025lightsim,
+  author       = {Su, Haoran},
+  title        = {LightSim: Lightweight Cell Transmission Model Simulator for Traffic Signal Control},
+  year         = {2025},
+  url          = {https://github.com/AnthonySu/LightSim},
+}
+```
+
 ## License
 
 [MIT](LICENSE)
