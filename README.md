@@ -19,14 +19,33 @@ It replaces individual vehicle tracking with macroscopic flow dynamics &mdash; r
 
 <table align="center" border="0" cellspacing="0" cellpadding="0">
 <tr>
-<td align="center"><img src="docs/lightsim_shanghai.gif" alt="Shanghai Lujiazui" width="400"></td>
-<td width="16"></td>
-<td align="center"><img src="docs/lightsim_sf.gif" alt="San Francisco FiDi" width="400"></td>
+<td align="center"><img src="docs/lightsim_shanghai.gif" alt="Shanghai Lujiazui" width="280"></td>
+<td width="8"></td>
+<td align="center"><img src="docs/lightsim_sf.gif" alt="San Francisco FiDi" width="280"></td>
+<td width="8"></td>
+<td align="center"><img src="docs/lightsim_tokyo.gif" alt="Tokyo Shibuya" width="280"></td>
 </tr>
 <tr>
 <td align="center"><sub>Shanghai, Lujiazui</sub></td>
 <td></td>
-<td align="center"><sub>San Francisco, Financial District</sub></td>
+<td align="center"><sub>San Francisco, FiDi</sub></td>
+<td></td>
+<td align="center"><sub>Tokyo, Shibuya</sub></td>
+</tr>
+<tr><td colspan="5" height="8"></td></tr>
+<tr>
+<td align="center"><img src="docs/lightsim_london.gif" alt="London City" width="280"></td>
+<td width="8"></td>
+<td align="center"><img src="docs/lightsim_siouxfalls.gif" alt="Sioux Falls" width="280"></td>
+<td width="8"></td>
+<td align="center"><img src="docs/lightsim_manhattan.gif" alt="Manhattan Midtown" width="280"></td>
+</tr>
+<tr>
+<td align="center"><sub>London, City of London</sub></td>
+<td></td>
+<td align="center"><sub>Sioux Falls, SD</sub></td>
+<td></td>
+<td align="center"><sub>Manhattan, Midtown</sub></td>
 </tr>
 </table>
 

@@ -37,29 +37,43 @@ CITIES = {
         "lat": 31.2365,
         "lon": 121.5010,
         "dist": 500,
-        "label": "Shanghai Lujiazui",
-        "rate": 0.25,
+        "label": "Shanghai, Lujiazui",
+        "rate": 0.55,
     },
     "sf": {
         "lat": 37.7936,
         "lon": -122.3959,
         "dist": 500,
-        "label": "San Francisco Financial District",
-        "rate": 0.25,
+        "label": "San Francisco, FiDi",
+        "rate": 0.55,
+    },
+    "siouxfalls": {
+        "lat": 43.5446,
+        "lon": -96.7311,
+        "dist": 500,
+        "label": "Sioux Falls, SD",
+        "rate": 0.50,
+    },
+    "tokyo": {
+        "lat": 35.6595,
+        "lon": 139.7004,
+        "dist": 500,
+        "label": "Tokyo, Shibuya",
+        "rate": 0.45,
+    },
+    "london": {
+        "lat": 51.5138,
+        "lon": -0.0984,
+        "dist": 500,
+        "label": "London, City of London",
+        "rate": 0.45,
     },
     "manhattan": {
         "lat": 40.7549,
         "lon": -73.9840,
         "dist": 400,
-        "label": "Midtown Manhattan",
-        "rate": 0.20,
-    },
-    "beijing": {
-        "lat": 39.9139,
-        "lon": 116.4030,
-        "dist": 500,
-        "label": "Beijing Wangfujing",
-        "rate": 0.25,
+        "label": "Manhattan, Midtown",
+        "rate": 0.50,
     },
 }
 
@@ -348,8 +362,8 @@ def generate_gif(
     )
     engine.reset(seed=42)
 
-    # 3. Warm up (let traffic build up a bit)
-    warmup_steps = int(60 / dt)  # 60 seconds of warmup
+    # 3. Warm up (let congestion build up)
+    warmup_steps = int(300 / dt)  # 300 seconds of warmup
     print(f"  Warming up ({warmup_steps} steps)...")
     for _ in range(warmup_steps):
         engine.step()
