@@ -23,6 +23,16 @@ from .envs.single_agent import LightSimEnv
 
 __version__ = "0.1.0"
 
+# Decision Transformer (requires torch)
+try:
+    from .dt import (
+        DecisionTransformer,
+        DecisionTransformerController,
+        DTPolicy,
+    )
+except ImportError:
+    pass
+
 
 def make(
     scenario: str = "single-intersection-v0",

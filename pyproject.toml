@@ -45,11 +45,12 @@ Issues = "https://github.com/AnthonySu/LightSim/issues"
 multi = ["pettingzoo>=1.24"]
 viz = ["fastapi>=0.100", "uvicorn>=0.23", "websockets>=11.0"]
 osm = ["osmnx>=1.6"]
+dt = ["torch>=2.0"]
 dev = [
     "pytest>=7.0",
     "pettingzoo>=1.24",
 ]
-all = ["lightsim[multi,viz,osm,dev]"]
+all = ["lightsim[multi,viz,osm,dt,dev]"]
 
 [tool.setuptools.packages.find]
 include = ["lightsim*"]
