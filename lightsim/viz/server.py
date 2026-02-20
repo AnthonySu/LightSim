@@ -199,6 +199,8 @@ def create_app(
     app.state.recorder = None
     app.state.speed = speed
     app.state.scenario_name = scenario
+    app.state.controller_name = controller or "FixedTime"
+    app.state.dt = dt
 
     if replay_path:
         app.state.replay_data = Recorder.load(replay_path)
@@ -238,6 +240,10 @@ def create_app(
     async def api_scenarios():
         return {"scenarios": list_scenarios()}
 
+    @app.get("/api/controllers")
+    async def api_controllers():
+        return {"controllers": list(_CONTROLLERS.keys())}
+
     @app.get("/api/topology")
     async def api_topology():
         if app.state.replay_data:
@@ -247,7 +253,11 @@ def create_app(
     @app.get("/api/info")
     async def api_info():
         mode = "replay" if app.state.replay_data else "live"
-        info = {"mode": mode, "scenario": app.state.scenario_name}
+        info = {
+            "mode": mode,
+            "scenario": app.state.scenario_name,
+            "controller": app.state.controller_name,
+        }
         if app.state.replay_data:
             info["total_frames"] = len(app.state.replay_data["frames"])
         return info
@@ -287,9 +297,28 @@ async def _live_loop(ws: "WebSocket", app: "FastAPI") -> None:
     paused = False
     running = True
 
+    def _rebuild(scenario_name: str, controller_name: str) -> None:
+        """Rebuild engine with a new scenario and/or controller."""
+        nonlocal engine, recorder
+        ctrl = _make_controller(controller_name)
+        factory = get_scenario(scenario_name)
+        network, demand = factory()
+        engine = SimulationEngine(
+            network=network,
+            dt=app.state.dt,
+            controller=ctrl,
+            demand_profiles=demand,
+        )
+        engine.reset(seed=42)
+        recorder = Recorder(engine)
+        app.state.engine = engine
+        app.state.recorder = recorder
+        app.state.scenario_name = scenario_name
+        app.state.controller_name = controller_name
+
     # Start a task to listen for client commands
     async def listen():
-        nonlocal paused, running, speed, interval
+        nonlocal paused, running, speed, interval, engine, recorder
         try:
             while running:
                 msg = await ws.receive_text()
@@ -311,6 +340,15 @@ async def _live_loop(ws: "WebSocket", app: "FastAPI") -> None:
                     engine.step()
                     frame = recorder.capture()
                     await ws.send_json(recorder.get_frame_dict(frame))
+                elif cmd == "switch_scenario":
+                    scenario_name = data.get("scenario", app.state.scenario_name)
+                    controller_name = data.get("controller", app.state.controller_name)
+                    try:
+                        _rebuild(scenario_name, controller_name)
+                        topo = recorder.get_topology()
+                        await ws.send_json({"type": "topology", "data": topo})
+                    except (KeyError, ValueError) as e:
+                        await ws.send_json({"type": "error", "message": str(e)})
                 elif cmd == "close":
                     running = False
         except WebSocketDisconnect:

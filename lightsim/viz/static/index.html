@@ -318,6 +318,42 @@
   .selection-row .label { color: var(--text-dim); }
   .selection-row .value { font-weight: 600; font-variant-numeric: tabular-nums; }
 
+  /* Dropdowns */
+  .switch-row {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    margin-bottom: 8px;
+  }
+  .switch-row label {
+    font-size: 11px;
+    color: var(--muted);
+    text-transform: uppercase;
+    letter-spacing: 0.5px;
+    min-width: 60px;
+    flex-shrink: 0;
+  }
+  select {
+    flex: 1;
+    background: var(--bg2);
+    color: var(--text);
+    border: 1px solid var(--border);
+    padding: 5px 8px;
+    border-radius: var(--radius);
+    font-size: 12px;
+    font-family: inherit;
+    cursor: pointer;
+    outline: none;
+    -webkit-appearance: none;
+    appearance: none;
+    background-image: url("data:image/svg+xml,%3Csvg width='10' height='6' viewBox='0 0 10 6' fill='none' xmlns='http://www.w3.org/2000/svg'%3E%3Cpath d='M1 1L5 5L9 1' stroke='%236a6a8a' stroke-width='1.5' stroke-linecap='round'/%3E%3C/svg%3E");
+    background-repeat: no-repeat;
+    background-position: right 8px center;
+    padding-right: 24px;
+  }
+  select:hover { border-color: var(--border-light); }
+  select:focus { border-color: var(--accent); }
+
   /* Signal list */
   .signal-list {
     display: flex;
@@ -477,6 +513,18 @@
         <label>Speed</label>
         <input type="range" id="speedSlider" min="1" max="100" value="10">
         <span class="speed-val" id="speedVal">10x</span>
+      </div>
+    </div>
+
+    <div class="panel-section" id="switcherSection" style="display:none">
+      <h2>Scenario</h2>
+      <div class="switch-row">
+        <label>Network</label>
+        <select id="scenarioSelect"></select>
+      </div>
+      <div class="switch-row">
+        <label>Controller</label>
+        <select id="controllerSelect"></select>
       </div>
     </div>
 
@@ -1722,18 +1770,75 @@
         topology = msg.data;
         fitView();
         initParticles();
+        // Reset chart history on new topology
+        history.time.length = 0;
+        history.vehicles.length = 0;
+        history.entered.length = 0;
+        history.exited.length = 0;
+        clearSelection();
         statusInfo.textContent = `${topology.nodes.length} nodes, ${topology.links.length} links, ${topology.n_cells} cells`;
         fetch('/api/info').then(r => r.json()).then(info => {
           modeBadge.textContent = info.mode + ' | ' + info.scenario;
+          // Update dropdown selections to match server
+          if (info.scenario && scenarioSelect.value !== info.scenario) {
+            scenarioSelect.value = info.scenario;
+          }
+          if (info.controller && controllerSelect.value !== info.controller) {
+            controllerSelect.value = info.controller;
+          }
         }).catch(() => {});
       } else if (msg.type === 'frame') {
         onFrame(msg);
       } else if (msg.type === 'end') {
         modeBadge.textContent += ' (ended)';
         btnPause.click();
+      } else if (msg.type === 'error') {
+        statusText.textContent = 'Error: ' + msg.message;
       }
     };
   }
+
+  // ====================================================================
+  // Scenario / Controller Switcher
+  // ====================================================================
+  const scenarioSelect = document.getElementById('scenarioSelect');
+  const controllerSelect = document.getElementById('controllerSelect');
+  const switcherSection = document.getElementById('switcherSection');
+
+  // Populate dropdowns from API
+  Promise.all([
+    fetch('/api/scenarios').then(r => r.json()),
+    fetch('/api/controllers').then(r => r.json()),
+    fetch('/api/info').then(r => r.json()),
+  ]).then(([scenData, ctrlData, info]) => {
+    for (const s of scenData.scenarios) {
+      const opt = document.createElement('option');
+      opt.value = s;
+      opt.textContent = s;
+      scenarioSelect.appendChild(opt);
+    }
+    for (const c of ctrlData.controllers) {
+      const opt = document.createElement('option');
+      opt.value = c;
+      opt.textContent = c;
+      controllerSelect.appendChild(opt);
+    }
+    scenarioSelect.value = info.scenario || '';
+    controllerSelect.value = info.controller || 'FixedTime';
+    // Show switcher only in live mode
+    if (info.mode === 'live') {
+      switcherSection.style.display = '';
+    }
+  }).catch(() => {});
+
+  function switchScenario() {
+    const scenario = scenarioSelect.value;
+    const controller = controllerSelect.value;
+    send({ cmd: 'switch_scenario', scenario, controller });
+  }
+
+  scenarioSelect.addEventListener('change', switchScenario);
+  controllerSelect.addEventListener('change', switchScenario);
 
   connect();
 })();
