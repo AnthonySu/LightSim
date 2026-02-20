@@ -1113,6 +1113,25 @@
     const h = rect.height;
     ctx.clearRect(0, 0, w, h);
 
+    // Subtle grid background
+    const gridSize = 40;
+    ctx.strokeStyle = 'rgba(255,255,255,0.015)';
+    ctx.lineWidth = 0.5;
+    const gx0 = viewX % gridSize;
+    const gy0 = viewY % gridSize;
+    for (let x = gx0; x < w; x += gridSize) {
+      ctx.beginPath();
+      ctx.moveTo(x, 0);
+      ctx.lineTo(x, h);
+      ctx.stroke();
+    }
+    for (let y = gy0; y < h; y += gridSize) {
+      ctx.beginPath();
+      ctx.moveTo(0, y);
+      ctx.lineTo(w, y);
+      ctx.stroke();
+    }
+
     if (!topology || !lastFrame) {
       ctx.fillStyle = '#6a6a8a';
       ctx.font = '14px sans-serif';
@@ -1127,10 +1146,20 @@
     const signals = lastFrame.signals || {};
     const cw = cellWidth();
 
+    // Viewport culling helper
+    const margin = cw + 20;
+    function isVisible(g) {
+      const minX = Math.min(g.x1, g.x2) - margin;
+      const maxX = Math.max(g.x1, g.x2) + margin;
+      const minY = Math.min(g.y1, g.y2) - margin;
+      const maxY = Math.max(g.y1, g.y2) + margin;
+      return maxX >= 0 && minX <= w && maxY >= 0 && minY <= h;
+    }
+
     // === Layer 1: Road backgrounds ===
     for (let li = 0; li < topology.links.length; li++) {
       const g = linkGeom[li];
-      if (g.len < 1) continue;
+      if (g.len < 1 || !isVisible(g)) continue;
       const link = topology.links[li];
       const roadW = cw + CONFIG.roadEdgeWidth * 2;
 
@@ -1157,7 +1186,7 @@
     if (layers.density) {
       for (let li = 0; li < topology.links.length; li++) {
         const g = linkGeom[li];
-        if (g.len < 1) continue;
+        if (g.len < 1 || !isVisible(g)) continue;
         const link = topology.links[li];
         const nCells = link.cells.length;
         const cellLen = g.len / nCells;
@@ -1717,7 +1746,7 @@
       currentFps = frameCount;
       frameCount = 0;
       fpsTime = timestamp;
-      fpsCounter.textContent = currentFps + ' fps';
+      fpsCounter.textContent = `${currentFps} fps | ${Math.round(viewScale * 100)}% zoom`;
     }
 
     // Particle update
