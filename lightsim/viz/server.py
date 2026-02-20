@@ -1,14 +1,18 @@
 """FastAPI + WebSocket visualization server.
 
-Supports two modes:
+Supports three modes:
   - **Live mode**: runs a simulation in real-time, streaming frames over WS.
   - **Replay mode**: loads a recorded JSON file and plays it back over WS.
+  - **Checkpoint mode**: loads a trained SB3 model, pre-runs an episode
+    recording every engine step, then plays it back as a replay.
 
 Start with::
 
     python -m lightsim.viz.server                           # live, single-intersection
     python -m lightsim.viz.server --scenario grid-4x4-v0    # live, grid
     python -m lightsim.viz.server --replay recording.json   # replay
+    python -m lightsim.viz --controller MaxPressure          # live, MaxPressure
+    python -m lightsim.viz --checkpoint model.zip            # RL checkpoint replay
 """
 
 from __future__ import annotations
@@ -32,10 +36,122 @@ from ..benchmarks.scenarios import get_scenario, list_scenarios
 from ..core.demand import DemandProfile
 from ..core.engine import SimulationEngine
 from ..core.network import Network
-from ..core.signal import FixedTimeController
+from ..core.signal import (
+    EfficientMaxPressureController,
+    FixedTimeController,
+    LostTimeAwareMaxPressureController,
+    MaxPressureController,
+    SignalController,
+    SOTLController,
+    WebsterController,
+)
 from .recorder import Recorder
 
 STATIC_DIR = Path(__file__).parent / "static"
+
+# Mapping of CLI names → controller classes
+_CONTROLLERS: dict[str, type[SignalController]] = {
+    "FixedTime": FixedTimeController,
+    "Webster": WebsterController,
+    "SOTL": SOTLController,
+    "MaxPressure": MaxPressureController,
+    "LTAwareMP": LostTimeAwareMaxPressureController,
+    "EfficientMP": EfficientMaxPressureController,
+}
+
+
+def _make_controller(name: str) -> SignalController:
+    """Instantiate a controller by CLI name."""
+    if name not in _CONTROLLERS:
+        valid = ", ".join(_CONTROLLERS)
+        raise ValueError(f"Unknown controller '{name}'. Choose from: {valid}")
+    return _CONTROLLERS[name]()
+
+
+def _prerun_checkpoint(
+    scenario: str,
+    checkpoint_path: str,
+    algo: str | None = None,
+    scenario_kwargs: dict[str, Any] | None = None,
+) -> dict[str, Any]:
+    """Load an SB3 checkpoint and pre-run a full episode, recording every engine step.
+
+    Returns a replay dict (topology + frames) compatible with Recorder.load().
+    """
+    try:
+        import stable_baselines3 as sb3
+    except ImportError:
+        raise ImportError(
+            "stable_baselines3 is required for checkpoint visualization. "
+            "Install with: pip install stable-baselines3"
+        )
+
+    from .. import make as lightsim_make
+
+    # Auto-detect algorithm from checkpoint metadata if not specified
+    if algo is None:
+        import zipfile
+        try:
+            with zipfile.ZipFile(checkpoint_path, "r") as zf:
+                if "data" in zf.namelist():
+                    import io, torch
+                    data = torch.load(
+                        io.BytesIO(zf.read("data")),
+                        map_location="cpu",
+                        weights_only=False,
+                    )
+                    # SB3 stores the class name in various ways
+                    algo = None
+                    # Try common metadata keys
+                    for key in ("algo", "algorithm"):
+                        if key in data:
+                            algo = str(data[key])
+                            break
+        except Exception:
+            pass
+        if algo is None:
+            algo = "PPO"  # Default fallback
+
+    # Map algo name to SB3 class
+    algo_map = {
+        "PPO": sb3.PPO,
+        "A2C": sb3.A2C,
+        "DQN": sb3.DQN,
+        "SAC": sb3.SAC,
+        "TD3": sb3.TD3,
+    }
+    algo_upper = algo.upper()
+    if algo_upper not in algo_map:
+        valid = ", ".join(algo_map)
+        raise ValueError(f"Unknown algorithm '{algo}'. Choose from: {valid}")
+    algo_cls = algo_map[algo_upper]
+
+    # Create environment and load model
+    env = lightsim_make(scenario, **(scenario_kwargs or {}))
+    model = algo_cls.load(checkpoint_path, env=env)
+
+    # Pre-run episode, recording every engine step
+    obs, info = env.reset(seed=42)
+    recorder = Recorder(env.engine)
+
+    # Capture initial state
+    recorder.capture()
+
+    done = False
+    while not done:
+        action, _ = model.predict(obs, deterministic=True)
+
+        # Replicate env.step() but capture every engine step
+        env._action_handler.apply(action, env.engine, env.agent_node)
+        for _ in range(env.sim_steps_per_action):
+            env.engine.step()
+            recorder.capture()
+        env._step_count += 1
+        obs = env._obs_builder.observe(env.engine, env.agent_node)
+
+        done = env._step_count >= env.max_steps
+
+    return recorder.to_dict()
 
 
 def create_app(
@@ -43,6 +159,9 @@ def create_app(
     dt: float = 1.0,
     speed: float = 10.0,
     replay_path: str | None = None,
+    controller: str | None = None,
+    checkpoint: str | None = None,
+    algo: str | None = None,
     scenario_kwargs: dict[str, Any] | None = None,
 ) -> "FastAPI":
     """Create the FastAPI application.
@@ -57,6 +176,12 @@ def create_app(
         Simulation steps per second for live streaming.
     replay_path : str, optional
         Path to a recorded JSON file for replay mode.
+    controller : str, optional
+        Controller name for live mode (default: FixedTime).
+    checkpoint : str, optional
+        Path to an SB3 ``.zip`` model file for checkpoint replay mode.
+    algo : str, optional
+        SB3 algorithm name (PPO, A2C, DQN, SAC, TD3). Auto-detected if omitted.
     scenario_kwargs : dict, optional
         Extra kwargs for the scenario factory.
     """
@@ -77,13 +202,24 @@ def create_app(
 
     if replay_path:
         app.state.replay_data = Recorder.load(replay_path)
+    elif checkpoint:
+        print(f"Pre-running checkpoint: {checkpoint} (algo={algo or 'auto'})")
+        app.state.replay_data = _prerun_checkpoint(
+            scenario=scenario,
+            checkpoint_path=checkpoint,
+            algo=algo,
+            scenario_kwargs=scenario_kwargs,
+        )
+        n_frames = len(app.state.replay_data["frames"])
+        print(f"Recorded {n_frames} frames. Starting replay server...")
     else:
+        ctrl = _make_controller(controller or "FixedTime")
         factory = get_scenario(scenario)
         network, demand = factory(**(scenario_kwargs or {}))
         engine = SimulationEngine(
             network=network,
             dt=dt,
-            controller=FixedTimeController(),
+            controller=ctrl,
             demand_profiles=demand,
         )
         engine.reset(seed=42)
@@ -265,6 +401,13 @@ def main():
                         help="Scenario name for live mode")
     parser.add_argument("--replay", default=None,
                         help="Path to recorded JSON file for replay mode")
+    parser.add_argument("--controller", default=None,
+                        help="Controller for live mode: "
+                        + ", ".join(_CONTROLLERS))
+    parser.add_argument("--checkpoint", default=None,
+                        help="Path to SB3 .zip model for checkpoint replay")
+    parser.add_argument("--algo", default=None,
+                        help="SB3 algorithm (PPO, A2C, DQN, SAC, TD3)")
     parser.add_argument("--dt", type=float, default=1.0,
                         help="Simulation time step (seconds)")
     parser.add_argument("--speed", type=float, default=10.0,
@@ -278,6 +421,9 @@ def main():
         dt=args.dt,
         speed=args.speed,
         replay_path=args.replay,
+        controller=args.controller,
+        checkpoint=args.checkpoint,
+        algo=args.algo,
     )
     uvicorn.run(app, host=args.host, port=args.port)
 
