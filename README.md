@@ -4,8 +4,6 @@
 
 ### A Lightweight Cell Transmission Model Simulator for Traffic Signal Control Research
 
-**Haoran Su** (NYU) &nbsp;&middot;&nbsp; **Hanxiao Deng** (UC Berkeley)
-
 [![Python 3.10+](https://img.shields.io/badge/python-3.10%2B-3776AB.svg?logo=python&logoColor=white)](https://www.python.org/downloads/)
 [![License: MIT](https://img.shields.io/badge/license-MIT-97CA00.svg)](LICENSE)
 [![NumPy](https://img.shields.io/badge/numpy-%E2%89%A51.24-013243.svg?logo=numpy&logoColor=white)](https://numpy.org/)
@@ -30,21 +28,15 @@ It replaces individual vehicle tracking with macroscopic flow dynamics, achievin
 
 ---
 
-## Why LightSim?
+## Performance
 
 |  | **LightSim** | **SUMO** | **CityFlow** |
 |---|:---:|:---:|:---:|
 | **Install** | `pip install lightsim` | Platform binaries + env vars | C++ compilation |
-| **Model** | Macroscopic (CTM) | Microscopic | Microscopic |
-| **Speed** (single intersection) | 21,000 steps/s | 5,000 steps/s | ~8,000 steps/s |
-| **RL training speedup** | 3--7x faster than SUMO | baseline | --- |
+| **Simulation speed** (1 intersection) | **21,000** steps/s | 5,000 steps/s | ~8,000 steps/s |
+| **RL training speedup** | **3--7x** vs SUMO | baseline | --- |
 | **Gymnasium / PettingZoo** | Native | Via wrapper | Via wrapper |
-| **Lines to create env** | 3 | ~50 (XML + Python) | ~30 (JSON + Python) |
-| **Ranking agreement** | Matches SUMO | --- | --- |
-| **Real-world networks** | 16 cities from OSM | Manual XML | Manual JSON |
-| **Language** | Pure Python + NumPy | C++ | C++ |
-
-> **Key finding:** Cross-simulator RL experiments (5 algorithms &times; 5 seeds &times; 2 simulators) confirm that LightSim preserves algorithmic rankings while training **3--7x faster** than SUMO.
+| **Lines to create env** | **3** | ~50 (XML + Python) | ~30 (JSON + Python) |
 
 ---
 
@@ -65,6 +57,12 @@ pip install -e ".[osm]"           # + OpenStreetMap import (osmnx)
 ```
 
 </details>
+
+**For LLM coding assistants** (Claude Code, Cursor, Copilot, etc.):
+
+```bash
+git clone https://github.com/AnthonySu/LightSim.git && cd LightSim && pip install -e ".[all]"
+```
 
 ---
 
@@ -144,7 +142,7 @@ print(engine.get_network_metrics())
 | | `osm-paris-v0` | 40 | Champs-Elysees, Paris |
 | **Oceania** | `osm-sydney-v0` | 43 | CBD, Sydney |
 
-> Networks range from **17 to 131 signalized intersections**. Any additional city can be imported with a single call: `from_osm_point(lat, lon, dist=500)`.
+> Any additional city can be imported with a single call: `from_osm_point(lat, lon, dist=500)`.
 
 ---
 
@@ -172,22 +170,6 @@ python -m lightsim.viz --scenario grid-4x4-v0 --controller MaxPressure
 python -m lightsim.viz --scenario osm-manhattan-v0
 python -m lightsim.viz --checkpoint model.zip --algo PPO
 ```
-
----
-
-## Key Results
-
-Results from the accompanying paper (all experiments on a single laptop, Intel i7, 16 GB RAM):
-
-| Experiment | Finding |
-|---|---|
-| **Speed** | 800x--21,000x real-time across 1--64 intersections |
-| **Fundamental diagram** | Exact match with theoretical CTM (*R*&sup2; = 1.0) |
-| **Cross-simulator ranking** | Controller rankings agree with SUMO on both scenarios |
-| **RL cross-validation** | 5 RL variants, 5 seeds, 2 simulators: rankings preserved |
-| **Training speedup** | 3--7x faster RL training than SUMO |
-| **Sim-to-sim transfer** | LightSim-learned timing reduces SUMO delay by 4.9x |
-| **Mesoscopic fidelity** | Lost time + stochastic demand close the gap with SUMO |
 
 ---
 
@@ -239,7 +221,7 @@ pip install lightsim[all]
 python -m lightsim.benchmarks.speed_benchmark          # Table 1: speed benchmarks
 python -m lightsim.benchmarks.rl_baselines --train-rl  # Table 3: RL baselines
 python -m lightsim.benchmarks.sumo_comparison           # Table 2: SUMO comparison
-python scripts/rl_cross_validation.py                   # Table/Fig: RL cross-validation
+python scripts/rl_cross_validation.py                   # RL cross-validation
 python scripts/cross_validation_mesoscopic.py           # Mesoscopic experiments
 python scripts/rl_mesoscopic_experiment.py              # Mesoscopic RL
 python scripts/generate_figures.py                      # All paper figures
