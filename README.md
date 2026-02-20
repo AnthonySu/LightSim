@@ -1,25 +1,45 @@
+<div align="center">
+
 # LightSim
 
-Lightweight Cell Transmission Model (CTM) traffic signal simulation for reinforcement learning research.
+**Lightweight Cell Transmission Model simulator for traffic signal control research**
+
+[![Python 3.10+](https://img.shields.io/badge/python-3.10%2B-blue.svg)](https://www.python.org/downloads/)
+[![License: MIT](https://img.shields.io/badge/license-MIT-green.svg)](LICENSE)
+[![NumPy](https://img.shields.io/badge/numpy-%E2%89%A51.24-orange.svg)](https://numpy.org/)
+[![Gymnasium](https://img.shields.io/badge/gymnasium-%E2%89%A50.29-red.svg)](https://gymnasium.farama.org/)
+
+</div>
+
+<p align="center">
+  <img src="docs/viz_hero.png" alt="LightSim visualization — 4x4 grid with MaxPressure controller" width="800">
+</p>
 
 LightSim fills the gap between heavyweight microscopic simulators (SUMO, CityFlow) and the need for fast, flexible RL environments. Built on vectorised NumPy, it provides native Gymnasium and PettingZoo interfaces with pluggable observations, actions, and rewards.
 
 ## Features
 
-- **Fast**: Pure-Python CTM engine with flat NumPy arrays — 10,000+ simulation steps/second on a single core
-- **RL-native**: Gymnasium single-agent and PettingZoo multi-agent environments out of the box
-- **Pluggable**: Registry-based observations (`default`, `pressure`, `full_density`), actions (`phase_select`, `next_or_stay`), and rewards (`queue`, `pressure`, `delay`, `throughput`)
-- **Built-in scenarios**: Single intersection, 4x4 grid, 5-intersection arterial
-- **Network generators**: Grid, arterial, JSON/YAML, OpenStreetMap import
-- **Baselines**: FixedTime, MaxPressure controllers; DQN/PPO via Stable-Baselines3
-- **Visualization**: Real-time web dashboard with FastAPI + WebSocket + HTML5 Canvas
+- **Fast** &mdash; Pure-Python CTM engine with flat NumPy arrays. 10,000+ simulation steps/second on a single core.
+- **RL-native** &mdash; Gymnasium single-agent and PettingZoo multi-agent environments out of the box.
+- **7 built-in controllers** &mdash; FixedTime, Webster, SOTL, MaxPressure (3 variants), and RLController.
+- **Pluggable** &mdash; Registry-based observations, actions, and rewards. Bring your own with decorators.
+- **Scenarios** &mdash; Single intersection, 4x4 grid, 5-intersection arterial. Or build custom networks.
+- **Visualization** &mdash; Real-time web dashboard with FastAPI + WebSocket + HTML5 Canvas. Supports live simulation, replay, and RL checkpoint playback.
+
+## Requirements
+
+| Requirement | Version |
+|---|---|
+| Python | >= 3.10 |
+| NumPy | >= 1.24 |
+| Gymnasium | >= 0.29 |
 
 ## Installation
 
 ```bash
-pip install -e .                  # core (numpy + gymnasium)
-pip install -e ".[multi]"         # + PettingZoo multi-agent
+pip install -e .                  # core only (numpy + gymnasium)
 pip install -e ".[viz]"           # + web visualization
+pip install -e ".[multi]"         # + PettingZoo multi-agent
 pip install -e ".[osm]"           # + OpenStreetMap import
 pip install -e ".[all]"           # everything
 ```
@@ -31,7 +51,10 @@ import lightsim
 
 env = lightsim.make("single-intersection-v0")
 obs, info = env.reset()
-obs, reward, term, trunc, info = env.step(env.action_space.sample())
+
+for _ in range(100):
+    action = env.action_space.sample()
+    obs, reward, terminated, truncated, info = env.step(action)
 ```
 
 ### Multi-Agent
@@ -39,8 +62,39 @@ obs, reward, term, trunc, info = env.step(env.action_space.sample())
 ```python
 env = lightsim.parallel_env("grid-4x4-v0")
 observations, infos = env.reset()
+
 actions = {agent: env.action_space(agent).sample() for agent in env.agents}
 observations, rewards, terms, truncs, infos = env.step(actions)
+```
+
+### Built-in Controllers
+
+```python
+from lightsim import MaxPressureController, SimulationEngine
+from lightsim.benchmarks.scenarios import get_scenario
+
+network, demand = get_scenario("grid-4x4-v0")()
+engine = SimulationEngine(
+    network=network, dt=1.0,
+    controller=MaxPressureController(min_green=5.0),
+    demand_profiles=demand,
+)
+engine.reset()
+for _ in range(3600):
+    engine.step()
+print(engine.get_network_metrics())
+```
+
+All controllers: `FixedTimeController`, `WebsterController`, `SOTLController`, `MaxPressureController`, `LostTimeAwareMaxPressureController`, `EfficientMaxPressureController`, `RLController`.
+
+### Visualization
+
+```bash
+python -m lightsim.viz                                         # live, FixedTime
+python -m lightsim.viz --scenario grid-4x4-v0                  # different scenario
+python -m lightsim.viz --controller MaxPressure                # different controller
+python -m lightsim.viz --checkpoint model.zip --algo PPO       # replay RL checkpoint
+python -m lightsim.viz --replay recording.json                 # replay a recording
 ```
 
 ### Custom Network
@@ -60,93 +114,19 @@ net.add_link(LinkID(1), NodeID(0), NodeID(2), length=300, lanes=2, n_cells=3)
 m = net.add_movement(LinkID(0), LinkID(1), NodeID(0), TurnType.THROUGH)
 net.add_phase(NodeID(0), [m.movement_id])
 
-engine = SimulationEngine(network=net, dt=1.0,
-                          demand_profiles=[DemandProfile(LinkID(0), [0.0], [0.3])])
+engine = SimulationEngine(
+    network=net, dt=1.0,
+    demand_profiles=[DemandProfile(LinkID(0), [0.0], [0.3])],
+)
 engine.reset()
 for _ in range(100):
     engine.step()
 print(engine.get_network_metrics())
 ```
 
-### MaxPressure Controller
+### Pluggable Components
 
-```python
-from lightsim.core.signal import MaxPressureController
-
-engine = SimulationEngine(
-    network=net, dt=1.0,
-    controller=MaxPressureController(min_green=5.0),
-    demand_profiles=[...],
-)
-```
-
-### Visualization
-
-```bash
-python -m lightsim.viz                              # live simulation
-python -m lightsim.viz --scenario grid-4x4-v0       # different scenario
-python -m lightsim.viz --replay recording.json      # replay a recording
-```
-
-### Benchmarks
-
-```bash
-python -m lightsim.benchmarks                       # speed benchmark
-python -m lightsim.benchmarks.rl_baselines          # RL baselines
-python -m lightsim.benchmarks.rl_baselines --train-rl --timesteps 50000
-```
-
-## Available Scenarios
-
-| Scenario | Intersections | Description |
-|---|---|---|
-| `single-intersection-v0` | 1 | 4-leg intersection with NS/EW phases |
-| `grid-4x4-v0` | 16 | 4x4 grid with boundary origins |
-| `arterial-5-v0` | 5 | Linear corridor with side streets |
-
-## Architecture
-
-```
-lightsim/
-├── core/           # CTM simulation engine
-│   ├── types.py    # Type aliases and enums
-│   ├── network.py  # Network topology + compile()
-│   ├── flow_model.py  # FlowModel ABC + CTMFlowModel
-│   ├── signal.py   # FixedTime, MaxPressure, RL controllers
-│   ├── demand.py   # Time-varying demand profiles
-│   └── engine.py   # SimulationEngine step loop
-├── envs/           # RL environment wrappers
-│   ├── observations.py  # default, pressure, full_density
-│   ├── actions.py       # phase_select, next_or_stay
-│   ├── rewards.py       # queue, pressure, delay, throughput
-│   ├── single_agent.py  # Gymnasium env
-│   └── multi_agent.py   # PettingZoo ParallelEnv
-├── networks/       # Network generators
-│   ├── grid.py     # NxM grid
-│   ├── arterial.py # Linear corridor
-│   ├── from_dict.py  # JSON/YAML loader
-│   └── osm.py     # OpenStreetMap import
-├── benchmarks/     # Speed & RL benchmarks
-│   ├── speed_benchmark.py
-│   ├── rl_baselines.py
-│   └── scenarios.py
-├── viz/            # Web visualization
-│   ├── server.py   # FastAPI + WebSocket
-│   ├── recorder.py # State recording
-│   └── static/     # HTML5 Canvas frontend
-└── utils/
-    ├── metrics.py  # Throughput, delay, queue, MFD
-    └── validation.py  # Fundamental diagram validation
-```
-
-## Core Concepts
-
-**Cell Transmission Model (CTM)**: The network is discretised into cells. Each cell has a density (veh/m/lane). Flow between cells follows the triangular fundamental diagram:
-
-- Sending flow: `S(k) = min(vf * k, Q) * lanes`
-- Receiving flow: `R(k) = min(Q, w * (kj - k)) * lanes`
-
-**Pluggable components**: Observations, actions, and rewards use a registry pattern. Register custom components with decorators:
+Observations, actions, and rewards use a registry pattern. Register custom components with decorators:
 
 ```python
 from lightsim.envs.observations import register_obs, ObservationBuilder
@@ -159,17 +139,50 @@ class MyObservation(ObservationBuilder):
         ...
 ```
 
-## Dependencies
+## Scenarios
 
-| Package | Purpose | Required |
+| Scenario | Intersections | Description |
 |---|---|---|
-| `numpy>=1.24` | Vectorised CTM | Yes |
-| `gymnasium>=0.29` | RL interface | Yes |
-| `pettingzoo>=1.24` | Multi-agent | Optional |
-| `fastapi`, `uvicorn` | Visualization | Optional |
-| `osmnx>=1.6` | OSM import | Optional |
-| `stable-baselines3` | RL training | Optional |
+| `single-intersection-v0` | 1 | 4-leg intersection with NS/EW phases |
+| `grid-4x4-v0` | 16 | 4x4 grid with boundary demand |
+| `arterial-5-v0` | 5 | Linear corridor with side streets |
+
+## Project Structure
+
+```
+lightsim/
+├── core/              # CTM simulation engine
+│   ├── network.py     # Network topology
+│   ├── engine.py      # Simulation step loop
+│   ├── signal.py      # 7 signal controllers
+│   ├── flow_model.py  # CTM flow model
+│   ├── demand.py      # Time-varying demand profiles
+│   └── types.py       # Type aliases and enums
+├── envs/              # RL environments
+│   ├── single_agent.py   # Gymnasium env
+│   ├── multi_agent.py    # PettingZoo ParallelEnv
+│   ├── observations.py   # default, pressure, full_density
+│   ├── actions.py        # phase_select, next_or_stay
+│   └── rewards.py        # queue, pressure, delay, throughput
+├── networks/          # Network generators
+│   ├── grid.py        # NxM grid
+│   ├── arterial.py    # Linear corridor
+│   ├── from_dict.py   # JSON/YAML loader
+│   └── osm.py         # OpenStreetMap import
+├── benchmarks/        # Experiments & baselines
+├── viz/               # Web visualization server
+└── utils/             # Metrics & validation
+```
+
+## Optional Dependencies
+
+| Package | Purpose | Install extra |
+|---|---|---|
+| `pettingzoo>=1.24` | Multi-agent environments | `[multi]` |
+| `fastapi`, `uvicorn`, `websockets` | Web visualization | `[viz]` |
+| `osmnx>=1.6` | OpenStreetMap import | `[osm]` |
+| `stable-baselines3` | RL training (DQN, PPO, A2C) | &mdash; |
 
 ## License
 
-MIT
+[MIT](LICENSE)
