@@ -1,0 +1,83 @@
+{
+  "arterial_FixedTime": {
+    "controller": "FixedTime",
+    "scenario": "arterial-5-v0",
+    "reward": -33.01843391315993,
+    "throughput": 6329.703361270853,
+    "delay": 0.670503312583949,
+    "vehicles": 150.29663872910234,
+    "wall_time": 7.14130610000575
+  },
+  "arterial_Webster": {
+    "controller": "Webster",
+    "scenario": "arterial-5-v0",
+    "reward": -166.51362774641376,
+    "throughput": 5872.960425343968,
+    "delay": 7.624983108024493,
+    "vehicles": 305.53156413137725,
+    "wall_time": 8.081300999998348
+  },
+  "arterial_SOTL": {
+    "controller": "SOTL",
+    "scenario": "arterial-5-v0",
+    "reward": -96.27270853644383,
+    "throughput": 5677.716508828346,
+    "delay": 5.6712890818592685,
+    "vehicles": 212.37890144983803,
+    "wall_time": 7.982920400012517
+  },
+  "arterial_MaxPressure-mg5": {
+    "controller": "MaxPressure-mg5",
+    "scenario": "arterial-5-v0",
+    "reward": -184.10538989580078,
+    "throughput": 5864.699437987479,
+    "delay": 8.220744077172968,
+    "vehicles": 328.0412477844716,
+    "wall_time": 8.030918300006306
+  },
+  "arterial_MaxPressure-mg15": {
+    "controller": "MaxPressure-mg15",
+    "scenario": "arterial-5-v0",
+    "reward": -26.82498493655259,
+    "throughput": 6332.4840558277265,
+    "delay": 0.28473851183867926,
+    "vehicles": 147.51594417227938,
+    "wall_time": 7.749712799995905
+  },
+  "arterial_LT-Aware-MP": {
+    "controller": "LT-Aware-MP",
+    "scenario": "arterial-5-v0",
+    "reward": -26.116629233146234,
+    "throughput": 6330.550396292828,
+    "delay": 0.38058986567310205,
+    "vehicles": 149.44960370715938,
+    "wall_time": 8.817510199995013
+  },
+  "arterial_EfficientMP": {
+    "controller": "EfficientMP",
+    "scenario": "arterial-5-v0",
+    "reward": -117.43084652736817,
+    "throughput": 4936.311398324353,
+    "delay": 9.12023046156946,
+    "vehicles": 229.10727683263977,
+    "wall_time": 8.371742199989967
+  },
+  "single_intersection_EfficientMP": {
+    "controller": "EfficientMP",
+    "scenario": "single-intersection-v0",
+    "reward": -168.18250060484272,
+    "throughput": 2132.227573829518,
+    "delay": 34.200864080885424,
+    "vehicles": 207.77242617044348,
+    "wall_time": 1.6350506999879144
+  },
+  "grid_4x4_EfficientMP": {
+    "controller": "EfficientMP",
+    "scenario": "grid-4x4-v0",
+    "reward": -4072.909410232508,
+    "throughput": 17360.711945285915,
+    "delay": 47.29911512700362,
+    "vehicles": 5863.948826917696,
+    "wall_time": 30.60562879999634
+  }
+}

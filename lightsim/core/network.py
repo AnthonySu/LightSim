@@ -81,6 +81,11 @@ class Phase:
 
 @dataclass
 class Node:
+    """An intersection or terminal node in the network.
+
+    Signalized nodes have one or more ``Phase`` objects defining which
+    movements may discharge simultaneously.
+    """
     node_id: NodeID
     node_type: NodeType
     phases: list[Phase] = field(default_factory=list)
@@ -171,6 +176,7 @@ class Network:
         x: float = 0.0,
         y: float = 0.0,
     ) -> Node:
+        """Add a node (intersection or terminal) to the network."""
         node = Node(node_id=node_id, node_type=node_type, x=x, y=y)
         self.nodes[node_id] = node
         return node
@@ -188,6 +194,7 @@ class Network:
         jam_density: float = 0.15,        # veh/m/lane (~150 veh/km/lane)
         capacity: float = 0.5,            # veh/s/lane (~1800 veh/h/lane)
     ) -> Link:
+        """Add a directional link and auto-create its CTM cells."""
         link = Link(link_id=link_id, from_node=from_node, to_node=to_node)
         if n_cells is None:
             n_cells = max(1, int(length / (free_flow_speed * 5)))  # default ~5 s cells
@@ -217,6 +224,7 @@ class Network:
         turn_ratio: float = 1.0,
         saturation_rate: float | None = None,
     ) -> Movement:
+        """Add a turning movement connecting two links through a node."""
         mid = MovementID(self._next_movement_id)
         self._next_movement_id += 1
         mov = Movement(
@@ -241,6 +249,7 @@ class Network:
         all_red: float = 2.0,
         lost_time: float = 0.0,
     ) -> Phase:
+        """Add a signal phase to a node, grouping compatible movements."""
         pid = PhaseID(self._next_phase_id)
         self._next_phase_id += 1
         phase = Phase(

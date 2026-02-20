@@ -193,7 +193,11 @@ class SimulationEngine:
         )
 
     def get_network_metrics(self) -> dict:
-        """Return a dict of network-wide metrics."""
+        """Return a dict of network-wide metrics.
+
+        Keys: ``time``, ``total_vehicles``, ``avg_density``,
+        ``total_entered``, ``total_exited``.
+        """
         density = self.state.density
         n = self.net
         vehicles = density * n.length * n.lanes
