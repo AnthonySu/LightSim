@@ -104,3 +104,17 @@ class TestMaxPressureController:
 
         metrics = engine.get_network_metrics()
         assert metrics["total_entered"] > 0
+
+    def test_arterial_phase_balance(self):
+        """Arterial phases should be balanced (regression for phase bug)."""
+        from lightsim.networks.arterial import create_arterial_network
+        net = create_arterial_network(n_intersections=3)
+        for nid in range(1, 4):
+            node = net.nodes[NodeID(nid)]
+            assert len(node.phases) == 2
+            ew_count = len(node.phases[0].movements)
+            ns_count = len(node.phases[1].movements)
+            assert ew_count == ns_count, (
+                f"Node {nid}: phase 0 has {ew_count} movements, "
+                f"phase 1 has {ns_count} — should be balanced"
+            )
