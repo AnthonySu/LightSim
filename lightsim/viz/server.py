@@ -39,6 +39,7 @@ from ..core.network import Network
 from ..core.signal import (
     EfficientMaxPressureController,
     FixedTimeController,
+    GreenWaveController,
     LostTimeAwareMaxPressureController,
     MaxPressureController,
     SignalController,
@@ -57,6 +58,7 @@ _CONTROLLERS: dict[str, type[SignalController]] = {
     "MaxPressure": MaxPressureController,
     "LTAwareMP": LostTimeAwareMaxPressureController,
     "EfficientMP": EfficientMaxPressureController,
+    "GreenWave": GreenWaveController,
 }
 
 
