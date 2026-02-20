@@ -104,8 +104,6 @@ class CTMFlowModel(FlowModel):
 
         # Sending flow from the last cell of each from-link
         mov_sending = sending[net.mov_from_cell]
-        # Receiving flow of the first cell of each to-link
-        mov_receiving = receiving[net.mov_to_cell]
 
         # Apply signal: zero flow for red movements
         effective_sending = mov_sending * signal_mask
@@ -118,23 +116,23 @@ class CTMFlowModel(FlowModel):
         effective_sending = effective_sending * net.mov_turn_ratio
 
         # Cap by saturation rate
-        effective_sending = np.minimum(effective_sending, net.mov_sat_rate)
+        np.minimum(effective_sending, net.mov_sat_rate, out=effective_sending)
 
-        # Merge resolution: if multiple movements feed the same to-cell,
-        # scale proportionally if total exceeds receiving capacity.
-        for tc, idxs in net.merge_groups.items():
-            total_demand = effective_sending[idxs].sum()
-            cap = receiving[tc]
-            if total_demand > cap and total_demand > 1e-12:
-                effective_sending[idxs] *= cap / total_demand
+        # Merge resolution: scale proportionally if total demand on a to-cell
+        # exceeds its receiving capacity (fully vectorized).
+        merge_totals = np.zeros(n, dtype=FLOAT)
+        np.add.at(merge_totals, net.mov_to_cell, effective_sending)
+        per_mov_merge = np.maximum(merge_totals[net.mov_to_cell], 1e-12)
+        merge_scale = np.minimum(1.0, receiving[net.mov_to_cell] / per_mov_merge)
+        effective_sending *= merge_scale
 
-        # Diverge resolution: if multiple movements draw from the same from-cell,
-        # ensure total doesn't exceed sending capacity.
-        for fc, idxs in net.diverge_groups.items():
-            total_demand = effective_sending[idxs].sum()
-            cap = sending[fc]
-            if total_demand > cap and total_demand > 1e-12:
-                effective_sending[idxs] *= cap / total_demand
+        # Diverge resolution: scale if total demand from a from-cell
+        # exceeds its sending capacity (fully vectorized).
+        diverge_totals = np.zeros(n, dtype=FLOAT)
+        np.add.at(diverge_totals, net.mov_from_cell, effective_sending)
+        per_mov_diverge = np.maximum(diverge_totals[net.mov_from_cell], 1e-12)
+        diverge_scale = np.minimum(1.0, sending[net.mov_from_cell] / per_mov_diverge)
+        effective_sending *= diverge_scale
 
         movement_flow[:] = effective_sending * dt
 
