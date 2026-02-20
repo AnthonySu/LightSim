@@ -144,26 +144,25 @@ def from_osm(
     # Spatial boundary detection: in dense grids the degree-based check
     # misses nodes at the edge of the clipped area.  Pick the closest
     # nodes to each bbox edge so every side has entry/exit points.
-    if len(boundary_nodes) < 4:
-        nodes_xy = [(n, G.nodes[n].get("x", 0.0), G.nodes[n].get("y", 0.0))
-                     for n in G.nodes()]
-        if nodes_xy:
-            xs = [x for _, x, _ in nodes_xy]
-            ys = [y for _, _, y in nodes_xy]
-            x_min, x_max = min(xs), max(xs)
-            y_min, y_max = min(ys), max(ys)
-            per_side = 1
-            # For each bbox edge, pick the closest `per_side` nodes
-            edges = [
-                (lambda _, y: y - y_min),          # south
-                (lambda _, y: y_max - y),           # north
-                (lambda x, _: x - x_min),           # west
-                (lambda x, _: x_max - x),           # east
-            ]
-            for dist_fn in edges:
-                ranked = sorted(nodes_xy, key=lambda t: dist_fn(t[1], t[2]))
-                for n, _, _ in ranked[:per_side]:
-                    boundary_nodes.add(n)
+    nodes_xy = [(n, G.nodes[n].get("x", 0.0), G.nodes[n].get("y", 0.0))
+                 for n in G.nodes()]
+    if nodes_xy:
+        xs = [x for _, x, _ in nodes_xy]
+        ys = [y for _, _, y in nodes_xy]
+        x_min, x_max = min(xs), max(xs)
+        y_min, y_max = min(ys), max(ys)
+        per_side = max(3, len(G.nodes()) // 20)
+        # For each bbox edge, pick the closest `per_side` nodes
+        edges_fns = [
+            (lambda _, y, _ym=y_min: y - _ym),     # south
+            (lambda _, y, _ym=y_max: _ym - y),      # north
+            (lambda x, _, _xm=x_min: x - _xm),     # west
+            (lambda x, _, _xm=x_max: _xm - x),     # east
+        ]
+        for dist_fn in edges_fns:
+            ranked = sorted(nodes_xy, key=lambda t: dist_fn(t[1], t[2]))
+            for n, _, _ in ranked[:per_side]:
+                boundary_nodes.add(n)
 
     # --- 3. Build LightSim Network ---
     net = Network()
@@ -263,15 +262,64 @@ def from_osm(
             capacity=capacity,
         )
 
-        # Track connectivity for movement/phase generation
-        if actual_to in net.nodes and net.nodes[actual_to].node_type == NodeType.SIGNALIZED:
+        # Track connectivity for movement/phase generation (all node types)
+        if actual_to in net.nodes:
             node_inbound.setdefault(actual_to, []).append(lid)
-        if from_nid in net.nodes and net.nodes[from_nid].node_type == NodeType.SIGNALIZED:
+        if from_nid in net.nodes:
             node_outbound.setdefault(from_nid, []).append(lid)
 
-    # --- 5. Generate movements and phases at signalised intersections ---
+    # --- 4b. Create reverse links for stranded origin nodes ---
+    # Some boundary nodes only have inbound edges in the directed graph.
+    # Their ORIGIN version has no outbound links, so demand can't enter.
+    # Create a synthetic reverse link from the origin to the nearest
+    # connected interior node.
+    for osm_node in boundary_nodes:
+        if osm_node not in osm_to_nid:
+            continue
+        nid = osm_to_nid[osm_node]
+        if nid not in net.nodes or net.nodes[nid].node_type != NodeType.ORIGIN:
+            continue
+        # Check if this origin already has outbound links
+        has_outbound = any(
+            link.from_node == nid for link in net.links.values()
+        )
+        if has_outbound:
+            continue
+
+        # Find inbound links to the destination counterpart
+        dest_nid = NodeID(nid + boundary_dest_offset)
+        inbound_links = [
+            link for link in net.links.values() if link.to_node == dest_nid
+        ]
+        if not inbound_links:
+            continue
+
+        # Create a reverse link from origin → the from_node of the first
+        # inbound link (i.e., reverse direction of an existing edge)
+        for in_link in inbound_links[:1]:
+            target_nid = in_link.from_node
+            ref_cell = in_link.cells[0]  # copy properties from existing link
+            total_len = sum(c.length for c in in_link.cells)
+            lid = LinkID(link_counter)
+            link_counter += 1
+            net.add_link(
+                lid,
+                from_node=nid,
+                to_node=target_nid,
+                length=total_len,
+                lanes=ref_cell.lanes,
+                n_cells=len(in_link.cells),
+                free_flow_speed=ref_cell.free_flow_speed,
+                wave_speed=ref_cell.wave_speed,
+                jam_density=ref_cell.jam_density,
+                capacity=ref_cell.capacity,
+            )
+            node_outbound.setdefault(nid, []).append(lid)
+            node_inbound.setdefault(target_nid, []).append(lid)
+
+    # --- 5. Generate movements (and phases for signalised intersections) ---
     for node_id, node in net.nodes.items():
-        if node.node_type != NodeType.SIGNALIZED:
+        if node.node_type not in (NodeType.SIGNALIZED, NodeType.UNSIGNALIZED):
             continue
 
         inbound = node_inbound.get(node_id, [])
@@ -281,21 +329,20 @@ def from_osm(
             continue
 
         # Create through movements for each inbound → outbound pair
-        # Classify by angle into two groups for two-phase signal
+        # For signalised nodes, also classify by angle for two-phase signal
         group_a_movs = []
         group_b_movs = []
 
         for in_lid in inbound:
             in_link = net.links[in_lid]
-            from_node = net.nodes[in_link.from_node]
+            from_node_obj = net.nodes[in_link.from_node]
             # Inbound direction vector
-            in_dx = node.x - from_node.x
-            in_dy = node.y - from_node.y
+            in_dx = node.x - from_node_obj.x
+            in_dy = node.y - from_node_obj.y
             in_angle = math.atan2(in_dy, in_dx)
 
             for out_lid in outbound:
                 out_link = net.links[out_lid]
-                to_node = net.nodes[out_link.to_node]
                 # Don't create U-turn on same edge
                 if out_link.to_node == in_link.from_node:
                     continue
@@ -309,22 +356,24 @@ def from_osm(
                     turn_ratio=turn_ratio,
                 )
 
-                # Split into two groups by inbound angle:
-                # roughly NS vs EW (0/pi vs pi/2/-pi/2)
-                angle_deg = math.degrees(in_angle) % 360
-                if (315 <= angle_deg or angle_deg < 45) or (135 <= angle_deg < 225):
-                    group_a_movs.append(mov.movement_id)
-                else:
-                    group_b_movs.append(mov.movement_id)
+                if node.node_type == NodeType.SIGNALIZED:
+                    # Split into two groups by inbound angle:
+                    # roughly NS vs EW (0/pi vs pi/2/-pi/2)
+                    angle_deg = math.degrees(in_angle) % 360
+                    if (315 <= angle_deg or angle_deg < 45) or (135 <= angle_deg < 225):
+                        group_a_movs.append(mov.movement_id)
+                    else:
+                        group_b_movs.append(mov.movement_id)
 
-        # Create two-phase signal plan
-        if group_a_movs and group_b_movs:
-            net.add_phase(node_id, group_a_movs)
-            net.add_phase(node_id, group_b_movs)
-        elif group_a_movs:
-            net.add_phase(node_id, group_a_movs)
-        elif group_b_movs:
-            net.add_phase(node_id, group_b_movs)
+        # Create two-phase signal plan (signalised nodes only)
+        if node.node_type == NodeType.SIGNALIZED:
+            if group_a_movs and group_b_movs:
+                net.add_phase(node_id, group_a_movs)
+                net.add_phase(node_id, group_b_movs)
+            elif group_a_movs:
+                net.add_phase(node_id, group_a_movs)
+            elif group_b_movs:
+                net.add_phase(node_id, group_b_movs)
 
     return net
 
