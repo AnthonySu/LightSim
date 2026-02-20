@@ -125,6 +125,8 @@ def evaluate_rl_policy(
     max_steps: int = 720,
 ) -> BaselineResult:
     """Evaluate a trained SB3 model on a LightSim env."""
+    from ..utils.metrics import compute_link_delay
+
     rewards_all = []
     throughputs = []
     delays = []
@@ -146,7 +148,16 @@ def evaluate_rl_policy(
         rewards_all.append(ep_reward / max_steps)
         throughputs.append(info.get("total_exited", 0))
         vehicles_all.append(info.get("total_vehicles", 0))
-        delays.append(0.0)  # would need engine access for exact delay
+
+        # Compute delay using engine access
+        total_delay = 0.0
+        n_links = 0
+        for link in env.network.links.values():
+            to_node = env.network.nodes.get(link.to_node)
+            if to_node and to_node.node_type == NodeType.SIGNALIZED:
+                total_delay += compute_link_delay(env.engine, link.link_id)
+                n_links += 1
+        delays.append(total_delay / max(n_links, 1))
         env.close()
 
     wall = time.perf_counter() - t0

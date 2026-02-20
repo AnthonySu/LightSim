@@ -161,17 +161,16 @@ def create_arterial_network(
         ns_movs = []
 
         for il in in_links:
+            # Classify by the incoming link's own direction
+            il_from = net.nodes[il.from_node]
+            il_to = net.nodes[il.to_node]  # the intersection node
+            il_dx = il_to.x - il_from.x
+            il_dy = il_to.y - il_from.y
+            is_incoming_ew = abs(il_dx) >= abs(il_dy) if (abs(il_dx) + abs(il_dy)) > 0 else True
+
             for ol in out_links:
                 if il.link_id == ol.link_id:
                     continue
-                # Determine if EB/WB or NS
-                from_node = net.nodes[il.from_node]
-                to_node = net.nodes[ol.to_node]
-                dx = to_node.x - from_node.x
-                dy = to_node.y - from_node.y
-
-                is_ew = abs(dx) > abs(dy) if (abs(dx) + abs(dy)) > 0 else True
-
                 turn_ratio = 1.0 / max(len(out_links), 1)
                 mov = net.add_movement(
                     from_link=il.link_id,
@@ -180,7 +179,7 @@ def create_arterial_network(
                     turn_type=TurnType.THROUGH,
                     turn_ratio=turn_ratio,
                 )
-                if is_ew:
+                if is_incoming_ew:
                     ew_movs.append(mov.movement_id)
                 else:
                     ns_movs.append(mov.movement_id)

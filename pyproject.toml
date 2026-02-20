@@ -9,10 +9,37 @@ description = "Lightweight CTM-based traffic signal simulation for RL research"
 readme = "README.md"
 license = {text = "MIT"}
 requires-python = ">=3.10"
+authors = [
+    {name = "Haoran Su", email = "hs1854@nyu.edu"},
+]
+keywords = [
+    "traffic signal control",
+    "reinforcement learning",
+    "cell transmission model",
+    "simulation",
+    "gymnasium",
+]
+classifiers = [
+    "Development Status :: 4 - Beta",
+    "Intended Audience :: Science/Research",
+    "License :: OSI Approved :: MIT License",
+    "Programming Language :: Python :: 3",
+    "Programming Language :: Python :: 3.10",
+    "Programming Language :: Python :: 3.11",
+    "Programming Language :: Python :: 3.12",
+    "Programming Language :: Python :: 3.13",
+    "Topic :: Scientific/Engineering :: Artificial Intelligence",
+    "Topic :: Scientific/Engineering",
+]
 dependencies = [
     "numpy>=1.24",
     "gymnasium>=0.29",
 ]
+
+[project.urls]
+Homepage = "https://github.com/AnthonySu/LightSim"
+Repository = "https://github.com/AnthonySu/LightSim"
+Issues = "https://github.com/AnthonySu/LightSim/issues"
 
 [project.optional-dependencies]
 multi = ["pettingzoo>=1.24"]
