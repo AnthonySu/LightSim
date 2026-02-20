@@ -955,8 +955,52 @@
   // ====================================================================
   // Particle System
   // ====================================================================
+  // Cache for per-link speed/density (updated each sim frame)
+  let linkCache = [];
+
+  function updateLinkCache() {
+    if (!topology || !lastFrame) return;
+    linkCache = [];
+    for (let i = 0; i < topology.links.length; i++) {
+      const link = topology.links[i];
+      let avgSpeed = 0, totalLen = 0, totalDensity = 0;
+      for (const cid of link.cells) {
+        const d = lastFrame.density[cid] || 0;
+        const cell = topology.cells[cid];
+        const vf = cell.vf;
+        const Q = cell.Q;
+        const kCrit = Q / vf;
+        const spd = d <= kCrit ? vf : (d > 1e-9 ? Q / d : vf);
+        avgSpeed += Math.max(spd, 0.1) * cell.length;
+        totalLen += cell.length;
+        totalDensity += d * cell.length * link.lanes;
+      }
+      avgSpeed = totalLen > 0 ? avgSpeed / totalLen : 10;
+      const flow = totalDensity * avgSpeed / (totalLen || 1);
+      linkCache.push({ avgSpeed, totalLen, totalDensity, flow });
+    }
+  }
+
   function initParticles() {
     particles = [];
+    // Pre-fill particles at random positions for immediate visual
+    if (!topology || !lastFrame) return;
+    updateLinkCache();
+    for (let i = 0; i < topology.links.length; i++) {
+      const lc = linkCache[i];
+      if (!lc || lc.totalDensity < 0.01) continue;
+      const count = Math.min(10, Math.ceil(lc.totalDensity * 2));
+      const linkLen = lc.totalLen || 100;
+      for (let j = 0; j < count; j++) {
+        particles.push({
+          linkIdx: i,
+          pos: Math.random(),
+          speed: lc.avgSpeed / linkLen,
+          size: 1.5 + Math.random() * 1.0,
+        });
+        if (particles.length >= CONFIG.maxParticles) return;
+      }
+    }
   }
 
   function updateParticles(dt) {
@@ -967,7 +1011,15 @@
       const p = particles[i];
       p.pos += p.speed * dt;
       if (p.pos >= 1.0) {
-        particles.splice(i, 1);
+        // Recycle: reset position on the same or a new link
+        p.pos -= 1.0;
+        // Update speed from cache
+        const lc = linkCache[p.linkIdx];
+        if (lc && lc.totalDensity > 0.001) {
+          p.speed = lc.avgSpeed / (lc.totalLen || 100);
+        } else {
+          particles.splice(i, 1);
+        }
       }
     }
 
@@ -975,58 +1027,26 @@
     const budget = CONFIG.maxParticles - particles.length;
     if (budget <= 0) return;
 
-    // Compute spawn weights per link (based on density * speed ≈ flow)
+    // Use cached weights
     let totalWeight = 0;
-    const weights = [];
-    for (let i = 0; i < topology.links.length; i++) {
-      const link = topology.links[i];
-      let w = 0;
-      for (const cid of link.cells) {
-        const d = lastFrame.density[cid] || 0;
-        const cell = topology.cells[cid];
-        const vf = cell.vf;
-        const Q = cell.Q;
-        const kCrit = Q / vf;
-        const spd = d <= kCrit ? vf : (d > 1e-9 ? Q / d : vf);
-        w += d * spd * cell.length * link.lanes;
-      }
-      weights.push(w);
-      totalWeight += w;
-    }
-
+    for (const lc of linkCache) totalWeight += lc.flow;
     if (totalWeight < 1e-9) return;
 
-    // Spawn proportionally
-    const spawnRate = Math.min(budget, Math.ceil(CONFIG.maxParticles * 0.08));
+    const spawnRate = Math.min(budget, Math.ceil(CONFIG.maxParticles * 0.06));
     for (let s = 0; s < spawnRate; s++) {
       let r = Math.random() * totalWeight;
       let linkIdx = 0;
-      for (let i = 0; i < weights.length; i++) {
-        r -= weights[i];
+      for (let i = 0; i < linkCache.length; i++) {
+        r -= linkCache[i].flow;
         if (r <= 0) { linkIdx = i; break; }
       }
 
-      const link = topology.links[linkIdx];
-      // Compute average speed for this link
-      let avgSpeed = 0, totalLen = 0;
-      for (const cid of link.cells) {
-        const d = lastFrame.density[cid] || 0;
-        const cell = topology.cells[cid];
-        const vf = cell.vf;
-        const Q = cell.Q;
-        const kCrit = Q / vf;
-        const spd = d <= kCrit ? vf : (d > 1e-9 ? Q / d : vf);
-        avgSpeed += spd * cell.length;
-        totalLen += cell.length;
-      }
-      avgSpeed = totalLen > 0 ? avgSpeed / totalLen : 10;
-
-      // Speed as fraction of link length per second
-      const linkLen = totalLen > 0 ? totalLen : 100;
+      const lc = linkCache[linkIdx];
+      const linkLen = lc.totalLen || 100;
       particles.push({
         linkIdx: linkIdx,
-        pos: Math.random() * 0.1,  // Start near beginning
-        speed: avgSpeed / linkLen,  // Normalized speed
+        pos: Math.random() * 0.15,  // Start near beginning
+        speed: lc.avgSpeed / linkLen,
         size: 1.5 + Math.random() * 1.0,
       });
     }
@@ -1117,9 +1137,10 @@
       }
     }
 
-    // === Layer 3: Lane markings ===
+    // === Layer 3: Lane markings & direction arrows ===
     if (layers.lanes && cw > 8) {
       ctx.save();
+      // Lane dividers
       ctx.setLineDash(CONFIG.laneMarkingDash);
       ctx.strokeStyle = 'rgba(255,255,255,0.08)';
       ctx.lineWidth = 0.5;
@@ -1138,7 +1159,39 @@
           ctx.stroke();
         }
       }
+      ctx.setLineDash([]);
       ctx.restore();
+
+      // Direction arrows (small chevrons along roads)
+      if (cw > 10) {
+        ctx.save();
+        ctx.strokeStyle = 'rgba(255,255,255,0.12)';
+        ctx.lineWidth = 1;
+        ctx.lineCap = 'round';
+        const arrowSpacing = Math.max(40, cw * 4);
+        for (let li = 0; li < topology.links.length; li++) {
+          const g = linkGeom[li];
+          if (g.len < arrowSpacing * 1.5) continue;
+          const nArrows = Math.floor(g.len / arrowSpacing);
+          const arrowSize = Math.min(cw * 0.25, 5);
+          for (let a = 1; a <= nArrows; a++) {
+            const t = a / (nArrows + 1);
+            const ax = g.x1 + g.dx * t;
+            const ay = g.y1 + g.dy * t;
+            // Draw a small chevron pointing in the direction of flow
+            const bx = -g.nx * arrowSize;
+            const by = -g.ny * arrowSize;
+            const px = -g.ny * arrowSize * 0.6;
+            const py = g.nx * arrowSize * 0.6;
+            ctx.beginPath();
+            ctx.moveTo(ax + bx + px, ay + by + py);
+            ctx.lineTo(ax, ay);
+            ctx.lineTo(ax + bx - px, ay + by - py);
+            ctx.stroke();
+          }
+        }
+        ctx.restore();
+      }
     }
 
     // === Layer 4: Flow particles ===
@@ -1391,6 +1444,7 @@
   // ====================================================================
   function onFrame(frame) {
     lastFrame = frame;
+    updateLinkCache();
     const m = frame.metrics || {};
 
     mTime.textContent = (m.time || 0).toFixed(1) + 's';
