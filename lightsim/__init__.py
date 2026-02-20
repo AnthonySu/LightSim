@@ -11,6 +11,7 @@ from .core.network import Network
 from .core.signal import (
     EfficientMaxPressureController,
     FixedTimeController,
+    GreenWaveController,
     LostTimeAwareMaxPressureController,
     MaxPressureController,
     RLController,
