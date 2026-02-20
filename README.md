@@ -4,11 +4,12 @@
 
 ### A Lightweight Cell Transmission Model Simulator for Traffic Signal Control Research
 
+[![PyTorch](https://img.shields.io/badge/PyTorch-%E2%89%A52.0-EE4C2C.svg?logo=pytorch&logoColor=white)](https://pytorch.org/)
 [![Python 3.10+](https://img.shields.io/badge/python-3.10%2B-3776AB.svg?logo=python&logoColor=white)](https://www.python.org/downloads/)
-[![License: MIT](https://img.shields.io/badge/license-MIT-97CA00.svg)](LICENSE)
 [![NumPy](https://img.shields.io/badge/numpy-%E2%89%A51.24-013243.svg?logo=numpy&logoColor=white)](https://numpy.org/)
 [![Gymnasium](https://img.shields.io/badge/gymnasium-%E2%89%A50.29-0081A5.svg)](https://gymnasium.farama.org/)
 [![PettingZoo](https://img.shields.io/badge/pettingzoo-multi--agent-8B5CF6.svg)](https://pettingzoo.farama.org/)
+[![License: MIT](https://img.shields.io/badge/license-MIT-97CA00.svg)](LICENSE)
 
 </div>
 
