@@ -75,6 +75,30 @@ class DelayReward(RewardFunction):
         return -total_delay
 
 
+@register_reward("waiting_time")
+class WaitingTimeReward(RewardFunction):
+    """Reward = negative vehicle-seconds waiting on incoming links.
+
+    Estimates waiting time as vehicles_queued × dt for each incoming link.
+    More closely approximates true delay than instantaneous queue count.
+    """
+
+    def compute(
+        self, engine: SimulationEngine, node_id: NodeID,
+    ) -> float:
+        net = engine.net
+        total_wait = 0.0
+        for lid in net.node_incoming_links.get(node_id, []):
+            # Vehicles above critical density are "waiting"
+            for cid in net.link_cells.get(lid, []):
+                k = engine.state.density[cid]
+                k_crit = net.Q[cid] / net.vf[cid] if net.vf[cid] > 0 else 0
+                if k > k_crit:
+                    queued_veh = (k - k_crit) * net.length[cid] * net.lanes[cid]
+                    total_wait += queued_veh * engine.dt
+        return -total_wait
+
+
 @register_reward("throughput")
 class ThroughputReward(RewardFunction):
     """Reward = total flow through the intersection's movements."""

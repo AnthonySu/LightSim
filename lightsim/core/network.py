@@ -161,6 +161,9 @@ class CompiledNetwork:
     node_incoming_links: dict[NodeID, list[LinkID]] = field(default_factory=dict)
     node_outgoing_links: dict[NodeID, list[LinkID]] = field(default_factory=dict)
 
+    # --- phase → movement list for O(|M_per_phase|) controller lookups ---
+    phase_movements: dict[int, list[int]] = field(default_factory=dict)
+
 
 # ---------------------------------------------------------------------------
 # Network
@@ -395,6 +398,11 @@ class Network:
             [p.all_red for p in all_phases], dtype=FLOAT
         ) if all_phases else np.empty(0, dtype=FLOAT)
 
+        # Pre-compute phase → movement list for controller lookups
+        phase_movements: dict[int, list[int]] = {}
+        for phase in all_phases:
+            phase_movements[phase.phase_id] = list(phase.movements)
+
         # Pre-compute node → incoming/outgoing link maps
         node_incoming_links: dict[NodeID, list[LinkID]] = {}
         node_outgoing_links: dict[NodeID, list[LinkID]] = {}
@@ -453,4 +461,5 @@ class Network:
             diverge_groups=diverge_groups,
             node_incoming_links=node_incoming_links,
             node_outgoing_links=node_outgoing_links,
+            phase_movements=phase_movements,
         )

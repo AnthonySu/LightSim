@@ -83,6 +83,20 @@ class RLController(SignalController):
         return self._actions.get(node_id, state.current_phase_idx)
 
 
+def _compute_phase_pressure(
+    pid: int,
+    net: CompiledNetwork,
+    density: np.ndarray,
+) -> float:
+    """Compute total pressure for a phase using pre-computed movement list."""
+    pressure = 0.0
+    for mid in net.phase_movements.get(pid, []):
+        upstream_k = density[net.mov_from_cell[mid]]
+        downstream_k = density[net.mov_to_cell[mid]]
+        pressure += (upstream_k - downstream_k) * net.mov_turn_ratio[mid]
+    return pressure
+
+
 class MaxPressureController(SignalController):
     """MaxPressure adaptive signal controller.
 
@@ -117,12 +131,7 @@ class MaxPressureController(SignalController):
         best_pressure = -np.inf
 
         for idx, pid in enumerate(phase_ids):
-            pressure = 0.0
-            for mid in range(net.n_movements):
-                if net.phase_mov_mask[pid, mid]:
-                    upstream_k = density[net.mov_from_cell[mid]]
-                    downstream_k = density[net.mov_to_cell[mid]]
-                    pressure += (upstream_k - downstream_k) * net.mov_turn_ratio[mid]
+            pressure = _compute_phase_pressure(pid, net, density)
             if pressure > best_pressure:
                 best_pressure = pressure
                 best_idx = idx
@@ -169,15 +178,7 @@ class LostTimeAwareMaxPressureController(SignalController):
             return 0
 
         # Compute pressure for each phase
-        pressures = []
-        for idx, pid in enumerate(phase_ids):
-            pressure = 0.0
-            for mid in range(net.n_movements):
-                if net.phase_mov_mask[pid, mid]:
-                    upstream_k = density[net.mov_from_cell[mid]]
-                    downstream_k = density[net.mov_to_cell[mid]]
-                    pressure += (upstream_k - downstream_k) * net.mov_turn_ratio[mid]
-            pressures.append(pressure)
+        pressures = [_compute_phase_pressure(pid, net, density) for pid in phase_ids]
 
         best_idx = int(np.argmax(pressures))
         current_pressure = pressures[state.current_phase_idx]
@@ -237,12 +238,7 @@ class EfficientMaxPressureController(SignalController):
 
         # Compute pressure for current phase
         current_pid = phase_ids[state.current_phase_idx]
-        current_pressure = 0.0
-        for mid in range(net.n_movements):
-            if net.phase_mov_mask[current_pid, mid]:
-                upstream_k = density[net.mov_from_cell[mid]]
-                downstream_k = density[net.mov_to_cell[mid]]
-                current_pressure += (upstream_k - downstream_k) * net.mov_turn_ratio[mid]
+        current_pressure = _compute_phase_pressure(current_pid, net, density)
 
         # Adaptive green time: higher pressure → longer green
         adaptive_green = self.base_green + current_pressure * self.pressure_scale
@@ -255,12 +251,7 @@ class EfficientMaxPressureController(SignalController):
         best_idx = 0
         best_pressure = -np.inf
         for idx, pid in enumerate(phase_ids):
-            pressure = 0.0
-            for mid in range(net.n_movements):
-                if net.phase_mov_mask[pid, mid]:
-                    upstream_k = density[net.mov_from_cell[mid]]
-                    downstream_k = density[net.mov_to_cell[mid]]
-                    pressure += (upstream_k - downstream_k) * net.mov_turn_ratio[mid]
+            pressure = _compute_phase_pressure(pid, net, density)
             if pressure > best_pressure:
                 best_pressure = pressure
                 best_idx = idx
@@ -339,16 +330,19 @@ class WebsterController(SignalController):
         cycle_length: float | None = None,
         lost_time_per_phase: float = 5.0,
         reoptimize_interval: float = 300.0,
+        ema_alpha: float = 0.1,
     ) -> None:
         self.fixed_cycle = cycle_length
         self.lost_time_per_phase = lost_time_per_phase
         self.reoptimize_interval = reoptimize_interval
+        self.ema_alpha = ema_alpha
         self._green_times: dict[NodeID, list[float]] = {}
         self._last_optimize: dict[NodeID, float] = {}
+        self._ema_y: dict[NodeID, list[float]] = {}
 
     def _optimize(self, node_id: NodeID, net: CompiledNetwork,
                   density: np.ndarray) -> None:
-        """Compute Webster optimal green splits."""
+        """Compute Webster optimal green splits with EMA-smoothed demand."""
         phase_ids = net.node_phases.get(node_id, [])
         if not phase_ids:
             return
@@ -360,16 +354,21 @@ class WebsterController(SignalController):
         y_values = []
         for pid in phase_ids:
             max_ratio = 0.0
-            for mid in range(net.n_movements):
-                if net.phase_mov_mask[pid, mid]:
-                    # flow ratio ≈ density × vf / saturation_rate
-                    k = density[net.mov_from_cell[mid]]
-                    sat = net.mov_sat_rate[mid]
-                    vf = net.vf[net.mov_from_cell[mid]]
-                    flow = k * vf  # approximate flow
-                    ratio = flow / max(sat, 1e-9)
-                    max_ratio = max(max_ratio, ratio)
+            for mid in net.phase_movements.get(pid, []):
+                k = density[net.mov_from_cell[mid]]
+                sat = net.mov_sat_rate[mid]
+                vf = net.vf[net.mov_from_cell[mid]]
+                flow = k * vf
+                ratio = flow / max(sat, 1e-9)
+                max_ratio = max(max_ratio, ratio)
             y_values.append(max(max_ratio, 0.01))
+
+        # Smooth with exponential moving average to reduce oscillations
+        prev = self._ema_y.get(node_id)
+        if prev is not None and len(prev) == len(y_values):
+            a = self.ema_alpha
+            y_values = [a * y + (1 - a) * p for y, p in zip(y_values, prev)]
+        self._ema_y[node_id] = y_values
 
         Y = sum(y_values)
         Y = min(Y, 0.9)  # cap to avoid infinite cycle
