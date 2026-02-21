@@ -1056,7 +1056,7 @@ def fig_osm_city_evaluation():
 
 
 def fig_sample_efficiency():
-    """Figure: Sample efficiency convergence curves."""
+    """Figure: Training speed + convergence (dual panel)."""
     data_file = RESULTS / "sample_efficiency.json"
     if not data_file.exists():
         print("  SKIP (no results/sample_efficiency.json)")
@@ -1065,51 +1065,125 @@ def fig_sample_efficiency():
     with open(data_file) as f:
         data = json.load(f)
 
-    fig, ax = plt.subplots(figsize=(5.5, 3.5))
+    fig, (ax1, ax2) = plt.subplots(1, 2, figsize=(10, 3.5))
 
+    # --- Panel A: Training timesteps vs wall-clock time ---
     for sim, color, label in [("LightSim", BLUE, "LightSim"),
                                ("SUMO", RED, "SUMO")]:
         sim_curves = [c for c in data["curves"] if c["simulator"] == sim]
         if not sim_curves:
             continue
 
-        all_times = []
-        all_rewards = []
+        all_times, all_steps = [], []
         for c in sim_curves:
+            times = [0] + [p["wall_seconds"] for p in c["curve"]]
+            steps = [0] + [p["timesteps"] for p in c["curve"]]
+            all_times.append(times)
+            all_steps.append(steps)
+
+        for times, steps in zip(all_times, all_steps):
+            ax1.plot(times, [s / 1000 for s in steps], color=color,
+                     alpha=0.2, linewidth=0.8)
+
+        if len(all_times) > 1:
+            max_time = max(t[-1] for t in all_times)
+            time_grid = np.linspace(0, max_time, 50)
+            interp_steps = [np.interp(time_grid, t, s)
+                            for t, s in zip(all_times, all_steps)]
+            mean_s = np.mean(interp_steps, axis=0) / 1000
+            ax1.plot(time_grid, mean_s, color=color, linewidth=2.0,
+                     label=label)
+        else:
+            ax1.plot(all_times[0], [s / 1000 for s in all_steps[0]],
+                     color=color, linewidth=2.0, label=label)
+
+    ax1.set_xlabel("Wall-Clock Time (seconds)")
+    ax1.set_ylabel("Training Timesteps (k)")
+    ax1.set_title("(a) Training Speed")
+    ax1.legend(loc="upper left", framealpha=0.9)
+    ax1.grid(True, alpha=0.3)
+
+    for sim, color, y_pos in [("LightSim", BLUE, 0.85), ("SUMO", RED, 0.15)]:
+        sim_curves = [c for c in data["curves"] if c["simulator"] == sim]
+        if sim_curves:
+            total_steps = [c["curve"][-1]["timesteps"] for c in sim_curves]
+            total_times = [c["total_train_time"] for c in sim_curves]
+            throughput = np.mean(total_steps) / np.mean(total_times)
+            ax1.annotate(f"{sim}: {throughput:.0f} steps/s",
+                        xy=(0.98, y_pos), xycoords='axes fraction',
+                        ha='right', va='center', fontsize=7.5,
+                        color=color, fontweight='bold',
+                        bbox=dict(boxstyle='round,pad=0.3',
+                                  facecolor='white', edgecolor=color,
+                                  alpha=0.8))
+
+    # --- Panel B: Convergence curves (dual y-axis) ---
+    ls_curves = [c for c in data["curves"] if c["simulator"] == "LightSim"]
+    su_curves = [c for c in data["curves"] if c["simulator"] == "SUMO"]
+
+    if ls_curves:
+        all_times, all_rewards = [], []
+        for c in ls_curves:
+            times = [p["wall_seconds"] for p in c["curve"]]
+            rewards = [p["eval_reward"] / 1000 for p in c["curve"]]
+            all_times.append(times)
+            all_rewards.append(rewards)
+
+        for times, rewards in zip(all_times, all_rewards):
+            ax2.plot(times, rewards, color=BLUE, alpha=0.15, linewidth=0.8)
+
+        if len(all_rewards) > 1:
+            max_time = max(t[-1] for t in all_times)
+            time_grid = np.linspace(0, max_time, 50)
+            interp_r = [np.interp(time_grid, t, r)
+                        for t, r in zip(all_times, all_rewards)]
+            mean_r = np.mean(interp_r, axis=0)
+            std_r = np.std(interp_r, axis=0)
+            ax2.plot(time_grid, mean_r, color=BLUE, linewidth=2.0,
+                     label='LightSim')
+            ax2.fill_between(time_grid, mean_r - std_r, mean_r + std_r,
+                             color=BLUE, alpha=0.15)
+
+    ax2.set_xlabel("Wall-Clock Time (seconds)")
+    ax2.set_ylabel("LightSim Reward (×1000)", color=BLUE)
+    ax2.tick_params(axis='y', labelcolor=BLUE)
+
+    if su_curves:
+        ax2r = ax2.twinx()
+        all_times, all_rewards = [], []
+        for c in su_curves:
             times = [p["wall_seconds"] for p in c["curve"]]
             rewards = [p["eval_reward"] for p in c["curve"]]
             all_times.append(times)
             all_rewards.append(rewards)
 
         for times, rewards in zip(all_times, all_rewards):
-            ax.plot(times, rewards, color=color, alpha=0.2, linewidth=0.8)
+            ax2r.plot(times, rewards, color=RED, alpha=0.15, linewidth=0.8)
 
         if len(all_rewards) > 1:
             max_time = max(t[-1] for t in all_times)
             time_grid = np.linspace(0, max_time, 50)
-            interp_rewards = []
-            for times, rewards in zip(all_times, all_rewards):
-                interp_rewards.append(np.interp(time_grid, times, rewards))
-            mean_r = np.mean(interp_rewards, axis=0)
-            std_r = np.std(interp_rewards, axis=0)
-            ax.plot(time_grid, mean_r, color=color, linewidth=2.0, label=label)
-            ax.fill_between(time_grid, mean_r - std_r, mean_r + std_r,
-                            color=color, alpha=0.15)
-        else:
-            ax.plot(all_times[0], all_rewards[0], color=color,
-                    linewidth=2.0, label=label)
+            interp_r = [np.interp(time_grid, t, r)
+                        for t, r in zip(all_times, all_rewards)]
+            mean_r = np.mean(interp_r, axis=0)
+            std_r = np.std(interp_r, axis=0)
+            ax2r.plot(time_grid, mean_r, color=RED, linewidth=2.0,
+                      label='SUMO')
+            ax2r.fill_between(time_grid, mean_r - std_r, mean_r + std_r,
+                              color=RED, alpha=0.15)
 
-    baselines = data.get("baselines", {})
-    for name, reward in baselines.items():
-        style = '--' if 'MaxPressure' in name else ':'
-        ax.axhline(y=reward, color=GRAY, linestyle=style,
-                   linewidth=1.0, alpha=0.7, label=name)
+        ax2r.set_ylabel("SUMO Reward", color=RED)
+        ax2r.tick_params(axis='y', labelcolor=RED)
 
-    ax.set_xlabel("Wall-Clock Time (seconds)")
-    ax.set_ylabel("Eval Reward")
-    ax.set_title("DQN Training Convergence: LightSim vs SUMO")
-    ax.legend(loc="best", framealpha=0.9)
-    ax.grid(True, alpha=0.3)
+    ax2.set_title("(b) Eval Reward Convergence")
+    lines1, labels1 = ax2.get_legend_handles_labels()
+    if su_curves:
+        lines2, labels2 = ax2r.get_legend_handles_labels()
+        ax2.legend(lines1 + lines2, labels1 + labels2,
+                   loc="lower right", framealpha=0.9)
+    else:
+        ax2.legend(loc="lower right", framealpha=0.9)
+    ax2.grid(True, alpha=0.3)
 
     fig.tight_layout()
     fig.savefig(OVERLEAF / "sample_efficiency.pdf")

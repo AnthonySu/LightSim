@@ -1,0 +1,98 @@
+[
+  {
+    "simulator": "LightSim",
+    "variant": "DQN",
+    "seed": 0,
+    "train_time": 46.9,
+    "eval_reward_mean": -167887.89,
+    "eval_reward_std": 0.0
+  },
+  {
+    "simulator": "LightSim",
+    "variant": "DQN",
+    "seed": 1,
+    "train_time": 44.6,
+    "eval_reward_mean": -122989.83,
+    "eval_reward_std": 0.0
+  },
+  {
+    "simulator": "LightSim",
+    "variant": "DQN",
+    "seed": 2,
+    "train_time": 45.3,
+    "eval_reward_mean": -180586.74,
+    "eval_reward_std": 0.0
+  },
+  {
+    "simulator": "LightSim",
+    "variant": "PPO",
+    "seed": 0,
+    "train_time": 96.0,
+    "eval_reward_mean": -94733.61,
+    "eval_reward_std": 0.0
+  },
+  {
+    "simulator": "LightSim",
+    "variant": "PPO",
+    "seed": 1,
+    "train_time": 95.2,
+    "eval_reward_mean": -112865.97,
+    "eval_reward_std": 0.0
+  },
+  {
+    "simulator": "LightSim",
+    "variant": "PPO",
+    "seed": 2,
+    "train_time": 91.8,
+    "eval_reward_mean": -94733.54,
+    "eval_reward_std": 0.0
+  },
+  {
+    "simulator": "SUMO",
+    "variant": "DQN",
+    "seed": 0,
+    "train_time": 735.2,
+    "eval_reward_mean": -616.28,
+    "eval_reward_std": 3.3
+  },
+  {
+    "simulator": "SUMO",
+    "variant": "DQN",
+    "seed": 1,
+    "train_time": 830.1,
+    "eval_reward_mean": -648.75,
+    "eval_reward_std": 1.64
+  },
+  {
+    "simulator": "SUMO",
+    "variant": "DQN",
+    "seed": 2,
+    "train_time": 14187.5,
+    "eval_reward_mean": -672.2,
+    "eval_reward_std": 0.1
+  },
+  {
+    "simulator": "SUMO",
+    "variant": "PPO",
+    "seed": 0,
+    "train_time": 1048.0,
+    "eval_reward_mean": -752.7,
+    "eval_reward_std": 0.71
+  },
+  {
+    "simulator": "SUMO",
+    "variant": "PPO",
+    "seed": 1,
+    "train_time": 876.8,
+    "eval_reward_mean": -805.09,
+    "eval_reward_std": 0.47
+  },
+  {
+    "simulator": "SUMO",
+    "variant": "PPO",
+    "seed": 2,
+    "train_time": 792.2,
+    "eval_reward_mean": -673.42,
+    "eval_reward_std": 0.45
+  }
+]
