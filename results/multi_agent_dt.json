@@ -1,0 +1,90 @@
+{
+  "scenario": "grid-4x4-v0",
+  "num_agents": 16,
+  "pad_obs_dim": 14,
+  "obs_dimensions": {
+    "10": 4,
+    "12": 8,
+    "14": 4
+  },
+  "collection": {
+    "mixed_trajectories": 1920,
+    "mixed_steps": 1382400,
+    "expert_trajectories": 1280,
+    "expert_steps": 921600,
+    "collection_time_s": 237.9
+  },
+  "training": {
+    "config": {
+      "obs_dim": 14,
+      "act_dim": 2,
+      "hidden_dim": 64,
+      "n_layers": 3,
+      "context_len": 20,
+      "dropout": 0.3
+    },
+    "epochs": 10,
+    "batch_size": 128,
+    "lr": 0.0005,
+    "expert_final_loss": 2.7495956851717218e-06,
+    "mixed_final_loss": 6.254855773832561e-06
+  },
+  "results": [
+    {
+      "policy": "FixedTime",
+      "avg_reward": -181.58190889179323,
+      "total_throughput": 18056.066455039145,
+      "avg_vehicles": 4540.474597971961,
+      "wall_time": 12.479457999987062
+    },
+    {
+      "policy": "Webster",
+      "avg_reward": -196.89932751774822,
+      "total_throughput": 16798.965040582312,
+      "avg_vehicles": 4695.176328147505,
+      "wall_time": 12.046681199979503
+    },
+    {
+      "policy": "SOTL",
+      "avg_reward": -220.08223316358735,
+      "total_throughput": 15833.21980741539,
+      "avg_vehicles": 4919.8880910248145,
+      "wall_time": 12.803005800000392
+    },
+    {
+      "policy": "MaxPressure",
+      "avg_reward": -243.2434360705318,
+      "total_throughput": 17023.016208135734,
+      "avg_vehicles": 5380.701605574164,
+      "wall_time": 12.713288400002057
+    },
+    {
+      "policy": "GreenWave",
+      "avg_reward": -178.95031597728683,
+      "total_throughput": 18218.154270909403,
+      "avg_vehicles": 4517.448276470759,
+      "wall_time": 12.676439600007143
+    },
+    {
+      "policy": "DT-Expert",
+      "avg_reward": -131.57435435213785,
+      "total_throughput": 19722.514653425547,
+      "avg_vehicles": 3857.4853465740243,
+      "wall_time": 257.34042450002744
+    },
+    {
+      "policy": "DT-Mixed(hi)",
+      "avg_reward": -131.57435435213785,
+      "total_throughput": 19722.514653425547,
+      "avg_vehicles": 3857.4853465740243,
+      "wall_time": 256.90407039999263
+    },
+    {
+      "policy": "DT-Mixed(lo)",
+      "avg_reward": -131.57435435213785,
+      "total_throughput": 19722.514653425547,
+      "avg_vehicles": 3857.4853465740243,
+      "wall_time": 258.6696864999831
+    }
+  ]
+}

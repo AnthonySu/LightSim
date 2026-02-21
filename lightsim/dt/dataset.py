@@ -10,9 +10,12 @@ import numpy as np
 import lightsim
 from lightsim.core.signal import (
     FixedTimeController,
+    GreenWaveController,
     MaxPressureController,
     SOTLController,
     SignalController,
+    SignalState,
+    WebsterController,
 )
 
 
@@ -184,6 +187,195 @@ def collect_trajectories(
                 returns_to_go=rtg_arr,
                 timesteps=ts_arr,
             ))
+
+    return trajectories
+
+
+def pad_obs(obs: np.ndarray, target_dim: int) -> np.ndarray:
+    """Zero-pad an observation vector to *target_dim*.
+
+    If *obs* is already at least *target_dim* long, it is truncated.
+    """
+    if len(obs) >= target_dim:
+        return obs[:target_dim].astype(np.float32)
+    padded = np.zeros(target_dim, dtype=np.float32)
+    padded[: len(obs)] = obs
+    return padded
+
+
+def collect_multi_agent_trajectories(
+    scenario: str = "grid-4x4-v0",
+    controllers: dict[str, SignalController] | None = None,
+    episodes_per_controller: int = 20,
+    max_steps: int = 720,
+    sim_steps_per_action: int = 5,
+    reward_fn: str = "queue",
+    seed: int = 42,
+    pad_obs_dim: int | None = None,
+    **scenario_kwargs,
+) -> list[Trajectory]:
+    """Collect per-agent trajectories from a PettingZoo multi-agent env.
+
+    Returns one :class:`Trajectory` per (agent, episode, controller).  All
+    observations are zero-padded to *pad_obs_dim* so that a single model
+    can handle the heterogeneous observation spaces.
+
+    Parameters
+    ----------
+    scenario : str
+        Scenario name for ``lightsim.parallel_env()``.
+    controllers : dict[str, SignalController] | None
+        Named controllers.  Defaults to Random, FixedTime, MaxPressure,
+        SOTL, Webster, GreenWave.
+    episodes_per_controller : int
+        Episodes to collect per controller.
+    max_steps : int
+        Episode length in RL steps.
+    sim_steps_per_action : int
+        Simulation steps between actions.
+    reward_fn : str
+        Reward function name.
+    seed : int
+        Base random seed.
+    pad_obs_dim : int | None
+        Target observation dimension.  Auto-detected from the env if *None*.
+    **scenario_kwargs
+        Passed to ``lightsim.parallel_env()``.
+
+    Returns
+    -------
+    list[Trajectory]
+        One trajectory per (agent, episode, controller).
+    """
+    rng = np.random.default_rng(seed)
+
+    # Discover agents and obs spaces
+    env = lightsim.parallel_env(
+        scenario,
+        max_steps=max_steps,
+        sim_steps_per_action=sim_steps_per_action,
+        reward_fn=reward_fn,
+        **scenario_kwargs,
+    )
+    agent_names = list(env.possible_agents)
+    obs_dims = {a: env.observation_space(a).shape[0] for a in agent_names}
+    n_actions = env.action_space(agent_names[0]).n
+
+    if pad_obs_dim is None:
+        pad_obs_dim = max(obs_dims.values())
+
+    # Map agent name → node id (e.g. "signal_7" → 7)
+    agent_to_node = {a: int(a.split("_")[1]) for a in agent_names}
+
+    # Build default controllers if not provided
+    if controllers is None:
+        # Compute GreenWave offsets row-wise from node x,y coords
+        node_coords = {}
+        for a in agent_names:
+            nid = agent_to_node[a]
+            node = env.network.nodes.get(nid)
+            if node is not None:
+                node_coords[nid] = (node.x, node.y)
+
+        # Group nodes by row (same y coordinate)
+        rows: dict[float, list[int]] = {}
+        for nid, (x, y) in node_coords.items():
+            rows.setdefault(y, []).append(nid)
+
+        gw_offsets: dict[int, float] = {}
+        for y_val in sorted(rows.keys()):
+            row_nodes = sorted(rows[y_val], key=lambda n: node_coords[n][0])
+            if len(row_nodes) < 2:
+                gw_offsets[row_nodes[0]] = 0.0
+                continue
+            distances = []
+            for i in range(1, len(row_nodes)):
+                dx = abs(node_coords[row_nodes[i]][0] - node_coords[row_nodes[i - 1]][0])
+                distances.append(dx)
+            row_offsets = GreenWaveController.compute_offsets(
+                row_nodes, distances, speed=13.89,
+            )
+            gw_offsets.update(row_offsets)
+
+        controllers = {
+            "Random": _RandomController(
+                rng=np.random.default_rng(rng.integers(0, 2**31)),
+            ),
+            "FixedTime": FixedTimeController(),
+            "MaxPressure": MaxPressureController(min_green=5.0),
+            "SOTL": SOTLController(),
+            "Webster": WebsterController(),
+            "GreenWave": GreenWaveController(offsets=gw_offsets),
+        }
+
+    env.close() if hasattr(env, "close") else None
+
+    trajectories: list[Trajectory] = []
+
+    for ctrl_name, controller in controllers.items():
+        for ep in range(episodes_per_controller):
+            ep_seed = int(rng.integers(0, 2**31))
+
+            env = lightsim.parallel_env(
+                scenario,
+                max_steps=max_steps,
+                sim_steps_per_action=sim_steps_per_action,
+                reward_fn=reward_fn,
+                **scenario_kwargs,
+            )
+            obs_dict, _ = env.reset(seed=ep_seed)
+
+            # Per-agent buffers
+            agent_obs = {a: [pad_obs(obs_dict[a], pad_obs_dim)] for a in agent_names}
+            agent_act: dict[str, list[int]] = {a: [] for a in agent_names}
+            agent_rew: dict[str, list[float]] = {a: [] for a in agent_names}
+
+            for t in range(max_steps):
+                if not env.agents:
+                    break
+
+                actions = {}
+                for agent in env.agents:
+                    node_id = agent_to_node[agent]
+                    sig_state = env.engine.signal_manager.states.get(
+                        node_id, SignalState(),
+                    )
+                    action = controller.get_phase_index(
+                        node_id, sig_state,
+                        env.engine.net, env.engine.state.density,
+                    )
+                    action = action % n_actions
+                    actions[agent] = action
+
+                obs_dict, rewards, terms, truncs, infos = env.step(actions)
+
+                for agent in agent_names:
+                    if agent in obs_dict:
+                        agent_obs[agent].append(
+                            pad_obs(obs_dict[agent], pad_obs_dim)
+                        )
+                    agent_act[agent].append(actions.get(agent, 0))
+                    agent_rew[agent].append(float(rewards.get(agent, 0.0)))
+
+            env.close() if hasattr(env, "close") else None
+
+            # Convert each agent's episode into a Trajectory
+            for agent in agent_names:
+                T = len(agent_act[agent])
+                if T == 0:
+                    continue
+                obs_arr = np.array(agent_obs[agent][:T], dtype=np.float32)
+                act_arr = np.array(agent_act[agent], dtype=np.int64)
+                rew_arr = np.array(agent_rew[agent], dtype=np.float32)
+                rtg_arr = _compute_rtg(rew_arr)
+                ts_arr = np.arange(T, dtype=np.int64)
+                trajectories.append(Trajectory(
+                    observations=obs_arr,
+                    actions=act_arr,
+                    rewards=rew_arr,
+                    returns_to_go=rtg_arr,
+                    timesteps=ts_arr,
+                ))
 
     return trajectories
 

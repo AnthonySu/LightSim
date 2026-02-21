@@ -245,3 +245,103 @@ class DecisionTransformerController(SignalController):
             self._initialized = True
 
         return self._cached_action
+
+
+def _pad_obs(obs: np.ndarray, target_dim: int) -> np.ndarray:
+    """Zero-pad obs to *target_dim*."""
+    if len(obs) >= target_dim:
+        return obs[:target_dim].astype(np.float32)
+    padded = np.zeros(target_dim, dtype=np.float32)
+    padded[: len(obs)] = obs
+    return padded
+
+
+class MultiAgentDTPolicy:
+    """Decentralized multi-agent DT policy with parameter sharing.
+
+    One :class:`DTPolicy` per agent, all sharing the same underlying model.
+    Each agent maintains its own independent rolling context buffer.
+
+    Parameters
+    ----------
+    model : DecisionTransformer
+        Trained DT model (shared across all agents).
+    agent_names : list[str]
+        Agent identifiers (e.g. ``["signal_7", "signal_8", ...]``).
+    target_return : float
+        Default target return for each agent.
+    rtg_stats : dict | None
+        RTG normalization stats from training.
+    pad_obs_dim : int
+        Observation dimension after zero-padding.
+    context_len : int | None
+        Context window length.  Defaults to model config.
+    device : str
+        Torch device.
+    """
+
+    def __init__(
+        self,
+        model: DecisionTransformer,
+        agent_names: list[str],
+        target_return: float,
+        rtg_stats: dict | None = None,
+        pad_obs_dim: int = 14,
+        context_len: int | None = None,
+        device: str = "cpu",
+    ):
+        self.model = model
+        self.agent_names = list(agent_names)
+        self.target_return = target_return
+        self.pad_obs_dim = pad_obs_dim
+
+        # One DTPolicy per agent, all sharing the same model object
+        self._policies: dict[str, DTPolicy] = {}
+        for name in self.agent_names:
+            self._policies[name] = DTPolicy(
+                model=model,
+                target_return=target_return,
+                rtg_stats=rtg_stats,
+                context_len=context_len,
+                device=device,
+            )
+
+    def reset(self, target_return: float | None = None) -> None:
+        """Reset all agent policies for a new episode."""
+        tr = target_return if target_return is not None else self.target_return
+        for policy in self._policies.values():
+            policy.reset(target_return=tr)
+
+    def predict(
+        self,
+        observations: dict[str, np.ndarray],
+        deterministic: bool = True,
+    ) -> dict[str, int]:
+        """Predict actions for all agents.
+
+        Parameters
+        ----------
+        observations : dict[str, np.ndarray]
+            Observation per agent (will be zero-padded to ``pad_obs_dim``).
+        deterministic : bool
+            If True, use argmax; otherwise sample.
+
+        Returns
+        -------
+        dict[str, int]
+            Action per agent.
+        """
+        actions = {}
+        for agent, obs in observations.items():
+            if agent in self._policies:
+                padded = _pad_obs(obs, self.pad_obs_dim)
+                actions[agent] = self._policies[agent].predict(
+                    padded, deterministic=deterministic,
+                )
+        return actions
+
+    def update_rtg(self, rewards: dict[str, float]) -> None:
+        """Update return-to-go for each agent after receiving rewards."""
+        for agent, reward in rewards.items():
+            if agent in self._policies:
+                self._policies[agent].update_rtg(reward)
