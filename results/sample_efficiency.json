@@ -1,0 +1,179 @@
+{
+  "curves": [
+    {
+      "simulator": "LightSim",
+      "seed": 0,
+      "total_train_time": 237.76,
+      "curve": [
+        {
+          "timesteps": 10000,
+          "wall_seconds": 11.24,
+          "eval_reward": -41434.58
+        },
+        {
+          "timesteps": 20000,
+          "wall_seconds": 35.18,
+          "eval_reward": -639560.54
+        },
+        {
+          "timesteps": 30000,
+          "wall_seconds": 58.95,
+          "eval_reward": -639560.54
+        },
+        {
+          "timesteps": 40000,
+          "wall_seconds": 82.88,
+          "eval_reward": -639560.54
+        },
+        {
+          "timesteps": 50000,
+          "wall_seconds": 106.97,
+          "eval_reward": -639560.54
+        },
+        {
+          "timesteps": 60000,
+          "wall_seconds": 131.08,
+          "eval_reward": -639560.54
+        },
+        {
+          "timesteps": 70000,
+          "wall_seconds": 154.66,
+          "eval_reward": -639560.54
+        },
+        {
+          "timesteps": 80000,
+          "wall_seconds": 177.94,
+          "eval_reward": -639560.54
+        },
+        {
+          "timesteps": 90000,
+          "wall_seconds": 201.85,
+          "eval_reward": -31560.55
+        },
+        {
+          "timesteps": 100000,
+          "wall_seconds": 225.8,
+          "eval_reward": -641131.46
+        }
+      ]
+    },
+    {
+      "simulator": "LightSim",
+      "seed": 1,
+      "total_train_time": 238.85,
+      "curve": [
+        {
+          "timesteps": 10000,
+          "wall_seconds": 11.12,
+          "eval_reward": -639560.54
+        },
+        {
+          "timesteps": 20000,
+          "wall_seconds": 35.06,
+          "eval_reward": -639560.54
+        },
+        {
+          "timesteps": 30000,
+          "wall_seconds": 58.77,
+          "eval_reward": -639560.54
+        },
+        {
+          "timesteps": 40000,
+          "wall_seconds": 82.53,
+          "eval_reward": -639560.54
+        },
+        {
+          "timesteps": 50000,
+          "wall_seconds": 107.21,
+          "eval_reward": -639560.54
+        },
+        {
+          "timesteps": 60000,
+          "wall_seconds": 131.72,
+          "eval_reward": -639560.54
+        },
+        {
+          "timesteps": 70000,
+          "wall_seconds": 155.7,
+          "eval_reward": -639560.54
+        },
+        {
+          "timesteps": 80000,
+          "wall_seconds": 179.23,
+          "eval_reward": -639560.54
+        },
+        {
+          "timesteps": 90000,
+          "wall_seconds": 203.13,
+          "eval_reward": -639560.54
+        },
+        {
+          "timesteps": 100000,
+          "wall_seconds": 227.13,
+          "eval_reward": -639560.54
+        }
+      ]
+    },
+    {
+      "simulator": "LightSim",
+      "seed": 2,
+      "total_train_time": 234.47,
+      "curve": [
+        {
+          "timesteps": 10000,
+          "wall_seconds": 10.91,
+          "eval_reward": -639560.54
+        },
+        {
+          "timesteps": 20000,
+          "wall_seconds": 34.4,
+          "eval_reward": -639560.54
+        },
+        {
+          "timesteps": 30000,
+          "wall_seconds": 57.52,
+          "eval_reward": -639560.54
+        },
+        {
+          "timesteps": 40000,
+          "wall_seconds": 80.71,
+          "eval_reward": -639560.54
+        },
+        {
+          "timesteps": 50000,
+          "wall_seconds": 104.44,
+          "eval_reward": -639560.54
+        },
+        {
+          "timesteps": 60000,
+          "wall_seconds": 128.53,
+          "eval_reward": -639560.54
+        },
+        {
+          "timesteps": 70000,
+          "wall_seconds": 152.22,
+          "eval_reward": -639560.54
+        },
+        {
+          "timesteps": 80000,
+          "wall_seconds": 175.46,
+          "eval_reward": -639560.54
+        },
+        {
+          "timesteps": 90000,
+          "wall_seconds": 198.57,
+          "eval_reward": -639560.54
+        },
+        {
+          "timesteps": 100000,
+          "wall_seconds": 222.69,
+          "eval_reward": -639560.54
+        }
+      ]
+    }
+  ],
+  "baselines": {
+    "FixedTime": -639560.544127625,
+    "MaxPressure": -639560.544127625
+  }
+}

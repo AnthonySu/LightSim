@@ -969,6 +969,154 @@ def fig_sim_dynamics():
     print("  Saved visualization.pdf")
 
 
+def fig_osm_city_evaluation():
+    """Figure: OSM city controller rankings heatmap."""
+    data_file = RESULTS / "osm_city_evaluation.json"
+    if not data_file.exists():
+        print("  SKIP (no results/osm_city_evaluation.json)")
+        return
+
+    with open(data_file) as f:
+        data = json.load(f)
+
+    results = data["results"]
+
+    # Build mean throughput matrix: cities x controllers
+    cities = data["cities"]
+    controllers = data["controllers"]
+    city_labels = [c.replace("osm-", "").replace("-v0", "").title()
+                   for c in cities]
+    ctrl_labels = [c.replace("Controller", "") for c in controllers]
+
+    # Map controller class names to short names
+    ctrl_name_map = {
+        "FixedTimeController": "FixedTime",
+        "WebsterController": "Webster",
+        "MaxPressureController": "MaxPressure",
+        "SOTLController": "SOTL",
+        "GreenWaveController": "GreenWave",
+    }
+
+    matrix = np.zeros((len(cities), len(controllers)))
+    for r in results:
+        short = ctrl_name_map.get(r["controller"], r["controller"])
+        if r["scenario"] in cities and short in controllers:
+            ci = cities.index(r["scenario"])
+            cj = controllers.index(short)
+            matrix[ci, cj] += r["total_exited"]
+
+    # Average over seeds
+    n_seeds = len(data["seeds"])
+    matrix /= n_seeds
+
+    # Compute per-city rank
+    rank_matrix = np.zeros_like(matrix)
+    for i in range(len(cities)):
+        order = np.argsort(-matrix[i])
+        for rank, idx in enumerate(order):
+            rank_matrix[i, idx] = rank + 1
+
+    fig, (ax1, ax2) = plt.subplots(1, 2, figsize=(8, 3.5),
+                                    gridspec_kw={'width_ratios': [3, 2]})
+
+    # Left: throughput heatmap
+    im = ax1.imshow(matrix, aspect='auto', cmap='YlGnBu')
+    ax1.set_xticks(range(len(controllers)))
+    ax1.set_xticklabels(ctrl_labels, fontsize=8, rotation=30, ha='right')
+    ax1.set_yticks(range(len(cities)))
+    ax1.set_yticklabels(city_labels, fontsize=8)
+    ax1.set_title('Throughput (vehicles)', fontsize=10)
+    for i in range(len(cities)):
+        for j in range(len(controllers)):
+            val = matrix[i, j]
+            ax1.text(j, i, f'{val:,.0f}', ha='center', va='center', fontsize=6.5,
+                    color='white' if val > matrix.mean() else 'black')
+    plt.colorbar(im, ax=ax1, shrink=0.8)
+
+    # Right: rank heatmap
+    from matplotlib.colors import ListedColormap
+    cmap_rank = ListedColormap(['#2196F3', '#4CAF50', '#FFC107', '#FF9800', '#F44336'])
+    im2 = ax2.imshow(rank_matrix, aspect='auto', cmap=cmap_rank, vmin=0.5, vmax=5.5)
+    ax2.set_xticks(range(len(controllers)))
+    ax2.set_xticklabels(ctrl_labels, fontsize=8, rotation=30, ha='right')
+    ax2.set_yticks(range(len(cities)))
+    ax2.set_yticklabels(city_labels, fontsize=8)
+    ax2.set_title('Rank (1=best)', fontsize=10)
+    for i in range(len(cities)):
+        for j in range(len(controllers)):
+            ax2.text(j, i, f'{int(rank_matrix[i, j])}', ha='center', va='center',
+                    fontsize=9, fontweight='bold', color='white')
+    cbar2 = plt.colorbar(im2, ax=ax2, shrink=0.8, ticks=[1, 2, 3, 4, 5])
+    cbar2.set_label('Rank', fontsize=8)
+
+    fig.tight_layout()
+    fig.savefig(OVERLEAF / "osm_city_evaluation.pdf")
+    plt.close(fig)
+    print("  Saved osm_city_evaluation.pdf")
+
+
+def fig_sample_efficiency():
+    """Figure: Sample efficiency convergence curves."""
+    data_file = RESULTS / "sample_efficiency.json"
+    if not data_file.exists():
+        print("  SKIP (no results/sample_efficiency.json)")
+        return
+
+    with open(data_file) as f:
+        data = json.load(f)
+
+    fig, ax = plt.subplots(figsize=(5.5, 3.5))
+
+    for sim, color, label in [("LightSim", BLUE, "LightSim"),
+                               ("SUMO", RED, "SUMO")]:
+        sim_curves = [c for c in data["curves"] if c["simulator"] == sim]
+        if not sim_curves:
+            continue
+
+        all_times = []
+        all_rewards = []
+        for c in sim_curves:
+            times = [p["wall_seconds"] for p in c["curve"]]
+            rewards = [p["eval_reward"] for p in c["curve"]]
+            all_times.append(times)
+            all_rewards.append(rewards)
+
+        for times, rewards in zip(all_times, all_rewards):
+            ax.plot(times, rewards, color=color, alpha=0.2, linewidth=0.8)
+
+        if len(all_rewards) > 1:
+            max_time = max(t[-1] for t in all_times)
+            time_grid = np.linspace(0, max_time, 50)
+            interp_rewards = []
+            for times, rewards in zip(all_times, all_rewards):
+                interp_rewards.append(np.interp(time_grid, times, rewards))
+            mean_r = np.mean(interp_rewards, axis=0)
+            std_r = np.std(interp_rewards, axis=0)
+            ax.plot(time_grid, mean_r, color=color, linewidth=2.0, label=label)
+            ax.fill_between(time_grid, mean_r - std_r, mean_r + std_r,
+                            color=color, alpha=0.15)
+        else:
+            ax.plot(all_times[0], all_rewards[0], color=color,
+                    linewidth=2.0, label=label)
+
+    baselines = data.get("baselines", {})
+    for name, reward in baselines.items():
+        style = '--' if 'MaxPressure' in name else ':'
+        ax.axhline(y=reward, color=GRAY, linestyle=style,
+                   linewidth=1.0, alpha=0.7, label=name)
+
+    ax.set_xlabel("Wall-Clock Time (seconds)")
+    ax.set_ylabel("Eval Reward")
+    ax.set_title("DQN Training Convergence: LightSim vs SUMO")
+    ax.legend(loc="best", framealpha=0.9)
+    ax.grid(True, alpha=0.3)
+
+    fig.tight_layout()
+    fig.savefig(OVERLEAF / "sample_efficiency.pdf")
+    plt.close(fig)
+    print("  Saved sample_efficiency.pdf")
+
+
 if __name__ == "__main__":
     print("Generating figures for LightSim paper...\n")
 
@@ -1004,5 +1152,11 @@ if __name__ == "__main__":
 
     print("\nFigure: RL cross-validation")
     fig_rl_crossval()
+
+    print("\nFigure: OSM city evaluation")
+    fig_osm_city_evaluation()
+
+    print("Figure: Sample efficiency")
+    fig_sample_efficiency()
 
     print("\nDone! Figures saved to:", OVERLEAF)

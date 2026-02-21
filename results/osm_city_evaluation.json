@@ -1,0 +1,982 @@
+{
+  "experiment": "osm_city_evaluation",
+  "cities": [
+    "osm-manhattan-v0",
+    "osm-shanghai-v0",
+    "osm-london-v0",
+    "osm-sanfrancisco-v0",
+    "osm-mumbai-v0",
+    "osm-siouxfalls-v0"
+  ],
+  "controllers": [
+    "FixedTime",
+    "Webster",
+    "MaxPressure",
+    "SOTL",
+    "GreenWave"
+  ],
+  "seeds": [
+    0,
+    1,
+    2
+  ],
+  "episode_steps": 3600,
+  "results": [
+    {
+      "scenario": "osm-manhattan-v0",
+      "controller": "FixedTimeController",
+      "seed": 0,
+      "n_signals": 47,
+      "total_exited": 11644.156704058394,
+      "total_queue": 221.01,
+      "wall_time": 0.965
+    },
+    {
+      "scenario": "osm-manhattan-v0",
+      "controller": "FixedTimeController",
+      "seed": 1,
+      "n_signals": 47,
+      "total_exited": 11788.251207800102,
+      "total_queue": 233.68,
+      "wall_time": 0.951
+    },
+    {
+      "scenario": "osm-manhattan-v0",
+      "controller": "FixedTimeController",
+      "seed": 2,
+      "n_signals": 47,
+      "total_exited": 11916.015863974812,
+      "total_queue": 253.95,
+      "wall_time": 0.952
+    },
+    {
+      "scenario": "osm-manhattan-v0",
+      "controller": "WebsterController",
+      "seed": 0,
+      "n_signals": 47,
+      "total_exited": 11486.128516129596,
+      "total_queue": 334.72,
+      "wall_time": 0.922
+    },
+    {
+      "scenario": "osm-manhattan-v0",
+      "controller": "WebsterController",
+      "seed": 1,
+      "n_signals": 47,
+      "total_exited": 11690.439977513053,
+      "total_queue": 337.71,
+      "wall_time": 0.917
+    },
+    {
+      "scenario": "osm-manhattan-v0",
+      "controller": "WebsterController",
+      "seed": 2,
+      "n_signals": 47,
+      "total_exited": 11793.839480198141,
+      "total_queue": 350.35,
+      "wall_time": 0.919
+    },
+    {
+      "scenario": "osm-manhattan-v0",
+      "controller": "MaxPressureController",
+      "seed": 0,
+      "n_signals": 47,
+      "total_exited": 11797.16554387907,
+      "total_queue": 163.44,
+      "wall_time": 1.006
+    },
+    {
+      "scenario": "osm-manhattan-v0",
+      "controller": "MaxPressureController",
+      "seed": 1,
+      "n_signals": 47,
+      "total_exited": 11980.243301403672,
+      "total_queue": 213.03,
+      "wall_time": 0.999
+    },
+    {
+      "scenario": "osm-manhattan-v0",
+      "controller": "MaxPressureController",
+      "seed": 2,
+      "n_signals": 47,
+      "total_exited": 12089.994757532042,
+      "total_queue": 256.19,
+      "wall_time": 1.002
+    },
+    {
+      "scenario": "osm-manhattan-v0",
+      "controller": "SOTLController",
+      "seed": 0,
+      "n_signals": 47,
+      "total_exited": 11680.671228595986,
+      "total_queue": 154.31,
+      "wall_time": 0.907
+    },
+    {
+      "scenario": "osm-manhattan-v0",
+      "controller": "SOTLController",
+      "seed": 1,
+      "n_signals": 47,
+      "total_exited": 11874.199271388903,
+      "total_queue": 224.94,
+      "wall_time": 0.903
+    },
+    {
+      "scenario": "osm-manhattan-v0",
+      "controller": "SOTLController",
+      "seed": 2,
+      "n_signals": 47,
+      "total_exited": 11972.374691106485,
+      "total_queue": 232.07,
+      "wall_time": 0.907
+    },
+    {
+      "scenario": "osm-manhattan-v0",
+      "controller": "GreenWaveController",
+      "seed": 0,
+      "n_signals": 47,
+      "total_exited": 11607.9932456051,
+      "total_queue": 154.2,
+      "wall_time": 0.963
+    },
+    {
+      "scenario": "osm-manhattan-v0",
+      "controller": "GreenWaveController",
+      "seed": 1,
+      "n_signals": 47,
+      "total_exited": 11763.507224737774,
+      "total_queue": 165.67,
+      "wall_time": 0.967
+    },
+    {
+      "scenario": "osm-manhattan-v0",
+      "controller": "GreenWaveController",
+      "seed": 2,
+      "n_signals": 47,
+      "total_exited": 11858.64203927887,
+      "total_queue": 175.37,
+      "wall_time": 0.971
+    },
+    {
+      "scenario": "osm-shanghai-v0",
+      "controller": "FixedTimeController",
+      "seed": 0,
+      "n_signals": 42,
+      "total_exited": 22570.32963863874,
+      "total_queue": 283.82,
+      "wall_time": 0.99
+    },
+    {
+      "scenario": "osm-shanghai-v0",
+      "controller": "FixedTimeController",
+      "seed": 1,
+      "n_signals": 42,
+      "total_exited": 22829.217168500443,
+      "total_queue": 306.56,
+      "wall_time": 0.986
+    },
+    {
+      "scenario": "osm-shanghai-v0",
+      "controller": "FixedTimeController",
+      "seed": 2,
+      "n_signals": 42,
+      "total_exited": 22935.72166789884,
+      "total_queue": 297.33,
+      "wall_time": 0.993
+    },
+    {
+      "scenario": "osm-shanghai-v0",
+      "controller": "WebsterController",
+      "seed": 0,
+      "n_signals": 42,
+      "total_exited": 22169.552598377097,
+      "total_queue": 422.14,
+      "wall_time": 0.95
+    },
+    {
+      "scenario": "osm-shanghai-v0",
+      "controller": "WebsterController",
+      "seed": 1,
+      "n_signals": 42,
+      "total_exited": 22547.26515246883,
+      "total_queue": 360.13,
+      "wall_time": 0.95
+    },
+    {
+      "scenario": "osm-shanghai-v0",
+      "controller": "WebsterController",
+      "seed": 2,
+      "n_signals": 42,
+      "total_exited": 22579.52758063404,
+      "total_queue": 369.51,
+      "wall_time": 0.953
+    },
+    {
+      "scenario": "osm-shanghai-v0",
+      "controller": "MaxPressureController",
+      "seed": 0,
+      "n_signals": 42,
+      "total_exited": 22422.277156756994,
+      "total_queue": 350.86,
+      "wall_time": 1.019
+    },
+    {
+      "scenario": "osm-shanghai-v0",
+      "controller": "MaxPressureController",
+      "seed": 1,
+      "n_signals": 42,
+      "total_exited": 22740.465763403943,
+      "total_queue": 398.58,
+      "wall_time": 1.015
+    },
+    {
+      "scenario": "osm-shanghai-v0",
+      "controller": "MaxPressureController",
+      "seed": 2,
+      "n_signals": 42,
+      "total_exited": 22795.783886078123,
+      "total_queue": 374.33,
+      "wall_time": 1.024
+    },
+    {
+      "scenario": "osm-shanghai-v0",
+      "controller": "SOTLController",
+      "seed": 0,
+      "n_signals": 42,
+      "total_exited": 22548.98558724863,
+      "total_queue": 301.57,
+      "wall_time": 0.957
+    },
+    {
+      "scenario": "osm-shanghai-v0",
+      "controller": "SOTLController",
+      "seed": 1,
+      "n_signals": 42,
+      "total_exited": 22855.339920243005,
+      "total_queue": 247.2,
+      "wall_time": 0.967
+    },
+    {
+      "scenario": "osm-shanghai-v0",
+      "controller": "SOTLController",
+      "seed": 2,
+      "n_signals": 42,
+      "total_exited": 22915.26595309964,
+      "total_queue": 297.93,
+      "wall_time": 0.964
+    },
+    {
+      "scenario": "osm-shanghai-v0",
+      "controller": "GreenWaveController",
+      "seed": 0,
+      "n_signals": 42,
+      "total_exited": 22584.98546150541,
+      "total_queue": 321.95,
+      "wall_time": 1.015
+    },
+    {
+      "scenario": "osm-shanghai-v0",
+      "controller": "GreenWaveController",
+      "seed": 1,
+      "n_signals": 42,
+      "total_exited": 22830.983808289955,
+      "total_queue": 346.69,
+      "wall_time": 1.018
+    },
+    {
+      "scenario": "osm-shanghai-v0",
+      "controller": "GreenWaveController",
+      "seed": 2,
+      "n_signals": 42,
+      "total_exited": 22935.859839821806,
+      "total_queue": 328.94,
+      "wall_time": 1.013
+    },
+    {
+      "scenario": "osm-london-v0",
+      "controller": "FixedTimeController",
+      "seed": 0,
+      "n_signals": 131,
+      "total_exited": 44407.57214478924,
+      "total_queue": 505.88,
+      "wall_time": 2.566
+    },
+    {
+      "scenario": "osm-london-v0",
+      "controller": "FixedTimeController",
+      "seed": 1,
+      "n_signals": 131,
+      "total_exited": 44406.68673623322,
+      "total_queue": 515.64,
+      "wall_time": 2.59
+    },
+    {
+      "scenario": "osm-london-v0",
+      "controller": "FixedTimeController",
+      "seed": 2,
+      "n_signals": 131,
+      "total_exited": 44447.460830449774,
+      "total_queue": 520.76,
+      "wall_time": 2.589
+    },
+    {
+      "scenario": "osm-london-v0",
+      "controller": "WebsterController",
+      "seed": 0,
+      "n_signals": 131,
+      "total_exited": 43795.65951945753,
+      "total_queue": 668.42,
+      "wall_time": 2.498
+    },
+    {
+      "scenario": "osm-london-v0",
+      "controller": "WebsterController",
+      "seed": 1,
+      "n_signals": 131,
+      "total_exited": 43839.705068789015,
+      "total_queue": 683.23,
+      "wall_time": 2.494
+    },
+    {
+      "scenario": "osm-london-v0",
+      "controller": "WebsterController",
+      "seed": 2,
+      "n_signals": 131,
+      "total_exited": 43899.091548811564,
+      "total_queue": 655.78,
+      "wall_time": 2.487
+    },
+    {
+      "scenario": "osm-london-v0",
+      "controller": "MaxPressureController",
+      "seed": 0,
+      "n_signals": 131,
+      "total_exited": 45439.24308491062,
+      "total_queue": 557.88,
+      "wall_time": 2.969
+    },
+    {
+      "scenario": "osm-london-v0",
+      "controller": "MaxPressureController",
+      "seed": 1,
+      "n_signals": 131,
+      "total_exited": 45306.59493763666,
+      "total_queue": 497.0,
+      "wall_time": 2.971
+    },
+    {
+      "scenario": "osm-london-v0",
+      "controller": "MaxPressureController",
+      "seed": 2,
+      "n_signals": 131,
+      "total_exited": 45317.816115367525,
+      "total_queue": 525.47,
+      "wall_time": 2.967
+    },
+    {
+      "scenario": "osm-london-v0",
+      "controller": "SOTLController",
+      "seed": 0,
+      "n_signals": 131,
+      "total_exited": 43700.81786006233,
+      "total_queue": 615.03,
+      "wall_time": 2.625
+    },
+    {
+      "scenario": "osm-london-v0",
+      "controller": "SOTLController",
+      "seed": 1,
+      "n_signals": 131,
+      "total_exited": 43676.78232812718,
+      "total_queue": 652.02,
+      "wall_time": 2.631
+    },
+    {
+      "scenario": "osm-london-v0",
+      "controller": "SOTLController",
+      "seed": 2,
+      "n_signals": 131,
+      "total_exited": 43713.77721246112,
+      "total_queue": 643.52,
+      "wall_time": 2.614
+    },
+    {
+      "scenario": "osm-london-v0",
+      "controller": "GreenWaveController",
+      "seed": 0,
+      "n_signals": 131,
+      "total_exited": 44586.80882101962,
+      "total_queue": 560.41,
+      "wall_time": 2.671
+    },
+    {
+      "scenario": "osm-london-v0",
+      "controller": "GreenWaveController",
+      "seed": 1,
+      "n_signals": 131,
+      "total_exited": 44599.412157879146,
+      "total_queue": 556.51,
+      "wall_time": 2.652
+    },
+    {
+      "scenario": "osm-london-v0",
+      "controller": "GreenWaveController",
+      "seed": 2,
+      "n_signals": 131,
+      "total_exited": 44645.36019101747,
+      "total_queue": 561.24,
+      "wall_time": 2.668
+    },
+    {
+      "scenario": "osm-sanfrancisco-v0",
+      "controller": "FixedTimeController",
+      "seed": 0,
+      "n_signals": 57,
+      "total_exited": 19851.66562017169,
+      "total_queue": 467.72,
+      "wall_time": 1.231
+    },
+    {
+      "scenario": "osm-sanfrancisco-v0",
+      "controller": "FixedTimeController",
+      "seed": 1,
+      "n_signals": 57,
+      "total_exited": 20126.483591612247,
+      "total_queue": 473.77,
+      "wall_time": 1.219
+    },
+    {
+      "scenario": "osm-sanfrancisco-v0",
+      "controller": "FixedTimeController",
+      "seed": 2,
+      "n_signals": 57,
+      "total_exited": 20053.383970069135,
+      "total_queue": 436.75,
+      "wall_time": 1.212
+    },
+    {
+      "scenario": "osm-sanfrancisco-v0",
+      "controller": "WebsterController",
+      "seed": 0,
+      "n_signals": 57,
+      "total_exited": 19823.940999061026,
+      "total_queue": 444.52,
+      "wall_time": 1.16
+    },
+    {
+      "scenario": "osm-sanfrancisco-v0",
+      "controller": "WebsterController",
+      "seed": 1,
+      "n_signals": 57,
+      "total_exited": 20051.63566845312,
+      "total_queue": 444.8,
+      "wall_time": 1.164
+    },
+    {
+      "scenario": "osm-sanfrancisco-v0",
+      "controller": "WebsterController",
+      "seed": 2,
+      "n_signals": 57,
+      "total_exited": 19996.59428127261,
+      "total_queue": 432.02,
+      "wall_time": 1.151
+    },
+    {
+      "scenario": "osm-sanfrancisco-v0",
+      "controller": "MaxPressureController",
+      "seed": 0,
+      "n_signals": 57,
+      "total_exited": 19935.848419010665,
+      "total_queue": 384.18,
+      "wall_time": 1.281
+    },
+    {
+      "scenario": "osm-sanfrancisco-v0",
+      "controller": "MaxPressureController",
+      "seed": 1,
+      "n_signals": 57,
+      "total_exited": 20220.189421123323,
+      "total_queue": 352.85,
+      "wall_time": 1.287
+    },
+    {
+      "scenario": "osm-sanfrancisco-v0",
+      "controller": "MaxPressureController",
+      "seed": 2,
+      "n_signals": 57,
+      "total_exited": 20198.014707013263,
+      "total_queue": 388.95,
+      "wall_time": 1.285
+    },
+    {
+      "scenario": "osm-sanfrancisco-v0",
+      "controller": "SOTLController",
+      "seed": 0,
+      "n_signals": 57,
+      "total_exited": 20148.76862035316,
+      "total_queue": 343.47,
+      "wall_time": 1.155
+    },
+    {
+      "scenario": "osm-sanfrancisco-v0",
+      "controller": "SOTLController",
+      "seed": 1,
+      "n_signals": 57,
+      "total_exited": 20414.915808220147,
+      "total_queue": 321.08,
+      "wall_time": 1.148
+    },
+    {
+      "scenario": "osm-sanfrancisco-v0",
+      "controller": "SOTLController",
+      "seed": 2,
+      "n_signals": 57,
+      "total_exited": 20479.127835643332,
+      "total_queue": 249.02,
+      "wall_time": 1.154
+    },
+    {
+      "scenario": "osm-sanfrancisco-v0",
+      "controller": "GreenWaveController",
+      "seed": 0,
+      "n_signals": 57,
+      "total_exited": 19834.417869196117,
+      "total_queue": 497.07,
+      "wall_time": 1.236
+    },
+    {
+      "scenario": "osm-sanfrancisco-v0",
+      "controller": "GreenWaveController",
+      "seed": 1,
+      "n_signals": 57,
+      "total_exited": 20110.523890891815,
+      "total_queue": 524.95,
+      "wall_time": 1.24
+    },
+    {
+      "scenario": "osm-sanfrancisco-v0",
+      "controller": "GreenWaveController",
+      "seed": 2,
+      "n_signals": 57,
+      "total_exited": 20047.59603478013,
+      "total_queue": 467.15,
+      "wall_time": 1.234
+    },
+    {
+      "scenario": "osm-mumbai-v0",
+      "controller": "FixedTimeController",
+      "seed": 0,
+      "n_signals": 17,
+      "total_exited": 15155.618817381968,
+      "total_queue": 54.73,
+      "wall_time": 0.556
+    },
+    {
+      "scenario": "osm-mumbai-v0",
+      "controller": "FixedTimeController",
+      "seed": 1,
+      "n_signals": 17,
+      "total_exited": 15456.215603083616,
+      "total_queue": 62.96,
+      "wall_time": 0.549
+    },
+    {
+      "scenario": "osm-mumbai-v0",
+      "controller": "FixedTimeController",
+      "seed": 2,
+      "n_signals": 17,
+      "total_exited": 15455.048079726928,
+      "total_queue": 76.93,
+      "wall_time": 0.547
+    },
+    {
+      "scenario": "osm-mumbai-v0",
+      "controller": "WebsterController",
+      "seed": 0,
+      "n_signals": 17,
+      "total_exited": 15318.513705262749,
+      "total_queue": 95.99,
+      "wall_time": 0.537
+    },
+    {
+      "scenario": "osm-mumbai-v0",
+      "controller": "WebsterController",
+      "seed": 1,
+      "n_signals": 17,
+      "total_exited": 15563.291699279442,
+      "total_queue": 94.79,
+      "wall_time": 0.538
+    },
+    {
+      "scenario": "osm-mumbai-v0",
+      "controller": "WebsterController",
+      "seed": 2,
+      "n_signals": 17,
+      "total_exited": 15509.156171844183,
+      "total_queue": 99.6,
+      "wall_time": 0.534
+    },
+    {
+      "scenario": "osm-mumbai-v0",
+      "controller": "MaxPressureController",
+      "seed": 0,
+      "n_signals": 17,
+      "total_exited": 15358.075457649207,
+      "total_queue": 32.16,
+      "wall_time": 0.571
+    },
+    {
+      "scenario": "osm-mumbai-v0",
+      "controller": "MaxPressureController",
+      "seed": 1,
+      "n_signals": 17,
+      "total_exited": 15608.815572841,
+      "total_queue": 55.41,
+      "wall_time": 0.572
+    },
+    {
+      "scenario": "osm-mumbai-v0",
+      "controller": "MaxPressureController",
+      "seed": 2,
+      "n_signals": 17,
+      "total_exited": 15603.558501282654,
+      "total_queue": 63.46,
+      "wall_time": 0.571
+    },
+    {
+      "scenario": "osm-mumbai-v0",
+      "controller": "SOTLController",
+      "seed": 0,
+      "n_signals": 17,
+      "total_exited": 15233.737077313512,
+      "total_queue": 67.02,
+      "wall_time": 0.525
+    },
+    {
+      "scenario": "osm-mumbai-v0",
+      "controller": "SOTLController",
+      "seed": 1,
+      "n_signals": 17,
+      "total_exited": 15531.998817678517,
+      "total_queue": 37.04,
+      "wall_time": 0.518
+    },
+    {
+      "scenario": "osm-mumbai-v0",
+      "controller": "SOTLController",
+      "seed": 2,
+      "n_signals": 17,
+      "total_exited": 15341.47085205563,
+      "total_queue": 70.72,
+      "wall_time": 0.522
+    },
+    {
+      "scenario": "osm-mumbai-v0",
+      "controller": "GreenWaveController",
+      "seed": 0,
+      "n_signals": 17,
+      "total_exited": 15024.62038555487,
+      "total_queue": 71.09,
+      "wall_time": 0.546
+    },
+    {
+      "scenario": "osm-mumbai-v0",
+      "controller": "GreenWaveController",
+      "seed": 1,
+      "n_signals": 17,
+      "total_exited": 15318.552608444457,
+      "total_queue": 82.19,
+      "wall_time": 0.548
+    },
+    {
+      "scenario": "osm-mumbai-v0",
+      "controller": "GreenWaveController",
+      "seed": 2,
+      "n_signals": 17,
+      "total_exited": 15280.046139192018,
+      "total_queue": 81.59,
+      "wall_time": 0.55
+    },
+    {
+      "scenario": "osm-siouxfalls-v0",
+      "controller": "FixedTimeController",
+      "seed": 0,
+      "n_signals": 61,
+      "total_exited": 15196.046299233907,
+      "total_queue": 447.39,
+      "wall_time": 1.262
+    },
+    {
+      "scenario": "osm-siouxfalls-v0",
+      "controller": "FixedTimeController",
+      "seed": 1,
+      "n_signals": 61,
+      "total_exited": 15411.45828890057,
+      "total_queue": 477.07,
+      "wall_time": 1.263
+    },
+    {
+      "scenario": "osm-siouxfalls-v0",
+      "controller": "FixedTimeController",
+      "seed": 2,
+      "n_signals": 61,
+      "total_exited": 15481.069899423375,
+      "total_queue": 480.18,
+      "wall_time": 1.246
+    },
+    {
+      "scenario": "osm-siouxfalls-v0",
+      "controller": "WebsterController",
+      "seed": 0,
+      "n_signals": 61,
+      "total_exited": 15128.317046123962,
+      "total_queue": 398.76,
+      "wall_time": 1.184
+    },
+    {
+      "scenario": "osm-siouxfalls-v0",
+      "controller": "WebsterController",
+      "seed": 1,
+      "n_signals": 61,
+      "total_exited": 15314.9785873145,
+      "total_queue": 438.46,
+      "wall_time": 1.187
+    },
+    {
+      "scenario": "osm-siouxfalls-v0",
+      "controller": "WebsterController",
+      "seed": 2,
+      "n_signals": 61,
+      "total_exited": 15436.324304539077,
+      "total_queue": 625.78,
+      "wall_time": 1.195
+    },
+    {
+      "scenario": "osm-siouxfalls-v0",
+      "controller": "MaxPressureController",
+      "seed": 0,
+      "n_signals": 61,
+      "total_exited": 15308.378289525757,
+      "total_queue": 345.62,
+      "wall_time": 1.306
+    },
+    {
+      "scenario": "osm-siouxfalls-v0",
+      "controller": "MaxPressureController",
+      "seed": 1,
+      "n_signals": 61,
+      "total_exited": 15575.484460253954,
+      "total_queue": 375.46,
+      "wall_time": 1.3
+    },
+    {
+      "scenario": "osm-siouxfalls-v0",
+      "controller": "MaxPressureController",
+      "seed": 2,
+      "n_signals": 61,
+      "total_exited": 15616.744226860777,
+      "total_queue": 376.9,
+      "wall_time": 1.297
+    },
+    {
+      "scenario": "osm-siouxfalls-v0",
+      "controller": "SOTLController",
+      "seed": 0,
+      "n_signals": 61,
+      "total_exited": 14700.519986487563,
+      "total_queue": 488.92,
+      "wall_time": 1.18
+    },
+    {
+      "scenario": "osm-siouxfalls-v0",
+      "controller": "SOTLController",
+      "seed": 1,
+      "n_signals": 61,
+      "total_exited": 14831.425738566588,
+      "total_queue": 543.07,
+      "wall_time": 1.187
+    },
+    {
+      "scenario": "osm-siouxfalls-v0",
+      "controller": "SOTLController",
+      "seed": 2,
+      "n_signals": 61,
+      "total_exited": 15246.132496609178,
+      "total_queue": 341.46,
+      "wall_time": 1.181
+    },
+    {
+      "scenario": "osm-siouxfalls-v0",
+      "controller": "GreenWaveController",
+      "seed": 0,
+      "n_signals": 61,
+      "total_exited": 15047.15678594791,
+      "total_queue": 516.13,
+      "wall_time": 1.309
+    },
+    {
+      "scenario": "osm-siouxfalls-v0",
+      "controller": "GreenWaveController",
+      "seed": 1,
+      "n_signals": 61,
+      "total_exited": 15214.958540788582,
+      "total_queue": 549.43,
+      "wall_time": 1.304
+    },
+    {
+      "scenario": "osm-siouxfalls-v0",
+      "controller": "GreenWaveController",
+      "seed": 2,
+      "n_signals": 61,
+      "total_exited": 15294.104959788101,
+      "total_queue": 524.07,
+      "wall_time": 1.292
+    }
+  ],
+  "rankings": {
+    "city_rankings": {
+      "osm-manhattan-v0": {
+        "MaxPressureController": 1,
+        "SOTLController": 2,
+        "FixedTimeController": 3,
+        "GreenWaveController": 4,
+        "WebsterController": 5
+      },
+      "osm-shanghai-v0": {
+        "GreenWaveController": 1,
+        "FixedTimeController": 2,
+        "SOTLController": 3,
+        "MaxPressureController": 4,
+        "WebsterController": 5
+      },
+      "osm-london-v0": {
+        "MaxPressureController": 1,
+        "GreenWaveController": 2,
+        "FixedTimeController": 3,
+        "WebsterController": 4,
+        "SOTLController": 5
+      },
+      "osm-sanfrancisco-v0": {
+        "SOTLController": 1,
+        "MaxPressureController": 2,
+        "FixedTimeController": 3,
+        "GreenWaveController": 4,
+        "WebsterController": 5
+      },
+      "osm-mumbai-v0": {
+        "MaxPressureController": 1,
+        "WebsterController": 2,
+        "SOTLController": 3,
+        "FixedTimeController": 4,
+        "GreenWaveController": 5
+      },
+      "osm-siouxfalls-v0": {
+        "MaxPressureController": 1,
+        "FixedTimeController": 2,
+        "WebsterController": 3,
+        "GreenWaveController": 4,
+        "SOTLController": 5
+      }
+    },
+    "shared_controllers": [
+      "FixedTimeController",
+      "GreenWaveController",
+      "MaxPressureController",
+      "SOTLController",
+      "WebsterController"
+    ],
+    "pairwise_tau": [
+      {
+        "city_a": "osm-london-v0",
+        "city_b": "osm-manhattan-v0",
+        "kendall_tau": 0.2,
+        "p_value": 0.8167
+      },
+      {
+        "city_a": "osm-london-v0",
+        "city_b": "osm-mumbai-v0",
+        "kendall_tau": 0.0,
+        "p_value": 1.0
+      },
+      {
+        "city_a": "osm-london-v0",
+        "city_b": "osm-sanfrancisco-v0",
+        "kendall_tau": 0.0,
+        "p_value": 1.0
+      },
+      {
+        "city_a": "osm-london-v0",
+        "city_b": "osm-shanghai-v0",
+        "kendall_tau": 0.2,
+        "p_value": 0.8167
+      },
+      {
+        "city_a": "osm-london-v0",
+        "city_b": "osm-siouxfalls-v0",
+        "kendall_tau": 0.6,
+        "p_value": 0.2333
+      },
+      {
+        "city_a": "osm-manhattan-v0",
+        "city_b": "osm-mumbai-v0",
+        "kendall_tau": 0.4,
+        "p_value": 0.4833
+      },
+      {
+        "city_a": "osm-manhattan-v0",
+        "city_b": "osm-sanfrancisco-v0",
+        "kendall_tau": 0.8,
+        "p_value": 0.0833
+      },
+      {
+        "city_a": "osm-manhattan-v0",
+        "city_b": "osm-shanghai-v0",
+        "kendall_tau": -0.2,
+        "p_value": 0.8167
+      },
+      {
+        "city_a": "osm-manhattan-v0",
+        "city_b": "osm-siouxfalls-v0",
+        "kendall_tau": 0.2,
+        "p_value": 0.8167
+      },
+      {
+        "city_a": "osm-mumbai-v0",
+        "city_b": "osm-sanfrancisco-v0",
+        "kendall_tau": 0.2,
+        "p_value": 0.8167
+      },
+      {
+        "city_a": "osm-mumbai-v0",
+        "city_b": "osm-shanghai-v0",
+        "kendall_tau": -0.8,
+        "p_value": 0.0833
+      },
+      {
+        "city_a": "osm-mumbai-v0",
+        "city_b": "osm-siouxfalls-v0",
+        "kendall_tau": 0.4,
+        "p_value": 0.4833
+      },
+      {
+        "city_a": "osm-sanfrancisco-v0",
+        "city_b": "osm-shanghai-v0",
+        "kendall_tau": 0.0,
+        "p_value": 1.0
+      },
+      {
+        "city_a": "osm-sanfrancisco-v0",
+        "city_b": "osm-siouxfalls-v0",
+        "kendall_tau": 0.0,
+        "p_value": 1.0
+      },
+      {
+        "city_a": "osm-shanghai-v0",
+        "city_b": "osm-siouxfalls-v0",
+        "kendall_tau": -0.2,
+        "p_value": 0.8167
+      }
+    ],
+    "mean_tau": 0.12
+  }
+}

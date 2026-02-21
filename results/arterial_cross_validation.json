@@ -1,0 +1,106 @@
+{
+  "experiment": "arterial_cross_validation",
+  "scenario": "arterial-5-v0",
+  "sim_seconds": 3600,
+  "results": [
+    {
+      "simulator": "LightSim",
+      "scenario": "arterial-5-v0",
+      "controller": "FixedTimeController",
+      "total_exited": 6329.703361270854,
+      "avg_delay": 0.670503312583949,
+      "total_queue": 42.70215235622104,
+      "wall_time": 0.2602453999861609
+    },
+    {
+      "simulator": "LightSim",
+      "scenario": "arterial-5-v0",
+      "controller": "WebsterController",
+      "total_exited": 5872.960425343968,
+      "avg_delay": 7.624983108024493,
+      "total_queue": 210.09505372910036,
+      "wall_time": 0.2562016999872867
+    },
+    {
+      "simulator": "LightSim",
+      "scenario": "arterial-5-v0",
+      "controller": "MaxPressureController",
+      "total_exited": 6332.4840558277265,
+      "avg_delay": 0.28473851183867926,
+      "total_queue": 20.093618128926213,
+      "wall_time": 0.2691458000044804
+    },
+    {
+      "simulator": "LightSim",
+      "scenario": "arterial-5-v0",
+      "controller": "SOTLController",
+      "total_exited": 6311.175939904175,
+      "avg_delay": 1.1201967957357237,
+      "total_queue": 36.802783806867104,
+      "wall_time": 0.2585600999882445
+    },
+    {
+      "simulator": "LightSim",
+      "scenario": "arterial-5-v0",
+      "controller": "GreenWaveController",
+      "total_exited": 6337.065436058575,
+      "avg_delay": 0.7813323688778295,
+      "total_queue": 43.81044291915986,
+      "wall_time": 0.26669620000757277
+    },
+    {
+      "simulator": "LightSim",
+      "scenario": "arterial-5-v0",
+      "controller": "LostTimeAwareMaxPressureController",
+      "total_exited": 6330.550396292828,
+      "avg_delay": 0.38058986567310205,
+      "total_queue": 22.010645205614672,
+      "wall_time": 0.34871819999534637
+    },
+    {
+      "simulator": "SUMO",
+      "scenario": "arterial-5-v0",
+      "controller": "FixedTimeController",
+      "total_exited": 4354.0,
+      "avg_delay": 24.65,
+      "total_queue": 281.0,
+      "wall_time": 3.293028999993112
+    },
+    {
+      "simulator": "SUMO",
+      "scenario": "arterial-5-v0",
+      "controller": "ActuatedController",
+      "total_exited": 4466.0,
+      "avg_delay": 0.89,
+      "total_queue": 11.0,
+      "wall_time": 2.701470400003018
+    },
+    {
+      "simulator": "SUMO",
+      "scenario": "arterial-5-v0",
+      "controller": "MaxPressureController",
+      "total_exited": 4472.0,
+      "avg_delay": 0.255,
+      "total_queue": 14.0,
+      "wall_time": 24.13647690002108
+    },
+    {
+      "simulator": "SUMO",
+      "scenario": "arterial-5-v0",
+      "controller": "SOTLController",
+      "total_exited": 4454.0,
+      "avg_delay": 1.19,
+      "total_queue": 34.0,
+      "wall_time": 12.42814350000117
+    }
+  ],
+  "ranking_correlation": {
+    "shared_controllers": [
+      "FixedTimeController",
+      "MaxPressureController",
+      "SOTLController"
+    ],
+    "kendall_tau": 0.333,
+    "p_value": 1.0
+  }
+}
