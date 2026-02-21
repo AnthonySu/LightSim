@@ -184,9 +184,8 @@ class SUMOMultiAgentWrapper(gym.Env):
     def _make_env(self, seed=None):
         """Create sumo_rl grid env."""
         import sumo_rl
-        env = sumo_rl.parallel_env(
-            net_file=sumo_rl.grid4x4_net,
-            route_file=sumo_rl.grid4x4_rou1,
+        env = sumo_rl.grid4x4(
+            parallel=True,
             num_seconds=self.max_steps,
             reward_fn="diff-waiting-time",
             sumo_warnings=False,
