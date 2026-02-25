@@ -84,13 +84,26 @@ def make(
     Parameters
     ----------
     scenario : str
-        Registered scenario name.
-    dt, sim_steps_per_action, max_steps : float/int
-        Simulation parameters.
-    obs_builder, action_handler, reward_fn : str
-        Registered component names.
+        Scenario name. Synthetic: ``single-intersection-v0``, ``grid-4x4-v0``,
+        ``arterial-5-v0``. OSM cities: ``osm-manhattan-v0``, ``osm-shanghai-v0``,
+        etc. (16 cities total). Use an invalid name to see all options.
+    dt : float
+        Simulation time step in seconds (default: 1.0).
+    sim_steps_per_action : int
+        Simulation steps per RL decision step (default: 5).
+    max_steps : int
+        Episode length in decision steps (default: 720 = 1 hour).
+    obs_builder : str
+        Observation type: ``"default"``, ``"pressure"``, ``"full_density"``.
+    action_handler : str
+        Action type: ``"phase_select"``, ``"next_or_stay"``.
+    reward_fn : str
+        Reward function: ``"queue"``, ``"pressure"``, ``"delay"``,
+        ``"waiting_time"``, ``"throughput"``, ``"normalized_throughput"``.
     render_mode : str, optional
         Gymnasium render mode.
+    stochastic : bool
+        Enable mesoscopic mode with Poisson demand (default: False).
     **scenario_kwargs
         Extra kwargs passed to the scenario factory.
     """
@@ -128,7 +141,18 @@ def parallel_env(
 ) -> "LightSimParallelEnv":  # noqa: F821
     """Create a multi-agent LightSim PettingZoo ParallelEnv.
 
-    Requires ``pettingzoo`` to be installed.
+    Each signalized intersection becomes an independent agent. Requires
+    ``pettingzoo`` (install with ``pip install lightsim[multi]``).
+
+    Usage::
+
+        import lightsim
+        env = lightsim.parallel_env("grid-4x4-v0")
+        observations, infos = env.reset()
+        actions = {a: env.action_space(a).sample() for a in env.agents}
+        observations, rewards, terms, truncs, infos = env.step(actions)
+
+    Parameters are the same as :func:`make`. See ``make()`` for details.
     """
     from .benchmarks.scenarios import get_scenario
     from .envs.multi_agent import LightSimParallelEnv
