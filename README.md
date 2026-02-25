@@ -10,6 +10,7 @@
 [![Gymnasium](https://img.shields.io/badge/gymnasium-%E2%89%A50.29-0081A5.svg)](https://gymnasium.farama.org/)
 [![PettingZoo](https://img.shields.io/badge/pettingzoo-multi--agent-8B5CF6.svg)](https://pettingzoo.farama.org/)
 [![License: MIT](https://img.shields.io/badge/license-MIT-97CA00.svg)](LICENSE)
+[![CI](https://github.com/AnthonySu/LightSim/actions/workflows/ci.yml/badge.svg)](https://github.com/AnthonySu/LightSim/actions/workflows/ci.yml)
 
 </div>
 
@@ -49,6 +50,22 @@ It replaces individual vehicle tracking with macroscopic flow dynamics &mdash; r
 <td align="center"><sub>Manhattan, Midtown</sub></td>
 </tr>
 </table>
+
+### Why LightSim?
+
+|  | LightSim | SUMO | CityFlow |
+|---|:---:|:---:|:---:|
+| `pip install` | yes | no | no |
+| Pure Python | yes | C++ | C++ |
+| Gymnasium API | built-in | wrapper | wrapper |
+| PettingZoo API | built-in | no | no |
+| Steps/s (1 intx) | 21,000 | 5,000 | ~8,000 |
+| RL training speedup | baseline | 3&ndash;7x slower | ~2x slower |
+| Config format | Python dict | XML | JSON |
+| OSM import | built-in | external | no |
+| Web visualization | built-in | SUMO-GUI | no |
+
+LightSim is **not** a SUMO replacement&mdash;it is a fast prototyping environment that preserves algorithmic rankings, letting you iterate quickly before validating in higher-fidelity simulators.
 
 ---
 
@@ -198,6 +215,10 @@ python -m lightsim.viz --scenario osm-manhattan-v0
 python -m lightsim.viz --checkpoint model.zip --algo PPO
 ```
 
+<p align="center">
+<img src="docs/viz_hero.png" alt="LightSim web visualization dashboard" width="700">
+</p>
+
 ---
 
 ## Architecture
@@ -298,6 +319,17 @@ If you use LightSim in your research, please cite:
   url     = {https://github.com/AnthonySu/LightSim},
 }
 ```
+
+## Development
+
+```bash
+git clone https://github.com/AnthonySu/LightSim.git
+cd LightSim
+pip install -e ".[dev]"
+pytest                           # run test suite (~7s)
+```
+
+Contributions are welcome. Please open an issue or pull request on [GitHub](https://github.com/AnthonySu/LightSim/issues).
 
 ## License
 
