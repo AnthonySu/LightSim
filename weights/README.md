@@ -1,59 +1,53 @@
 # Pretrained Model Weights
 
-Pretrained Stable-Baselines3 checkpoints for the LightSim `single-intersection-v0` scenario.
-All models were trained for 100,000 timesteps and evaluated over 5 episodes (3,600 steps each).
+Pretrained Stable-Baselines3 checkpoints for reproducing paper results.
 
-## Available Models
+## Single-Agent Models (single-intersection-v0)
 
-| File | Algorithm | Scenario | Reward Function | Training Steps | Mean Eval Reward |
-|------|-----------|----------|-----------------|----------------|------------------|
-| `dqn_single_intersection.zip` | DQN | single-intersection-v0 | queue | 100k | -639,560.54 |
-| `ppo_single_intersection.zip` | PPO | single-intersection-v0 | queue | 100k | -25,098.93 |
-| `dqn_single_intersection_pressure.zip` | DQN | single-intersection-v0 | pressure | 100k | -777.68 |
-| `ppo_single_intersection_pressure.zip` | PPO | single-intersection-v0 | pressure | 100k | -760.28 |
+| File | Algorithm | Reward | Steps | Reward/step | Throughput |
+|------|-----------|--------|-------|-------------|------------|
+| `dqn_single_intersection.zip` | DQN | queue | 100k | -11.35 | 3,538 |
+| `ppo_single_intersection.zip` | PPO | queue | 100k | -6.89 | 3,542 |
+| `dqn_single_intersection_pressure.zip` | DQN | pressure | 100k | -0.21 | 3,543 |
+| `ppo_single_intersection_pressure.zip` | PPO | pressure | 100k | -0.21 | 3,543 |
 
-### Notes
+**Baselines:** FixedTime = -13.94 reward/step, MaxPressure = -7.90 reward/step.
+All RL models outperform baselines. Paper reports mean over 5 seeds; these are single-seed (42).
 
-- **Queue reward** penalizes total queue length per step, so cumulative rewards are large negative numbers. PPO significantly outperforms DQN on this reward.
-- **Pressure reward** penalizes the difference between upstream and downstream occupancy. Both DQN and PPO achieve comparable performance, with PPO slightly ahead.
-- All episodes run for the full 3,600 steps (max_steps default).
-- Evaluation uses deterministic action selection (`model.predict(obs, deterministic=True)`).
+## Multi-Agent Model (grid-4x4-v0)
+
+| File | Algorithm | Scenario | Steps | Notes |
+|------|-----------|----------|-------|-------|
+| `dqn_grid4x4_multi.zip` | DQN | grid-4x4-v0 | 50k | Shared-parameter, 16 agents |
 
 ## Usage
 
 ```python
-from stable_baselines3 import DQN, PPO
 import lightsim
+from lightsim.pretrained import load_pretrained, list_pretrained
 
-# Load a pretrained model
+# List available models
+print(list_pretrained())
+
+# Load and evaluate
 env = lightsim.make("single-intersection-v0")
-model = PPO.load("weights/ppo_single_intersection", env=env)
+model = load_pretrained("ppo_single_intersection", env=env)
 
-# Evaluate
 obs, info = env.reset()
 total_reward = 0.0
 done = False
-truncated = False
-while not done and not truncated:
+while not done:
     action, _ = model.predict(obs, deterministic=True)
-    obs, reward, done, truncated, info = env.step(action)
+    obs, reward, terminated, truncated, info = env.step(action)
     total_reward += reward
+    done = terminated or truncated
 
-print(f"Total reward: {total_reward:.2f}")
-```
-
-For pressure reward models:
-```python
-env = lightsim.make("single-intersection-v0", reward_fn="pressure")
-model = PPO.load("weights/ppo_single_intersection_pressure", env=env)
+print(f"Reward/step: {total_reward / 720:.2f}")
 ```
 
 ## Reproducing
 
-To retrain all models from scratch:
 ```bash
-cd <repo_root>
-python train_models.py
+python scripts/train_pretrained.py          # single-agent models
+python scripts/evaluate_pretrained.py       # evaluate all
 ```
-
-This will train all 4 models and save evaluation results to `weights/eval_results.json`.
