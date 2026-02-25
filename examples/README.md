@@ -9,8 +9,10 @@ Runnable examples demonstrating LightSim's key features. Each script is self-con
 | `custom_network.py` | Build a T-intersection from scratch with the Network API |
 | `json_network.py` | Define a corridor network via JSON/dict specification |
 | `multi_agent.py` | Control a 4x4 grid with PettingZoo multi-agent interface |
+| `mesoscopic.py` | Run with stochastic demand and start-up lost time |
 | `load_pretrained.py` | Load and evaluate a pretrained DQN checkpoint |
 | `record_and_replay.py` | Record simulation frames for web visualization replay |
+| `demo.ipynb` | Interactive Jupyter notebook covering all core features |
 
 ## Running
 
@@ -20,6 +22,8 @@ python examples/max_pressure.py
 python examples/custom_network.py
 python examples/json_network.py
 python examples/multi_agent.py
+python examples/mesoscopic.py
 python examples/load_pretrained.py      # requires stable-baselines3
 python examples/record_and_replay.py    # requires lightsim[viz]
+jupyter notebook examples/demo.ipynb    # interactive walkthrough
 ```
