@@ -23,7 +23,7 @@ All RL models outperform baselines. Paper reports mean over 5 seeds; these are s
 
 Multi-agent models use a single policy network shared across all 16 intersections.
 Observations are zero-padded to the maximum dimension (14) to handle heterogeneous
-intersection sizes (corner=14, edge=12, center=10 dimensions).
+intersection sizes (corner=14, edge=12, center=10 observation dimensions).
 
 ## Usage
 
