@@ -126,16 +126,27 @@ def main():
               f"tput={r['mean_throughput']:8.0f}")
 
     # Summary table
+    sorted_results = sorted(results, key=lambda x: x["per_step_reward"], reverse=True)
     print(f"\n{'='*70}")
     print(f"{'Controller':35s} {'Reward/step':>12s} {'Throughput':>12s}")
     print(f"{'-'*70}")
-    for r in sorted(results, key=lambda x: x["per_step_reward"], reverse=True):
+    for r in sorted_results:
         label = r["name"]
         if r["reward_fn"] != "queue":
             label += f" [{r['reward_fn']}]"
         std_str = f" +/- {r['std_reward']/720:.2f}" if r["std_reward"] > 0 else ""
         print(f"{label:35s} {r['per_step_reward']:8.2f}{std_str:>12s} "
               f"{r['mean_throughput']:8.0f}")
+
+    # Markdown table
+    print(f"\n### Markdown Table\n")
+    print("| Controller | Reward/step | Throughput |")
+    print("|------------|-------------|------------|")
+    for r in sorted_results:
+        label = r["name"]
+        if r["reward_fn"] != "queue":
+            label += f" [{r['reward_fn']}]"
+        print(f"| {label} | {r['per_step_reward']:.2f} | {r['mean_throughput']:,.0f} |")
 
 
 if __name__ == "__main__":
