@@ -130,6 +130,7 @@ class LightSimEnv(gym.Env):
         seed: int | None = None,
         options: dict[str, Any] | None = None,
     ) -> tuple[np.ndarray, dict[str, Any]]:
+        """Reset the environment to an empty network and return initial observation."""
         super().reset(seed=seed)
         self.engine = SimulationEngine(
             network=self.network,
@@ -148,6 +149,7 @@ class LightSimEnv(gym.Env):
     def step(
         self, action: int | np.integer,
     ) -> tuple[np.ndarray, float, bool, bool, dict[str, Any]]:
+        """Apply action, advance simulation by ``sim_steps_per_action`` steps, return (obs, reward, term, trunc, info)."""
         # Apply action
         self._action_handler.apply(action, self.engine, self.agent_node)
 
