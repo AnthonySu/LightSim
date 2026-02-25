@@ -222,6 +222,33 @@ lightsim/
 
 ---
 
+## Pretrained Models
+
+Pretrained RL checkpoints are included in `weights/` for immediate evaluation:
+
+```python
+from lightsim.pretrained import load_pretrained, list_pretrained
+import lightsim
+
+print(list_pretrained())
+# ['dqn_single_intersection', 'dqn_single_intersection_pressure',
+#  'ppo_single_intersection', 'ppo_single_intersection_pressure']
+
+env = lightsim.make("single-intersection-v0", max_steps=720)
+model = load_pretrained("ppo_single_intersection", env=env)
+
+obs, info = env.reset()
+done = False
+while not done:
+    action, _ = model.predict(obs, deterministic=True)
+    obs, reward, terminated, truncated, info = env.step(action)
+    done = terminated or truncated
+```
+
+See [`weights/README.md`](weights/README.md) for full details and performance numbers.
+
+---
+
 ## Reproducing Paper Results
 
 ```bash
@@ -234,6 +261,8 @@ python scripts/cross_validation_mesoscopic.py           # Mesoscopic experiments
 python scripts/rl_mesoscopic_experiment.py              # Mesoscopic RL
 python scripts/generate_figures.py                      # All paper figures
 ```
+
+See [`scripts/README.md`](scripts/README.md) for a complete mapping of scripts to paper figures and tables.
 
 ---
 

@@ -10,6 +10,7 @@ from .observations import (
 )
 from .rewards import (
     DelayReward,
+    NormalizedThroughputReward,
     PressureReward,
     QueueReward,
     RewardFunction,
@@ -33,6 +34,7 @@ __all__ = [
     "PressureReward",
     "DelayReward",
     "ThroughputReward",
+    "NormalizedThroughputReward",
     "WaitingTimeReward",
     "get_reward_function",
     # Actions

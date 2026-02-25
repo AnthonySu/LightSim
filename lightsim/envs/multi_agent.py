@@ -41,7 +41,7 @@ class LightSimParallelEnv(ParallelEnv):
         network: Network,
         dt: float = 1.0,
         sim_steps_per_action: int = 5,
-        max_steps: int = 3600,
+        max_steps: int = 720,
         obs_builder: str | ObservationBuilder = "default",
         action_handler: str | ActionHandler = "phase_select",
         reward_fn: str | RewardFunction = "queue",
