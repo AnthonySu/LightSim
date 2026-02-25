@@ -1,0 +1,155 @@
+{
+  "single-intersection-v0": {
+    "FixedTime": {
+      "throughput": 3540,
+      "vehicles": 60.2,
+      "avg_density": 0.0125,
+      "total_entered": 3600,
+      "wall_time_s": 0.16
+    },
+    "Webster": {
+      "throughput": 3541,
+      "vehicles": 59.2,
+      "avg_density": 0.0123,
+      "total_entered": 3600,
+      "wall_time_s": 0.15
+    },
+    "SOTL": {
+      "throughput": 3535,
+      "vehicles": 65.3,
+      "avg_density": 0.0136,
+      "total_entered": 3600,
+      "wall_time_s": 0.17
+    },
+    "MaxPressure": {
+      "throughput": 3542,
+      "vehicles": 58.3,
+      "avg_density": 0.0121,
+      "total_entered": 3600,
+      "wall_time_s": 0.18
+    },
+    "LT-Aware-MP": {
+      "throughput": 3541,
+      "vehicles": 58.9,
+      "avg_density": 0.0123,
+      "total_entered": 3600,
+      "wall_time_s": 0.17
+    },
+    "EfficientMP": {
+      "throughput": 2132,
+      "vehicles": 207.8,
+      "avg_density": 0.0433,
+      "total_entered": 2340,
+      "wall_time_s": 0.18
+    },
+    "GreenWave": {
+      "throughput": 3542,
+      "vehicles": 58.2,
+      "avg_density": 0.0121,
+      "total_entered": 3600,
+      "wall_time_s": 0.18
+    }
+  },
+  "grid-4x4-v0": {
+    "FixedTime": {
+      "throughput": 18523,
+      "vehicles": 5108.3,
+      "avg_density": 0.0676,
+      "total_entered": 23631,
+      "wall_time_s": 0.82
+    },
+    "Webster": {
+      "throughput": 17243,
+      "vehicles": 5094.4,
+      "avg_density": 0.0674,
+      "total_entered": 22337,
+      "wall_time_s": 0.7
+    },
+    "SOTL": {
+      "throughput": 18518,
+      "vehicles": 5114.4,
+      "avg_density": 0.0677,
+      "total_entered": 23632,
+      "wall_time_s": 0.77
+    },
+    "MaxPressure": {
+      "throughput": 17668,
+      "vehicles": 5339.6,
+      "avg_density": 0.0706,
+      "total_entered": 23008,
+      "wall_time_s": 0.72
+    },
+    "LT-Aware-MP": {
+      "throughput": 19243,
+      "vehicles": 4918.6,
+      "avg_density": 0.0651,
+      "total_entered": 24162,
+      "wall_time_s": 0.97
+    },
+    "EfficientMP": {
+      "throughput": 17361,
+      "vehicles": 5863.9,
+      "avg_density": 0.0776,
+      "total_entered": 23225,
+      "wall_time_s": 0.87
+    },
+    "GreenWave": {
+      "throughput": 18523,
+      "vehicles": 5108.0,
+      "avg_density": 0.0676,
+      "total_entered": 23631,
+      "wall_time_s": 0.74
+    }
+  },
+  "arterial-5-v0": {
+    "FixedTime": {
+      "throughput": 6330,
+      "vehicles": 150.3,
+      "avg_density": 0.0111,
+      "total_entered": 6480,
+      "wall_time_s": 0.28
+    },
+    "Webster": {
+      "throughput": 5873,
+      "vehicles": 305.5,
+      "avg_density": 0.0225,
+      "total_entered": 6178,
+      "wall_time_s": 0.27
+    },
+    "SOTL": {
+      "throughput": 6311,
+      "vehicles": 168.8,
+      "avg_density": 0.0124,
+      "total_entered": 6480,
+      "wall_time_s": 0.28
+    },
+    "MaxPressure": {
+      "throughput": 6332,
+      "vehicles": 147.5,
+      "avg_density": 0.0108,
+      "total_entered": 6480,
+      "wall_time_s": 0.28
+    },
+    "LT-Aware-MP": {
+      "throughput": 6331,
+      "vehicles": 149.4,
+      "avg_density": 0.011,
+      "total_entered": 6480,
+      "wall_time_s": 0.37
+    },
+    "EfficientMP": {
+      "throughput": 4936,
+      "vehicles": 229.1,
+      "avg_density": 0.0168,
+      "total_entered": 5165,
+      "wall_time_s": 0.36
+    },
+    "GreenWave": {
+      "throughput": 6337,
+      "vehicles": 142.9,
+      "avg_density": 0.0105,
+      "total_entered": 6480,
+      "wall_time_s": 0.3
+    }
+  }
+}

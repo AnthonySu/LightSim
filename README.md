@@ -271,11 +271,11 @@ See [`scripts/README.md`](scripts/README.md) for a complete mapping of scripts t
 If you use LightSim in your research, please cite:
 
 ```bibtex
-@article{su2025lightsim,
+@article{su2026lightsim,
   author  = {Su, Haoran and Deng, Hanxiao},
   title   = {LightSim: A Lightweight Cell Transmission Model Simulator
              for Traffic Signal Control Research},
-  year    = {2025},
+  year    = {2026},
   url     = {https://github.com/AnthonySu/LightSim},
 }
 ```

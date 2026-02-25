@@ -1,6 +1,6 @@
 # Pretrained Model Weights
 
-Pretrained Stable-Baselines3 checkpoints for reproducing paper results.
+Pretrained Stable-Baselines3 checkpoints for reproducing paper results and quick evaluation.
 
 ## Single-Agent Models (single-intersection-v0)
 
@@ -14,11 +14,16 @@ Pretrained Stable-Baselines3 checkpoints for reproducing paper results.
 **Baselines:** FixedTime = -13.94 reward/step, MaxPressure = -7.90 reward/step.
 All RL models outperform baselines. Paper reports mean over 5 seeds; these are single-seed (42).
 
-## Multi-Agent Model (grid-4x4-v0)
+## Multi-Agent Models (grid-4x4-v0, 16 agents)
 
-| File | Algorithm | Scenario | Steps | Notes |
-|------|-----------|----------|-------|-------|
-| `dqn_grid4x4_multi.zip` | DQN | grid-4x4-v0 | 50k | Shared-parameter, 16 agents |
+| File | Algorithm | Steps | Notes |
+|------|-----------|-------|-------|
+| `dqn_grid4x4_multi.zip` | DQN | 100k | Shared-parameter, zero-padded obs (dim 14) |
+| `ppo_grid4x4_multi.zip` | PPO | 100k | Shared-parameter, zero-padded obs (dim 14) |
+
+Multi-agent models use a single policy network shared across all 16 intersections.
+Observations are zero-padded to the maximum dimension (14) to handle heterogeneous
+intersection sizes (corner=14, edge=12, center=10 dimensions).
 
 ## Usage
 
@@ -29,7 +34,7 @@ from lightsim.pretrained import load_pretrained, list_pretrained
 # List available models
 print(list_pretrained())
 
-# Load and evaluate
+# Load and evaluate a single-agent model
 env = lightsim.make("single-intersection-v0")
 model = load_pretrained("ppo_single_intersection", env=env)
 
@@ -48,6 +53,8 @@ print(f"Reward/step: {total_reward / 720:.2f}")
 ## Reproducing
 
 ```bash
-python scripts/train_pretrained.py          # single-agent models
-python scripts/evaluate_pretrained.py       # evaluate all
+python scripts/train_pretrained.py              # train all models
+python scripts/train_pretrained.py --single-only # single-agent only
+python scripts/train_pretrained.py --multi-only  # multi-agent only
+python scripts/evaluate_pretrained.py            # evaluate all
 ```

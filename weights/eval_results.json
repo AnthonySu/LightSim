@@ -4,63 +4,60 @@
     "env_id": "single-intersection-v0",
     "reward_fn": "queue",
     "timesteps": 100000,
-    "mean_reward": -639560.544127625,
+    "reward_per_step": -11.35,
+    "throughput": 3538,
+    "mean_reward": -639560.54,
     "std_reward": 0.0,
-    "mean_length": 3600.0,
-    "rewards": [
-      -639560.544127625,
-      -639560.544127625,
-      -639560.544127625,
-      -639560.544127625,
-      -639560.544127625
-    ]
+    "seed": 42
   },
   "ppo_single_intersection": {
     "algorithm": "PPO",
     "env_id": "single-intersection-v0",
     "reward_fn": "queue",
     "timesteps": 100000,
-    "mean_reward": -25098.93477278722,
+    "reward_per_step": -6.89,
+    "throughput": 3542,
+    "mean_reward": -25098.93,
     "std_reward": 0.0,
-    "mean_length": 3600.0,
-    "rewards": [
-      -25098.93477278722,
-      -25098.93477278722,
-      -25098.93477278722,
-      -25098.93477278722,
-      -25098.93477278722
-    ]
+    "seed": 42
   },
   "dqn_single_intersection_pressure": {
     "algorithm": "DQN",
     "env_id": "single-intersection-v0",
     "reward_fn": "pressure",
     "timesteps": 100000,
-    "mean_reward": -777.6803143271,
+    "reward_per_step": -0.21,
+    "throughput": 3543,
+    "mean_reward": -777.68,
     "std_reward": 0.0,
-    "mean_length": 3600.0,
-    "rewards": [
-      -777.6803143271,
-      -777.6803143271,
-      -777.6803143271,
-      -777.6803143271,
-      -777.6803143271
-    ]
+    "seed": 42
   },
   "ppo_single_intersection_pressure": {
     "algorithm": "PPO",
     "env_id": "single-intersection-v0",
     "reward_fn": "pressure",
     "timesteps": 100000,
-    "mean_reward": -760.2776536208597,
+    "reward_per_step": -0.21,
+    "throughput": 3543,
+    "mean_reward": -760.28,
     "std_reward": 0.0,
-    "mean_length": 3600.0,
-    "rewards": [
-      -760.2776536208597,
-      -760.2776536208597,
-      -760.2776536208597,
-      -760.2776536208597,
-      -760.2776536208597
-    ]
+    "seed": 42
+  },
+  "dqn_grid4x4_multi": {
+    "algorithm": "DQN",
+    "env_id": "grid-4x4-v0",
+    "reward_fn": "queue",
+    "timesteps": 100000,
+    "notes": "shared-parameter across 16 agents, obs zero-padded to dim 14",
+    "seed": 42
+  },
+  "ppo_grid4x4_multi": {
+    "algorithm": "PPO",
+    "env_id": "grid-4x4-v0",
+    "reward_fn": "queue",
+    "timesteps": 100000,
+    "notes": "shared-parameter across 16 agents, obs zero-padded to dim 14",
+    "train_time_s": 198.6,
+    "seed": 42
   }
 }

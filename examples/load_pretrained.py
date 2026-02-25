@@ -14,7 +14,7 @@ from lightsim.pretrained import list_pretrained, load_pretrained
 print("Available pretrained models:", list_pretrained())
 
 # Load a pretrained DQN
-env = lightsim.make("single-intersection-v0", max_steps=3600)
+env = lightsim.make("single-intersection-v0", max_steps=720)
 model = load_pretrained("dqn_single_intersection", env=env)
 
 # Run one episode
@@ -35,6 +35,6 @@ metrics = env.unwrapped.engine.get_network_metrics()
 print(f"\nEpisode complete ({step} steps)")
 print(f"  Total reward: {total_reward:.2f}")
 print(f"  Reward/step:  {total_reward / step:.2f}")
-print(f"  Throughput:   {metrics.get('total_throughput', 0)}")
-print(f"  Avg delay:    {metrics.get('average_delay', 0.0):.2f}s")
+print(f"  Throughput:   {metrics.get('total_exited', 0):.0f}")
+print(f"  Vehicles:     {metrics.get('total_vehicles', 0):.1f}")
 env.close()
