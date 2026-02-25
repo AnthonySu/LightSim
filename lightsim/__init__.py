@@ -1,4 +1,28 @@
-"""LightSim: Lightweight CTM-based traffic signal simulation for RL research."""
+"""LightSim: Lightweight CTM-based traffic signal simulation for RL research.
+
+Quick start::
+
+    import lightsim
+
+    # Single-agent Gymnasium environment
+    env = lightsim.make("single-intersection-v0")
+    obs, info = env.reset()
+
+    # Multi-agent PettingZoo environment
+    pz = lightsim.parallel_env("grid-4x4-v0")
+
+    # Load a pretrained checkpoint
+    model = lightsim.load_pretrained("ppo_single_intersection", env=env)
+
+Available scenarios: single-intersection-v0, grid-4x4-v0, arterial-5-v0,
+and 16 OSM city networks (osm-manhattan-v0, osm-shanghai-v0, etc.).
+
+Controllers: FixedTime, Webster, SOTL, MaxPressure,
+LostTimeAwareMaxPressure, EfficientMaxPressure, GreenWave, RL.
+
+Reward functions: queue, pressure, delay, waiting_time, throughput,
+normalized_throughput.
+"""
 
 from __future__ import annotations
 

@@ -15,9 +15,13 @@ matplotlib.use('Agg')
 import matplotlib.pyplot as plt
 import numpy as np
 
-# Output directory
-OVERLEAF = Path(r"C:\Users\admin\Projects\69927a89543379cbbfcbc218\figures")
-RESULTS = Path(r"C:\Users\admin\Projects\lightsim\results")
+# Output directory — use OVERLEAF_DIR env var or default to ../69927a89543379cbbfcbc218
+PROJECT_ROOT = Path(__file__).resolve().parent.parent
+OVERLEAF = Path(os.environ.get(
+    "OVERLEAF_DIR",
+    str(PROJECT_ROOT.parent / "69927a89543379cbbfcbc218")
+)) / "figures"
+RESULTS = PROJECT_ROOT / "results"
 OVERLEAF.mkdir(parents=True, exist_ok=True)
 
 # Global academic style — white backgrounds, thin lines, Computer Modern fonts

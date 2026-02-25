@@ -169,6 +169,25 @@ print(engine.get_network_metrics())
 
 ---
 
+## Reward Functions (6)
+
+| Reward | String key | Description |
+|---|---|---|
+| `QueueReward` | `"queue"` | Negative total queue on incoming links (default) |
+| `PressureReward` | `"pressure"` | Negative absolute pressure at the intersection |
+| `DelayReward` | `"delay"` | Negative total delay on incoming links |
+| `WaitingTimeReward` | `"waiting_time"` | Negative vehicle-seconds waiting (queued vehicles × dt) |
+| `ThroughputReward` | `"throughput"` | Total flow through the intersection's movements |
+| `NormalizedThroughputReward` | `"normalized_throughput"` | Throughput / max capacity, normalized to [0, 1] |
+
+Pass any string key to `lightsim.make()`:
+
+```python
+env = lightsim.make("single-intersection-v0", reward_fn="pressure")
+```
+
+---
+
 ## Visualization
 
 A built-in web dashboard streams simulation state via WebSocket to an HTML5 Canvas frontend:

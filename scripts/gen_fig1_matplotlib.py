@@ -1,5 +1,8 @@
 """Generate Figure 1: CTM Explanation — clean vector PDF with matplotlib."""
 
+import os
+from pathlib import Path
+
 import matplotlib
 matplotlib.use("Agg")
 import matplotlib.pyplot as plt
@@ -195,7 +198,13 @@ ax_c.text(2.35, -0.45, "E", ha="center", fontsize=7, color="#999")
 ax_c.text(-2.35, -0.45, "W", ha="center", fontsize=7, color="#999")
 
 # Save
-outpath = r"C:\Users\admin\Projects\69927a89543379cbbfcbc218\figures\ctm_explanation.pdf"
+_project_root = Path(__file__).resolve().parent.parent
+_overleaf = Path(os.environ.get(
+    "OVERLEAF_DIR",
+    str(_project_root.parent / "69927a89543379cbbfcbc218")
+)) / "figures"
+_overleaf.mkdir(parents=True, exist_ok=True)
+outpath = str(_overleaf / "ctm_explanation.pdf")
 fig.savefig(outpath, bbox_inches="tight", dpi=300, pad_inches=0.05)
 print(f"Saved: {outpath}")
 

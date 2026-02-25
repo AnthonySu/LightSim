@@ -8,9 +8,11 @@ Tests both branches of the triangular FD:
 import json
 import os
 import sys
+from pathlib import Path
+
 import numpy as np
 
-sys.path.insert(0, r"C:/Users/admin/Projects/lightsim")
+sys.path.insert(0, str(Path(__file__).resolve().parent.parent))
 
 from lightsim.core.engine import SimulationEngine
 from lightsim.core.network import Network
@@ -144,7 +146,7 @@ def run_fd_validation():
         "q_theory": q_theory.tolist(),
         "r_squared": r_squared,
     }
-    output_path = r"C:/Users/admin/Projects/lightsim/results/fundamental_diagram_full.json"
+    output_path = str(Path(__file__).resolve().parent.parent / "results" / "fundamental_diagram_full.json")
     os.makedirs(os.path.dirname(output_path), exist_ok=True)
     with open(output_path, "w") as f:
         json.dump(results, f, indent=2)

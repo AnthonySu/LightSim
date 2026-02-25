@@ -3,6 +3,9 @@
 Produces a 2x3 grid showing 6 real-world city networks imported from OSM.
 """
 
+import os
+from pathlib import Path
+
 import matplotlib
 matplotlib.use("Agg")
 import matplotlib.pyplot as plt
@@ -119,7 +122,13 @@ fig.suptitle("Real-World City Networks from OpenStreetMap (500m radius)",
 plt.tight_layout(rect=[0, 0.03, 1, 0.95])
 
 # Save
-outpath = r"C:\Users\admin\Projects\69927a89543379cbbfcbc218\figures\osm_cities.pdf"
+_project_root = Path(__file__).resolve().parent.parent
+_overleaf = Path(os.environ.get(
+    "OVERLEAF_DIR",
+    str(_project_root.parent / "69927a89543379cbbfcbc218")
+)) / "figures"
+_overleaf.mkdir(parents=True, exist_ok=True)
+outpath = str(_overleaf / "osm_cities.pdf")
 fig.savefig(outpath, bbox_inches="tight", dpi=300, pad_inches=0.1)
 print(f"Saved: {outpath}")
 

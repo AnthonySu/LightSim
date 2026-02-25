@@ -244,7 +244,11 @@ def generate_figure(data: dict):
     matplotlib.use('Agg')
     import matplotlib.pyplot as plt
 
-    OVERLEAF = Path(r"C:\Users\admin\Projects\69927a89543379cbbfcbc218\figures")
+    _project_root = Path(__file__).resolve().parent.parent
+    OVERLEAF = Path(os.environ.get(
+        "OVERLEAF_DIR",
+        str(_project_root.parent / "69927a89543379cbbfcbc218")
+    )) / "figures"
     OVERLEAF.mkdir(parents=True, exist_ok=True)
 
     plt.rcParams.update({
