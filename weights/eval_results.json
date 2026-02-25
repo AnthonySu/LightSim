@@ -1,0 +1,66 @@
+{
+  "dqn_single_intersection": {
+    "algorithm": "DQN",
+    "env_id": "single-intersection-v0",
+    "reward_fn": "queue",
+    "timesteps": 100000,
+    "mean_reward": -639560.544127625,
+    "std_reward": 0.0,
+    "mean_length": 3600.0,
+    "rewards": [
+      -639560.544127625,
+      -639560.544127625,
+      -639560.544127625,
+      -639560.544127625,
+      -639560.544127625
+    ]
+  },
+  "ppo_single_intersection": {
+    "algorithm": "PPO",
+    "env_id": "single-intersection-v0",
+    "reward_fn": "queue",
+    "timesteps": 100000,
+    "mean_reward": -25098.93477278722,
+    "std_reward": 0.0,
+    "mean_length": 3600.0,
+    "rewards": [
+      -25098.93477278722,
+      -25098.93477278722,
+      -25098.93477278722,
+      -25098.93477278722,
+      -25098.93477278722
+    ]
+  },
+  "dqn_single_intersection_pressure": {
+    "algorithm": "DQN",
+    "env_id": "single-intersection-v0",
+    "reward_fn": "pressure",
+    "timesteps": 100000,
+    "mean_reward": -777.6803143271,
+    "std_reward": 0.0,
+    "mean_length": 3600.0,
+    "rewards": [
+      -777.6803143271,
+      -777.6803143271,
+      -777.6803143271,
+      -777.6803143271,
+      -777.6803143271
+    ]
+  },
+  "ppo_single_intersection_pressure": {
+    "algorithm": "PPO",
+    "env_id": "single-intersection-v0",
+    "reward_fn": "pressure",
+    "timesteps": 100000,
+    "mean_reward": -760.2776536208597,
+    "std_reward": 0.0,
+    "mean_length": 3600.0,
+    "rewards": [
+      -760.2776536208597,
+      -760.2776536208597,
+      -760.2776536208597,
+      -760.2776536208597,
+      -760.2776536208597
+    ]
+  }
+}

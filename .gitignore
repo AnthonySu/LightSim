@@ -33,3 +33,6 @@ results/rl_curves/
 
 # Screenshots (kept locally, not in repo)
 screenshots/
+
+# Pretrained model weights (keep in repo)
+!weights/*.zip

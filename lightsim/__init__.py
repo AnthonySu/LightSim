@@ -20,6 +20,7 @@ from .core.signal import (
 )
 from .core.types import LinkID, NodeID, NodeType, TurnType
 from .envs.single_agent import LightSimEnv
+from .pretrained import list_pretrained, load_pretrained
 
 __version__ = "0.1.0"
 
