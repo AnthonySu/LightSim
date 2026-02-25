@@ -33,6 +33,14 @@ class TestListPretrained:
         assert WEIGHTS_DIR.exists(), f"Weights directory not found: {WEIGHTS_DIR}"
 
 
+try:
+    import stable_baselines3  # noqa: F401
+    _has_sb3 = True
+except ImportError:
+    _has_sb3 = False
+
+
+@pytest.mark.skipif(not _has_sb3, reason="stable-baselines3 not installed")
 class TestLoadPretrained:
     def test_load_dqn(self):
         import lightsim
