@@ -207,17 +207,21 @@ env = lightsim.make("single-intersection-v0", reward_fn="pressure")
 
 ## Visualization
 
-A built-in web dashboard streams simulation state via WebSocket to an HTML5 Canvas frontend:
+A built-in web dashboard streams simulation state via WebSocket to an HTML5 Canvas frontend.
+Features a glassmorphism dark theme, interactive minimap, collapsible panels, real-time
+density heatmaps, signal phase progress bars, and traffic flow charts.
 
 ```bash
 python -m lightsim.viz --scenario grid-4x4-v0 --controller MaxPressure
 python -m lightsim.viz --scenario osm-manhattan-v0
-python -m lightsim.viz --checkpoint model.zip --algo PPO
+python -m lightsim.viz --checkpoint model.zip --algo PPO   # requires stable-baselines3
 ```
 
 <p align="center">
 <img src="docs/viz_hero.png" alt="LightSim web visualization dashboard" width="700">
 </p>
+
+**Keyboard shortcuts:** `Space` play/pause · `→` step · `R` reset · `F` fit view · `P` toggle panel · `+/-` zoom · `Esc` deselect
 
 ---
 
