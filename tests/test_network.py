@@ -50,7 +50,7 @@ class TestNetworkValidation:
         net.add_node(NodeID(1), NodeType.ORIGIN)
         # NodeID(0) has no links
         errors = net.validate()
-        assert any("disconnected" in e for e in errors)
+        assert any("orphan" in e or "disconnected" in e for e in errors)
 
     def test_invalid_turn_ratio(self):
         """Turn ratio outside (0,1] should be flagged."""

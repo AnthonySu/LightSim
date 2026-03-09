@@ -7,6 +7,7 @@ so they can be replayed in the frontend without re-running the simulation.
 from __future__ import annotations
 
 import json
+from collections import deque
 from dataclasses import dataclass, field
 from pathlib import Path
 from typing import Any
@@ -40,9 +41,12 @@ class Recorder:
         recorder.save("replay.json")
     """
 
-    def __init__(self, engine: SimulationEngine) -> None:
+    def __init__(
+        self, engine: SimulationEngine, max_frames: int = 10_000
+    ) -> None:
         self.engine = engine
-        self.frames: list[Frame] = []
+        self.max_frames = max_frames
+        self.frames: deque[Frame] = deque(maxlen=max_frames)
         self._topology: dict[str, Any] | None = None
 
     def capture(self) -> Frame:

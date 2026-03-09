@@ -21,7 +21,8 @@ EXAMPLES = [
 def test_example_runs(script):
     """Each example script should exit cleanly."""
     result = subprocess.run(
-        [sys.executable, script],
+        [sys.executable, "-c",
+         f"import runpy; runpy.run_path({script!r}, run_name='__main__')"],
         capture_output=True,
         text=True,
         timeout=60,

@@ -7,6 +7,7 @@ with ``get_obs_builder("name")``.
 from __future__ import annotations
 
 from abc import ABC, abstractmethod
+from collections.abc import Callable
 from typing import Any
 
 import gymnasium as gym
@@ -14,14 +15,14 @@ import numpy as np
 
 from ..core.engine import SimulationEngine
 from ..core.signal import SignalState
-from ..core.types import FLOAT, NodeID
+from ..core.types import FLOAT, LinkID, NodeID
 
 _OBS_REGISTRY: dict[str, type[ObservationBuilder]] = {}
 
 
-def register_obs(name: str):
+def register_obs(name: str) -> Callable[[type[ObservationBuilder]], type[ObservationBuilder]]:
     """Decorator to register an observation builder."""
-    def wrapper(cls):
+    def wrapper(cls: type[ObservationBuilder]) -> type[ObservationBuilder]:
         _OBS_REGISTRY[name] = cls
         return cls
     return wrapper
@@ -68,7 +69,7 @@ class DefaultObservation(ObservationBuilder):
     queue (binary: above critical density).
     """
 
-    def _get_incoming_links(self, engine: SimulationEngine, node_id: NodeID):
+    def _get_incoming_links(self, engine: SimulationEngine, node_id: NodeID) -> list[LinkID]:
         """Get link IDs of links whose to_node is node_id."""
         return engine.net.node_incoming_links.get(node_id, [])
 

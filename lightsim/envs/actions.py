@@ -6,6 +6,7 @@ Registry pattern: use ``@register_action("name")`` to register.
 from __future__ import annotations
 
 from abc import ABC, abstractmethod
+from collections.abc import Callable
 
 import gymnasium as gym
 import numpy as np
@@ -17,8 +18,8 @@ from ..core.types import NodeID
 _ACTION_REGISTRY: dict[str, type[ActionHandler]] = {}
 
 
-def register_action(name: str):
-    def wrapper(cls):
+def register_action(name: str) -> Callable[[type[ActionHandler]], type[ActionHandler]]:
+    def wrapper(cls: type[ActionHandler]) -> type[ActionHandler]:
         _ACTION_REGISTRY[name] = cls
         return cls
     return wrapper

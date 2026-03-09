@@ -20,6 +20,7 @@ from __future__ import annotations
 import asyncio
 import json
 import argparse
+import zipfile
 from pathlib import Path
 from typing import Any
 
@@ -205,15 +206,45 @@ def create_app(
     app.state.dt = dt
 
     if replay_path:
-        app.state.replay_data = Recorder.load(replay_path)
+        try:
+            app.state.replay_data = Recorder.load(replay_path)
+        except FileNotFoundError:
+            raise FileNotFoundError(
+                f"Replay file not found: {replay_path}"
+            )
+        except json.JSONDecodeError as e:
+            raise ValueError(
+                f"Replay file is not valid JSON: {replay_path}: {e}"
+            )
+        except KeyError as e:
+            raise KeyError(
+                f"Replay file missing required key {e}: {replay_path}"
+            )
     elif checkpoint:
         print(f"Pre-running checkpoint: {checkpoint} (algo={algo or 'auto'})")
-        app.state.replay_data = _prerun_checkpoint(
-            scenario=scenario,
-            checkpoint_path=checkpoint,
-            algo=algo,
-            scenario_kwargs=scenario_kwargs,
-        )
+        try:
+            app.state.replay_data = _prerun_checkpoint(
+                scenario=scenario,
+                checkpoint_path=checkpoint,
+                algo=algo,
+                scenario_kwargs=scenario_kwargs,
+            )
+        except FileNotFoundError:
+            raise FileNotFoundError(
+                f"Checkpoint file not found: {checkpoint}"
+            )
+        except zipfile.BadZipFile:
+            raise ValueError(
+                f"Checkpoint file is not a valid zip archive: {checkpoint}"
+            )
+        except RuntimeError as e:
+            raise RuntimeError(
+                f"Failed to load checkpoint model: {checkpoint}: {e}"
+            )
+        except KeyError as e:
+            raise KeyError(
+                f"Checkpoint file missing required data (key {e}): {checkpoint}"
+            )
         n_frames = len(app.state.replay_data["frames"])
         print(f"Recorded {n_frames} frames. Starting replay server...")
     else:
@@ -300,19 +331,36 @@ async def _live_loop(ws: "WebSocket", app: "FastAPI") -> None:
     running = True
 
     def _rebuild(scenario_name: str, controller_name: str) -> None:
-        """Rebuild engine with a new scenario and/or controller."""
+        """Rebuild engine with a new scenario and/or controller.
+
+        Raises ValueError or KeyError on invalid scenario/controller so the
+        caller can report the error to the client without crashing.
+        """
         nonlocal engine, recorder
         ctrl = _make_controller(controller_name)
         factory = get_scenario(scenario_name)
-        network, demand = factory()
-        engine = SimulationEngine(
-            network=network,
-            dt=app.state.dt,
-            controller=ctrl,
-            demand_profiles=demand,
-        )
-        engine.reset(seed=42)
-        recorder = Recorder(engine)
+        try:
+            network, demand = factory()
+        except Exception as exc:
+            raise ValueError(
+                f"Failed to create scenario '{scenario_name}': {exc}"
+            ) from exc
+        try:
+            new_engine = SimulationEngine(
+                network=network,
+                dt=app.state.dt,
+                controller=ctrl,
+                demand_profiles=demand,
+            )
+            new_engine.reset(seed=42)
+        except Exception as exc:
+            raise ValueError(
+                f"Failed to initialize engine for scenario "
+                f"'{scenario_name}': {exc}"
+            ) from exc
+        new_recorder = Recorder(new_engine)
+        engine = new_engine
+        recorder = new_recorder
         app.state.engine = engine
         app.state.recorder = recorder
         app.state.scenario_name = scenario_name
@@ -349,7 +397,7 @@ async def _live_loop(ws: "WebSocket", app: "FastAPI") -> None:
                         _rebuild(scenario_name, controller_name)
                         topo = recorder.get_topology()
                         await ws.send_json({"type": "topology", "data": topo})
-                    except (KeyError, ValueError) as e:
+                    except (KeyError, ValueError, TypeError, RuntimeError) as e:
                         await ws.send_json({"type": "error", "message": str(e)})
                 elif cmd == "close":
                     running = False
@@ -367,6 +415,10 @@ async def _live_loop(ws: "WebSocket", app: "FastAPI") -> None:
             await asyncio.sleep(interval)
     finally:
         listener.cancel()
+        try:
+            await listener
+        except asyncio.CancelledError:
+            pass
 
 
 async def _replay_loop(ws: "WebSocket", app: "FastAPI") -> None:
@@ -427,6 +479,10 @@ async def _replay_loop(ws: "WebSocket", app: "FastAPI") -> None:
                 await asyncio.sleep(0.1)
     finally:
         listener.cancel()
+        try:
+            await listener
+        except asyncio.CancelledError:
+            pass
 
 
 def main():

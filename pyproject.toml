@@ -46,14 +46,20 @@ multi = ["pettingzoo>=1.24"]
 viz = ["fastapi>=0.100", "uvicorn>=0.23", "websockets>=11.0"]
 osm = ["osmnx>=1.6"]
 dt = ["torch>=2.0"]
+research = ["matplotlib", "seaborn", "pandas"]
 dev = [
     "pytest>=7.0",
+    "pytest-asyncio>=0.21",
+    "pytest-cov>=4.0",
     "pettingzoo>=1.24",
 ]
-all = ["lightsim[multi,viz,osm,dt,dev]"]
+all = ["lightsim[multi,viz,osm,dt,dev,research]"]
 
 [tool.setuptools.packages.find]
 include = ["lightsim*"]
 
 [tool.pytest.ini_options]
 testpaths = ["tests"]
+asyncio_mode = "auto"
+addopts = "-x -q"
+filterwarnings = ["ignore::DeprecationWarning"]

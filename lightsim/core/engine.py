@@ -6,6 +6,7 @@ the simulation one time step at a time.
 
 from __future__ import annotations
 
+import logging
 from dataclasses import dataclass, field
 
 import numpy as np
@@ -20,6 +21,8 @@ from .signal import (
     SignalManager,
 )
 from .types import FLOAT, LinkID, NodeID
+
+logger = logging.getLogger(__name__)
 
 
 @dataclass
@@ -163,6 +166,16 @@ class SimulationEngine:
         np.maximum(density, 0.0, out=density)
         np.minimum(density, net.kj, out=density)
 
+        # 8b. NaN/Inf guard – clamp and warn if density became non-finite
+        bad_mask = ~np.isfinite(density)
+        if bad_mask.any():
+            n_bad = int(bad_mask.sum())
+            logger.warning(
+                "step %d: %d cells had NaN/Inf density – clamped to 0",
+                s.step_count, n_bad,
+            )
+            density[bad_mask] = 0.0
+
         s.time += dt
         s.step_count += 1
 
@@ -207,7 +220,7 @@ class SimulationEngine:
         speed = np.where(
             density <= k_crit,
             vf,
-            np.where(density > 1e-9, Q * lanes / (density * lanes + 1e-9), vf),
+            np.where(density > 1e-6, Q * lanes / (density * lanes + 1e-6), vf),
         )
         speed = np.maximum(speed, 0.1)
         total_length = float(length.sum())

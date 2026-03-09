@@ -315,6 +315,30 @@ class Network:
         """
         errors: list[str] = []
 
+        # Check cell physical parameters are positive
+        for lid, link in self.links.items():
+            for cell in link.cells:
+                if cell.length <= 0:
+                    errors.append(
+                        f"Link {lid}, cell {cell.cell_id}: "
+                        f"length must be positive (got {cell.length})"
+                    )
+                if cell.jam_density <= 0:
+                    errors.append(
+                        f"Link {lid}, cell {cell.cell_id}: "
+                        f"jam_density (kj) must be positive (got {cell.jam_density})"
+                    )
+                if cell.capacity <= 0:
+                    errors.append(
+                        f"Link {lid}, cell {cell.cell_id}: "
+                        f"capacity (Q) must be positive (got {cell.capacity})"
+                    )
+                if cell.free_flow_speed <= 0:
+                    errors.append(
+                        f"Link {lid}, cell {cell.cell_id}: "
+                        f"free_flow_speed (vf) must be positive (got {cell.free_flow_speed})"
+                    )
+
         # Check link endpoints reference existing nodes
         for lid, link in self.links.items():
             if link.from_node not in self.nodes:
@@ -357,14 +381,14 @@ class Network:
             if node.node_type == NodeType.SIGNALIZED and not node.phases:
                 errors.append(f"Node {nid}: signalized but has no phases")
 
-        # Warn about disconnected nodes (no links)
+        # Warn about orphan nodes (not connected to any link)
         connected_nodes: set[NodeID] = set()
         for link in self.links.values():
             connected_nodes.add(link.from_node)
             connected_nodes.add(link.to_node)
         for nid in self.nodes:
             if nid not in connected_nodes:
-                errors.append(f"Node {nid}: disconnected (no links)")
+                errors.append(f"Node {nid}: orphan node (not connected to any link)")
 
         return errors
 

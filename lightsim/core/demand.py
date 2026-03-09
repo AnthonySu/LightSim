@@ -6,12 +6,15 @@ DemandManager injects vehicles into the network at each time step.
 
 from __future__ import annotations
 
+import logging
 from dataclasses import dataclass, field
 
 import numpy as np
 
 from .network import CompiledNetwork
 from .types import FLOAT, CellID, LinkID
+
+logger = logging.getLogger(__name__)
 
 
 @dataclass
@@ -35,6 +38,15 @@ class DemandProfile:
     def __post_init__(self) -> None:
         self._tp = np.asarray(self.time_points, dtype=FLOAT)
         self._rates = np.asarray(self.flow_rates, dtype=FLOAT)
+        # Validate non-negative demand
+        if (self._rates < 0).any():
+            neg_idx = np.where(self._rates < 0)[0].tolist()
+            logger.warning(
+                "DemandProfile link %s: negative flow_rates at indices %s "
+                "– clamping to 0",
+                self.link_id, neg_idx,
+            )
+            self._rates = np.maximum(self._rates, 0.0)
 
     def get_rate(self, t: float) -> float:
         """Return demand rate (veh/s) at time t (O(log n) binary search)."""

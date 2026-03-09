@@ -1,13 +1,79 @@
-"""Fundamental diagram validation utilities."""
+"""Validation utilities for LightSim networks, state, and demand."""
 
 from __future__ import annotations
+
+import logging
+from typing import Sequence
 
 import numpy as np
 
 from ..core.engine import SimulationEngine
-from ..core.network import Network
+from ..core.network import CompiledNetwork, Network
 from ..core.demand import DemandProfile
 from ..core.types import FLOAT, LinkID, NodeID, NodeType
+
+logger = logging.getLogger(__name__)
+
+
+# ---------------------------------------------------------------------------
+# Network-level validation helpers
+# ---------------------------------------------------------------------------
+
+def validate_network(network: Network) -> list[str]:
+    """Run all validation checks on a ``Network`` and return warnings.
+
+    This is a convenience wrapper around ``network.validate()``.
+    """
+    return network.validate()
+
+
+def check_density_health(density: np.ndarray, net: CompiledNetwork) -> list[str]:
+    """Check a density array for non-finite values and out-of-range entries.
+
+    Returns a list of warning strings (empty means healthy).
+    """
+    warnings: list[str] = []
+    bad = ~np.isfinite(density)
+    if bad.any():
+        warnings.append(
+            f"{int(bad.sum())} cells have NaN/Inf density"
+        )
+    over = density > net.kj
+    if over.any():
+        warnings.append(
+            f"{int(over.sum())} cells exceed jam density"
+        )
+    neg = density < 0
+    if neg.any():
+        warnings.append(
+            f"{int(neg.sum())} cells have negative density"
+        )
+    return warnings
+
+
+def validate_demand_profiles(
+    profiles: Sequence[DemandProfile],
+) -> list[str]:
+    """Validate a list of demand profiles and return warning strings.
+
+    Checks that all flow rates are non-negative and that time_points
+    are monotonically non-decreasing.
+    """
+    warnings: list[str] = []
+    for p in profiles:
+        rates = np.asarray(p.flow_rates)
+        if (rates < 0).any():
+            warnings.append(
+                f"DemandProfile link {p.link_id}: "
+                f"negative flow_rates detected"
+            )
+        tp = np.asarray(p.time_points)
+        if len(tp) > 1 and (np.diff(tp) < 0).any():
+            warnings.append(
+                f"DemandProfile link {p.link_id}: "
+                f"time_points are not monotonically non-decreasing"
+            )
+    return warnings
 
 
 def validate_fundamental_diagram(
