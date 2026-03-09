@@ -4,31 +4,38 @@
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
 <title>LightSim Visualization</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&family=JetBrains+Mono:wght@500&display=swap" rel="stylesheet">
 <style>
   :root {
-    --bg: #0f0f1a;
-    --bg2: #141425;
-    --panel: #1a1a2e;
-    --panel2: #1e1e36;
-    --border: #2a2a4a;
-    --border-light: #3a3a5a;
-    --text: #e8e8f0;
-    --text-dim: #a0a0c0;
-    --muted: #6a6a8a;
-    --accent: #00b4d8;
-    --accent-dim: #007a9a;
-    --green: #06d6a0;
+    --bg: #0a0a12;
+    --bg2: #10101e;
+    --panel: rgba(18,18,34,0.85);
+    --panel-solid: #121222;
+    --panel2: #1a1a30;
+    --border: rgba(255,255,255,0.06);
+    --border-light: rgba(255,255,255,0.1);
+    --text: #eaeaf4;
+    --text-dim: #9090b8;
+    --muted: #5a5a80;
+    --accent: #00c8f0;
+    --accent-dim: rgba(0,200,240,0.15);
+    --accent-glow: rgba(0,200,240,0.08);
+    --green: #10e896;
     --yellow: #ffd166;
     --orange: #ff9f43;
     --red: #ef476f;
     --road: #2a2a3e;
     --road-edge: #1a1a2e;
-    --radius: 6px;
-    --shadow: 0 2px 8px rgba(0,0,0,0.4);
+    --radius: 8px;
+    --radius-sm: 6px;
+    --shadow: 0 4px 24px rgba(0,0,0,0.5);
+    --shadow-sm: 0 2px 8px rgba(0,0,0,0.3);
+    --transition: 0.15s ease;
   }
   * { box-sizing: border-box; margin: 0; padding: 0; }
   body {
-    font-family: 'Inter', 'Segoe UI', -apple-system, BlinkMacSystemFont, system-ui, sans-serif;
+    font-family: 'Inter', -apple-system, BlinkMacSystemFont, system-ui, sans-serif;
     background: var(--bg);
     color: var(--text);
     display: flex;
@@ -36,15 +43,19 @@
     height: 100vh;
     overflow: hidden;
     user-select: none;
+    -webkit-font-smoothing: antialiased;
   }
 
-  /* Header */
+  /* ── Header ── */
   header {
     display: flex;
     align-items: center;
     justify-content: space-between;
-    padding: 10px 20px;
+    padding: 0 20px;
+    height: 48px;
     background: var(--panel);
+    backdrop-filter: blur(20px);
+    -webkit-backdrop-filter: blur(20px);
     border-bottom: 1px solid var(--border);
     flex-shrink: 0;
     z-index: 10;
@@ -54,21 +65,54 @@
     align-items: center;
     gap: 14px;
   }
-  header h1 {
-    font-size: 17px;
+  .logo {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+  }
+  .logo-icon {
+    width: 22px;
+    height: 22px;
+    border-radius: 6px;
+    background: linear-gradient(135deg, var(--accent), #0090f0);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-size: 11px;
     font-weight: 700;
-    letter-spacing: -0.3px;
+    color: #fff;
+    box-shadow: 0 0 12px rgba(0,200,240,0.3);
+  }
+  header h1 {
+    font-size: 15px;
+    font-weight: 700;
+    letter-spacing: -0.5px;
   }
   header h1 span { color: var(--accent); }
   .mode-badge {
     font-size: 10px;
     padding: 3px 10px;
-    border-radius: 12px;
+    border-radius: 20px;
     background: var(--accent-dim);
-    color: #fff;
+    color: var(--accent);
     text-transform: uppercase;
     letter-spacing: 0.8px;
     font-weight: 600;
+    border: 1px solid rgba(0,200,240,0.2);
+    display: flex;
+    align-items: center;
+    gap: 6px;
+  }
+  .mode-dot {
+    width: 6px;
+    height: 6px;
+    border-radius: 50%;
+    background: var(--accent);
+    animation: pulse 2s ease-in-out infinite;
+  }
+  @keyframes pulse {
+    0%, 100% { opacity: 1; box-shadow: 0 0 0 0 rgba(0,200,240,0.4); }
+    50% { opacity: 0.6; box-shadow: 0 0 0 4px rgba(0,200,240,0); }
   }
   .header-right {
     display: flex;
@@ -79,28 +123,30 @@
     font-size: 10px;
     color: var(--muted);
     display: flex;
-    gap: 8px;
+    gap: 10px;
   }
   .kbd-hint kbd {
-    background: var(--border);
-    padding: 1px 6px;
-    border-radius: 3px;
-    font-family: inherit;
+    background: rgba(255,255,255,0.06);
+    padding: 2px 6px;
+    border-radius: 4px;
+    font-family: 'JetBrains Mono', monospace;
     font-size: 10px;
+    border: 1px solid rgba(255,255,255,0.08);
   }
 
-  /* Main layout */
+  /* ── Main layout ── */
   .main {
     display: flex;
     flex: 1;
     min-height: 0;
   }
 
-  /* Canvas area */
+  /* ── Canvas area ── */
   .canvas-wrap {
     flex: 1;
     position: relative;
     background: var(--bg);
+    overflow: hidden;
   }
   canvas {
     display: block;
@@ -110,27 +156,57 @@
   }
   canvas.grabbing { cursor: grabbing; }
 
-  /* Tooltip */
+  /* ── Minimap ── */
+  .minimap {
+    position: absolute;
+    bottom: 12px;
+    left: 12px;
+    width: 160px;
+    height: 120px;
+    background: rgba(10,10,18,0.85);
+    backdrop-filter: blur(12px);
+    border: 1px solid var(--border);
+    border-radius: var(--radius);
+    overflow: hidden;
+    z-index: 5;
+    cursor: pointer;
+    transition: opacity var(--transition);
+  }
+  .minimap:hover { border-color: var(--border-light); }
+  .minimap canvas {
+    cursor: pointer;
+  }
+  .minimap-viewport {
+    position: absolute;
+    border: 1.5px solid var(--accent);
+    background: rgba(0,200,240,0.05);
+    border-radius: 2px;
+    pointer-events: none;
+  }
+
+  /* ── Tooltip ── */
   .tooltip {
     position: absolute;
     pointer-events: none;
-    background: var(--panel);
+    background: var(--panel-solid);
     border: 1px solid var(--border-light);
     border-radius: var(--radius);
-    padding: 8px 12px;
+    padding: 10px 14px;
     font-size: 12px;
-    line-height: 1.5;
+    line-height: 1.6;
     box-shadow: var(--shadow);
     z-index: 20;
     opacity: 0;
-    transition: opacity 0.12s;
+    transform: translateY(4px);
+    transition: opacity 0.12s, transform 0.12s;
     max-width: 260px;
+    backdrop-filter: blur(16px);
   }
-  .tooltip.visible { opacity: 1; }
+  .tooltip.visible { opacity: 1; transform: translateY(0); }
   .tooltip-title {
     font-weight: 600;
     color: var(--accent);
-    margin-bottom: 4px;
+    margin-bottom: 6px;
     font-size: 11px;
     text-transform: uppercase;
     letter-spacing: 0.5px;
@@ -141,63 +217,145 @@
     gap: 16px;
   }
   .tooltip-row .label { color: var(--text-dim); }
-  .tooltip-row .value { font-weight: 600; font-variant-numeric: tabular-nums; }
+  .tooltip-row .value { font-weight: 600; font-variant-numeric: tabular-nums; font-family: 'JetBrains Mono', monospace; font-size: 11px; }
 
-  /* Right panel */
+  /* ── Right panel ── */
   .panel {
-    width: 300px;
+    width: 310px;
     background: var(--panel);
+    backdrop-filter: blur(20px);
+    -webkit-backdrop-filter: blur(20px);
     border-left: 1px solid var(--border);
     display: flex;
     flex-direction: column;
     flex-shrink: 0;
     overflow-y: auto;
     overflow-x: hidden;
+    transition: width 0.2s ease, opacity 0.2s ease;
   }
-  .panel::-webkit-scrollbar { width: 4px; }
+  .panel.collapsed {
+    width: 0;
+    opacity: 0;
+    border: none;
+    overflow: hidden;
+  }
+  .panel::-webkit-scrollbar { width: 3px; }
   .panel::-webkit-scrollbar-track { background: transparent; }
-  .panel::-webkit-scrollbar-thumb { background: var(--border); border-radius: 2px; }
+  .panel::-webkit-scrollbar-thumb { background: rgba(255,255,255,0.08); border-radius: 3px; }
+  .panel::-webkit-scrollbar-thumb:hover { background: rgba(255,255,255,0.15); }
+
+  /* Panel toggle button */
+  .panel-toggle {
+    position: absolute;
+    top: 50%;
+    right: 310px;
+    transform: translateY(-50%);
+    width: 20px;
+    height: 48px;
+    background: var(--panel-solid);
+    border: 1px solid var(--border);
+    border-right: none;
+    border-radius: 6px 0 0 6px;
+    cursor: pointer;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    color: var(--muted);
+    font-size: 10px;
+    z-index: 6;
+    transition: right 0.2s ease, background var(--transition), color var(--transition);
+  }
+  .panel-toggle:hover { background: var(--panel2); color: var(--text); }
+  .panel-toggle.collapsed { right: 0; }
+  .panel-toggle svg { width: 10px; height: 10px; transition: transform 0.2s; }
+  .panel-toggle.collapsed svg { transform: rotate(180deg); }
 
   .panel-section {
     padding: 14px 16px;
     border-bottom: 1px solid var(--border);
   }
+  .panel-section-header {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    cursor: pointer;
+    margin-bottom: 10px;
+  }
+  .panel-section-header.collapsed { margin-bottom: 0; }
   .panel-section h2 {
     font-size: 10px;
     text-transform: uppercase;
     letter-spacing: 1.2px;
     color: var(--muted);
-    margin-bottom: 10px;
     font-weight: 600;
+    transition: color var(--transition);
+  }
+  .panel-section-header:hover h2 { color: var(--text-dim); }
+  .section-chevron {
+    color: var(--muted);
+    font-size: 10px;
+    transition: transform 0.2s;
+  }
+  .section-chevron.collapsed { transform: rotate(-90deg); }
+  .section-body {
+    overflow: hidden;
+    transition: max-height 0.25s ease, opacity 0.2s ease;
+    max-height: 500px;
+    opacity: 1;
+  }
+  .section-body.collapsed {
+    max-height: 0;
+    opacity: 0;
   }
 
-  /* Metrics */
+  /* ── Metrics ── */
   .metrics-grid {
     display: grid;
     grid-template-columns: 1fr 1fr;
-    gap: 8px;
+    gap: 6px;
   }
   .metric-card {
     background: var(--bg2);
-    border-radius: var(--radius);
-    padding: 8px 10px;
+    border-radius: var(--radius-sm);
+    padding: 10px 12px;
+    border: 1px solid var(--border);
+    transition: border-color var(--transition), background var(--transition);
+    position: relative;
+    overflow: hidden;
+  }
+  .metric-card:hover {
+    border-color: var(--border-light);
+    background: rgba(255,255,255,0.02);
   }
   .metric-card .label {
     font-size: 10px;
     color: var(--muted);
     text-transform: uppercase;
     letter-spacing: 0.5px;
-    margin-bottom: 2px;
+    margin-bottom: 4px;
   }
   .metric-card .value {
-    font-size: 18px;
+    font-size: 20px;
     font-weight: 700;
+    font-family: 'JetBrains Mono', 'Inter', monospace;
     font-variant-numeric: tabular-nums;
+    line-height: 1.1;
   }
   .metric-card .value.accent { color: var(--accent); }
   .metric-card.wide { grid-column: 1 / -1; }
+  .metric-card .trend {
+    position: absolute;
+    top: 8px;
+    right: 10px;
+    font-size: 9px;
+    font-weight: 600;
+    padding: 1px 5px;
+    border-radius: 4px;
+  }
+  .metric-card .trend.up { color: var(--green); background: rgba(16,232,150,0.1); }
+  .metric-card .trend.down { color: var(--orange); background: rgba(255,159,67,0.1); }
 
-  /* Controls */
+  /* ── Controls ── */
   .controls {
     display: flex;
     gap: 4px;
@@ -205,21 +363,32 @@
   }
   button {
     background: var(--bg2);
-    color: var(--text);
+    color: var(--text-dim);
     border: 1px solid var(--border);
-    padding: 7px 14px;
-    border-radius: var(--radius);
+    padding: 7px 12px;
+    border-radius: var(--radius-sm);
     cursor: pointer;
     font-size: 12px;
     font-weight: 500;
-    transition: all 0.12s;
+    font-family: inherit;
+    transition: all var(--transition);
     display: flex;
     align-items: center;
-    gap: 4px;
+    gap: 5px;
+    white-space: nowrap;
   }
-  button:hover { background: var(--border); border-color: var(--border-light); }
-  button.active { background: var(--accent-dim); border-color: var(--accent); color: #fff; }
-  button:disabled { opacity: 0.3; cursor: default; }
+  button:hover {
+    background: rgba(255,255,255,0.04);
+    border-color: var(--border-light);
+    color: var(--text);
+  }
+  button.active {
+    background: var(--accent-dim);
+    border-color: rgba(0,200,240,0.3);
+    color: var(--accent);
+  }
+  button:disabled { opacity: 0.25; cursor: default; pointer-events: none; }
+  button .btn-icon { font-size: 11px; }
 
   .speed-control {
     display: flex;
@@ -227,7 +396,7 @@
     gap: 8px;
   }
   .speed-control label {
-    font-size: 11px;
+    font-size: 10px;
     color: var(--muted);
     text-transform: uppercase;
     letter-spacing: 0.5px;
@@ -236,8 +405,8 @@
   input[type="range"] {
     flex: 1;
     -webkit-appearance: none;
-    height: 4px;
-    background: var(--border);
+    height: 3px;
+    background: rgba(255,255,255,0.08);
     border-radius: 2px;
     outline: none;
   }
@@ -248,7 +417,12 @@
     border-radius: 50%;
     background: var(--accent);
     cursor: pointer;
-    border: 2px solid var(--panel);
+    border: 2px solid var(--panel-solid);
+    box-shadow: 0 0 8px rgba(0,200,240,0.3);
+    transition: box-shadow var(--transition);
+  }
+  input[type="range"]::-webkit-slider-thumb:hover {
+    box-shadow: 0 0 16px rgba(0,200,240,0.5);
   }
   .speed-val {
     font-size: 12px;
@@ -256,9 +430,10 @@
     min-width: 36px;
     text-align: right;
     color: var(--accent);
+    font-family: 'JetBrains Mono', monospace;
   }
 
-  /* Layer toggles */
+  /* ── Layer toggles ── */
   .layer-toggles {
     display: flex;
     flex-wrap: wrap;
@@ -267,20 +442,24 @@
   .layer-toggle {
     font-size: 11px;
     padding: 4px 10px;
-    border-radius: 12px;
+    border-radius: 20px;
     background: var(--bg2);
     border: 1px solid var(--border);
-    color: var(--text-dim);
+    color: var(--muted);
     cursor: pointer;
-    transition: all 0.12s;
+    transition: all var(--transition);
+  }
+  .layer-toggle:hover {
+    border-color: var(--border-light);
+    color: var(--text-dim);
   }
   .layer-toggle.on {
     background: var(--accent-dim);
-    border-color: var(--accent);
-    color: #fff;
+    border-color: rgba(0,200,240,0.25);
+    color: var(--accent);
   }
 
-  /* Selection info */
+  /* ── Selection info ── */
   .selection-info {
     display: none;
   }
@@ -301,10 +480,12 @@
     border: none;
     color: var(--muted);
     cursor: pointer;
-    font-size: 14px;
+    font-size: 16px;
     padding: 2px 6px;
+    border-radius: 4px;
+    transition: all var(--transition);
   }
-  .selection-close:hover { color: var(--text); }
+  .selection-close:hover { color: var(--text); background: rgba(255,255,255,0.05); }
   .selection-rows {
     display: flex;
     flex-direction: column;
@@ -316,9 +497,9 @@
     font-size: 12px;
   }
   .selection-row .label { color: var(--text-dim); }
-  .selection-row .value { font-weight: 600; font-variant-numeric: tabular-nums; }
+  .selection-row .value { font-weight: 600; font-variant-numeric: tabular-nums; font-family: 'JetBrains Mono', monospace; font-size: 11px; }
 
-  /* Dropdowns */
+  /* ── Dropdowns ── */
   .switch-row {
     display: flex;
     align-items: center;
@@ -326,7 +507,7 @@
     margin-bottom: 8px;
   }
   .switch-row label {
-    font-size: 11px;
+    font-size: 10px;
     color: var(--muted);
     text-transform: uppercase;
     letter-spacing: 0.5px;
@@ -338,23 +519,23 @@
     background: var(--bg2);
     color: var(--text);
     border: 1px solid var(--border);
-    padding: 5px 8px;
-    border-radius: var(--radius);
+    padding: 6px 28px 6px 10px;
+    border-radius: var(--radius-sm);
     font-size: 12px;
     font-family: inherit;
     cursor: pointer;
     outline: none;
     -webkit-appearance: none;
     appearance: none;
-    background-image: url("data:image/svg+xml,%3Csvg width='10' height='6' viewBox='0 0 10 6' fill='none' xmlns='http://www.w3.org/2000/svg'%3E%3Cpath d='M1 1L5 5L9 1' stroke='%236a6a8a' stroke-width='1.5' stroke-linecap='round'/%3E%3C/svg%3E");
+    background-image: url("data:image/svg+xml,%3Csvg width='10' height='6' viewBox='0 0 10 6' fill='none' xmlns='http://www.w3.org/2000/svg'%3E%3Cpath d='M1 1L5 5L9 1' stroke='%235a5a80' stroke-width='1.5' stroke-linecap='round'/%3E%3C/svg%3E");
     background-repeat: no-repeat;
-    background-position: right 8px center;
-    padding-right: 24px;
+    background-position: right 10px center;
+    transition: border-color var(--transition);
   }
   select:hover { border-color: var(--border-light); }
-  select:focus { border-color: var(--accent); }
+  select:focus { border-color: var(--accent); box-shadow: 0 0 0 2px rgba(0,200,240,0.1); }
 
-  /* Signal list */
+  /* ── Signal list ── */
   .signal-list {
     display: flex;
     flex-direction: column;
@@ -365,28 +546,46 @@
     align-items: center;
     gap: 8px;
     font-size: 12px;
-    padding: 4px 8px;
+    padding: 6px 10px;
     background: var(--bg2);
-    border-radius: var(--radius);
+    border-radius: var(--radius-sm);
+    border: 1px solid var(--border);
+    transition: border-color var(--transition);
+    position: relative;
+    overflow: hidden;
   }
+  .signal-item:hover { border-color: var(--border-light); }
   .signal-dot {
-    width: 10px;
-    height: 10px;
+    width: 8px;
+    height: 8px;
     border-radius: 50%;
     flex-shrink: 0;
   }
-  .signal-dot.green { background: var(--green); box-shadow: 0 0 6px var(--green); }
-  .signal-dot.yellow { background: var(--yellow); box-shadow: 0 0 6px var(--yellow); }
-  .signal-dot.red { background: var(--red); box-shadow: 0 0 6px var(--red); }
-  .signal-phase { color: var(--text-dim); }
+  .signal-dot.green { background: var(--green); box-shadow: 0 0 8px rgba(16,232,150,0.4); }
+  .signal-dot.yellow { background: var(--yellow); box-shadow: 0 0 8px rgba(255,209,102,0.4); }
+  .signal-dot.red { background: var(--red); box-shadow: 0 0 8px rgba(239,71,111,0.4); }
+  .signal-name { flex: 1; }
+  .signal-phase { color: var(--text-dim); font-family: 'JetBrains Mono', monospace; font-size: 11px; }
+  .signal-progress {
+    position: absolute;
+    bottom: 0;
+    left: 0;
+    height: 2px;
+    border-radius: 0 0 0 var(--radius-sm);
+    transition: width 0.3s linear;
+  }
+  .signal-progress.green { background: var(--green); }
+  .signal-progress.yellow { background: var(--yellow); }
+  .signal-progress.red { background: var(--red); }
 
-  /* Charts */
+  /* ── Charts ── */
   .chart-container {
     height: 110px;
     position: relative;
     background: var(--bg2);
-    border-radius: var(--radius);
+    border-radius: var(--radius-sm);
     overflow: hidden;
+    border: 1px solid var(--border);
   }
   .chart-canvas {
     width: 100%;
@@ -395,7 +594,7 @@
   .chart-legend {
     display: flex;
     gap: 12px;
-    margin-top: 6px;
+    margin-top: 8px;
   }
   .chart-legend-item {
     display: flex;
@@ -407,14 +606,14 @@
   .chart-legend-dot {
     width: 8px;
     height: 3px;
-    border-radius: 1px;
+    border-radius: 2px;
   }
 
-  /* Legend */
+  /* ── Legend ── */
   .density-gradient {
-    height: 12px;
-    border-radius: 3px;
-    margin-bottom: 6px;
+    height: 10px;
+    border-radius: 5px;
+    margin-bottom: 8px;
   }
   .legend-labels {
     display: flex;
@@ -423,11 +622,13 @@
     color: var(--muted);
   }
 
-  /* Status bar */
+  /* ── Status bar ── */
   .status-bar {
-    padding: 5px 20px;
+    padding: 0 20px;
+    height: 28px;
     font-size: 10px;
     background: var(--panel);
+    backdrop-filter: blur(20px);
     border-top: 1px solid var(--border);
     color: var(--muted);
     display: flex;
@@ -440,19 +641,75 @@
     height: 6px;
     border-radius: 50%;
     background: var(--red);
-    transition: background 0.2s;
+    transition: background 0.3s;
   }
-  .status-dot.connected { background: var(--green); }
-  .status-sep { color: var(--border); }
-  .fps-counter { margin-left: auto; }
+  .status-dot.connected {
+    background: var(--green);
+    box-shadow: 0 0 6px rgba(16,232,150,0.5);
+  }
+  .status-sep { color: rgba(255,255,255,0.08); }
+  .fps-counter {
+    margin-left: auto;
+    font-family: 'JetBrains Mono', monospace;
+    font-size: 10px;
+  }
+
+  /* ── Empty state ── */
+  .empty-state {
+    position: absolute;
+    top: 50%;
+    left: 50%;
+    transform: translate(-50%, -50%);
+    text-align: center;
+    color: var(--muted);
+    pointer-events: none;
+    z-index: 1;
+  }
+  .empty-state-icon {
+    width: 48px;
+    height: 48px;
+    margin: 0 auto 16px;
+    border-radius: 12px;
+    background: rgba(0,200,240,0.06);
+    border: 1px solid rgba(0,200,240,0.1);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    animation: float 3s ease-in-out infinite;
+  }
+  @keyframes float {
+    0%, 100% { transform: translateY(0); }
+    50% { transform: translateY(-6px); }
+  }
+  .empty-state h3 {
+    font-size: 14px;
+    font-weight: 500;
+    color: var(--text-dim);
+    margin-bottom: 6px;
+  }
+  .empty-state p {
+    font-size: 12px;
+  }
+
+  /* ── Responsive ── */
+  @media (max-width: 768px) {
+    .panel { width: 260px; }
+    .panel-toggle { right: 260px; }
+    .kbd-hint { display: none; }
+  }
 </style>
 </head>
 <body>
 
 <header>
   <div class="header-left">
-    <h1><span>Light</span>Sim</h1>
-    <span class="mode-badge" id="modeBadge">connecting</span>
+    <div class="logo">
+      <div class="logo-icon">
+        <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3" stroke-linecap="round"><circle cx="12" cy="6" r="3"/><circle cx="12" cy="12" r="3"/><circle cx="12" cy="18" r="3"/></svg>
+      </div>
+      <h1><span>Light</span>Sim</h1>
+    </div>
+    <span class="mode-badge" id="modeBadge"><span class="mode-dot" id="modeDot"></span>connecting</span>
   </div>
   <div class="header-right">
     <div class="kbd-hint">
@@ -468,74 +725,115 @@
   <div class="canvas-wrap">
     <canvas id="netCanvas"></canvas>
     <div class="tooltip" id="tooltip"></div>
+
+    <!-- Minimap -->
+    <div class="minimap" id="minimap">
+      <canvas id="minimapCanvas"></canvas>
+      <div class="minimap-viewport" id="minimapViewport"></div>
+    </div>
+
+    <!-- Empty state -->
+    <div class="empty-state" id="emptyState">
+      <div class="empty-state-icon">
+        <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="#00c8f0" stroke-width="1.5" stroke-linecap="round"><path d="M12 2L12 6M12 18L12 22M2 12L6 12M18 12L22 12"/><circle cx="12" cy="12" r="4"/></svg>
+      </div>
+      <h3>Waiting for simulation</h3>
+      <p>Connecting to server...</p>
+    </div>
   </div>
 
-  <div class="panel">
+  <!-- Panel toggle -->
+  <div class="panel-toggle" id="panelToggle">
+    <svg viewBox="0 0 10 16" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><path d="M7 2L2 8L7 14"/></svg>
+  </div>
+
+  <div class="panel" id="panel">
     <div class="panel-section">
-      <h2>Simulation</h2>
-      <div class="metrics-grid">
-        <div class="metric-card">
-          <div class="label">Time</div>
-          <div class="value accent" id="mTime">0.0s</div>
-        </div>
-        <div class="metric-card">
-          <div class="label">Step</div>
-          <div class="value" id="mStep">0</div>
-        </div>
-        <div class="metric-card">
-          <div class="label">Vehicles</div>
-          <div class="value" id="mVehicles">0</div>
-        </div>
-        <div class="metric-card">
-          <div class="label">Density</div>
-          <div class="value" id="mDensity">0.000</div>
-        </div>
-        <div class="metric-card">
-          <div class="label">Entered</div>
-          <div class="value" style="color:var(--green)" id="mEntered">0</div>
-        </div>
-        <div class="metric-card">
-          <div class="label">Exited</div>
-          <div class="value" style="color:var(--orange)" id="mExited">0</div>
+      <div class="panel-section-header" data-section="simulation">
+        <h2>Simulation</h2>
+        <span class="section-chevron">&#9662;</span>
+      </div>
+      <div class="section-body" data-section-body="simulation">
+        <div class="metrics-grid">
+          <div class="metric-card">
+            <div class="label">Time</div>
+            <div class="value accent" id="mTime">0.0s</div>
+          </div>
+          <div class="metric-card">
+            <div class="label">Step</div>
+            <div class="value" id="mStep">0</div>
+          </div>
+          <div class="metric-card">
+            <div class="label">Vehicles</div>
+            <div class="value" id="mVehicles">0</div>
+            <span class="trend" id="mVehiclesTrend"></span>
+          </div>
+          <div class="metric-card">
+            <div class="label">Density</div>
+            <div class="value" id="mDensity">0.000</div>
+          </div>
+          <div class="metric-card">
+            <div class="label">Entered</div>
+            <div class="value" style="color:var(--green)" id="mEntered">0</div>
+          </div>
+          <div class="metric-card">
+            <div class="label">Exited</div>
+            <div class="value" style="color:var(--orange)" id="mExited">0</div>
+          </div>
         </div>
       </div>
     </div>
 
     <div class="panel-section">
-      <h2>Controls</h2>
-      <div class="controls">
-        <button id="btnPlay" class="active" title="Play (Space)">&#9654; Play</button>
-        <button id="btnPause" title="Pause (Space)">&#10074;&#10074; Pause</button>
-        <button id="btnStep" disabled title="Step (Right Arrow)">&#9654;| Step</button>
-        <button id="btnReset" title="Reset (R)">&#8635; Reset</button>
+      <div class="panel-section-header" data-section="controls">
+        <h2>Controls</h2>
+        <span class="section-chevron">&#9662;</span>
       </div>
-      <div class="speed-control">
-        <label>Speed</label>
-        <input type="range" id="speedSlider" min="1" max="100" value="10">
-        <span class="speed-val" id="speedVal">10x</span>
+      <div class="section-body" data-section-body="controls">
+        <div class="controls">
+          <button id="btnPlay" class="active" title="Play (Space)"><span class="btn-icon">&#9654;</span> Play</button>
+          <button id="btnPause" title="Pause (Space)"><span class="btn-icon">&#10074;&#10074;</span> Pause</button>
+          <button id="btnStep" disabled title="Step (Right Arrow)"><span class="btn-icon">&#9654;|</span> Step</button>
+          <button id="btnReset" title="Reset (R)"><span class="btn-icon">&#8635;</span> Reset</button>
+        </div>
+        <div class="speed-control">
+          <label>Speed</label>
+          <input type="range" id="speedSlider" min="1" max="100" value="10">
+          <span class="speed-val" id="speedVal">10x</span>
+        </div>
       </div>
     </div>
 
     <div class="panel-section" id="switcherSection" style="display:none">
-      <h2>Scenario</h2>
-      <div class="switch-row">
-        <label>Network</label>
-        <select id="scenarioSelect"></select>
+      <div class="panel-section-header" data-section="scenario">
+        <h2>Scenario</h2>
+        <span class="section-chevron">&#9662;</span>
       </div>
-      <div class="switch-row">
-        <label>Controller</label>
-        <select id="controllerSelect"></select>
+      <div class="section-body" data-section-body="scenario">
+        <div class="switch-row">
+          <label>Network</label>
+          <select id="scenarioSelect"></select>
+        </div>
+        <div class="switch-row">
+          <label>Controller</label>
+          <select id="controllerSelect"></select>
+        </div>
       </div>
     </div>
 
     <div class="panel-section">
-      <h2>Layers</h2>
-      <div class="layer-toggles">
-        <span class="layer-toggle on" data-layer="density">Density</span>
-        <span class="layer-toggle on" data-layer="particles">Flow</span>
-        <span class="layer-toggle on" data-layer="lanes">Lanes</span>
-        <span class="layer-toggle on" data-layer="signals">Signals</span>
-        <span class="layer-toggle" data-layer="labels">Labels</span>
+      <div class="panel-section-header" data-section="layers">
+        <h2>Layers</h2>
+        <span class="section-chevron">&#9662;</span>
+      </div>
+      <div class="section-body" data-section-body="layers">
+        <div class="layer-toggles">
+          <span class="layer-toggle on" data-layer="density">Density</span>
+          <span class="layer-toggle on" data-layer="particles">Flow</span>
+          <span class="layer-toggle on" data-layer="lanes">Lanes</span>
+          <span class="layer-toggle on" data-layer="signals">Signals</span>
+          <span class="layer-toggle" data-layer="labels">Labels</span>
+        </div>
       </div>
     </div>
 
@@ -551,38 +849,53 @@
     </div>
 
     <div class="panel-section">
-      <h2>Signals</h2>
-      <div class="signal-list" id="signalList"></div>
-    </div>
-
-    <div class="panel-section">
-      <h2>Traffic Flow</h2>
-      <div class="chart-container">
-        <canvas class="chart-canvas" id="chartCanvas"></canvas>
+      <div class="panel-section-header" data-section="signals">
+        <h2>Signals</h2>
+        <span class="section-chevron">&#9662;</span>
       </div>
-      <div class="chart-legend">
-        <div class="chart-legend-item">
-          <div class="chart-legend-dot" style="background:var(--accent)"></div>
-          <span>Vehicles</span>
-        </div>
-        <div class="chart-legend-item">
-          <div class="chart-legend-dot" style="background:var(--green)"></div>
-          <span>Entered</span>
-        </div>
-        <div class="chart-legend-item">
-          <div class="chart-legend-dot" style="background:var(--orange)"></div>
-          <span>Exited</span>
-        </div>
+      <div class="section-body" data-section-body="signals">
+        <div class="signal-list" id="signalList"></div>
       </div>
     </div>
 
     <div class="panel-section">
-      <h2>Density Scale</h2>
-      <div class="density-gradient" id="densityGradient"></div>
-      <div class="legend-labels">
-        <span>0% Free</span>
-        <span>50% Moderate</span>
-        <span>100% Jammed</span>
+      <div class="panel-section-header" data-section="chart">
+        <h2>Traffic Flow</h2>
+        <span class="section-chevron">&#9662;</span>
+      </div>
+      <div class="section-body" data-section-body="chart">
+        <div class="chart-container">
+          <canvas class="chart-canvas" id="chartCanvas"></canvas>
+        </div>
+        <div class="chart-legend">
+          <div class="chart-legend-item">
+            <div class="chart-legend-dot" style="background:var(--accent)"></div>
+            <span>Vehicles</span>
+          </div>
+          <div class="chart-legend-item">
+            <div class="chart-legend-dot" style="background:var(--green)"></div>
+            <span>Entered</span>
+          </div>
+          <div class="chart-legend-item">
+            <div class="chart-legend-dot" style="background:var(--orange)"></div>
+            <span>Exited</span>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <div class="panel-section">
+      <div class="panel-section-header" data-section="legend">
+        <h2>Density Scale</h2>
+        <span class="section-chevron">&#9662;</span>
+      </div>
+      <div class="section-body" data-section-body="legend">
+        <div class="density-gradient" id="densityGradient"></div>
+        <div class="legend-labels">
+          <span>0% Free</span>
+          <span>50% Moderate</span>
+          <span>100% Jammed</span>
+        </div>
       </div>
     </div>
   </div>
@@ -662,6 +975,9 @@
   // Pre-computed link geometry (computed once when topology arrives)
   let linkGeom = [];
 
+  // Trend tracking for metrics
+  let prevVehicles = 0;
+
   // ====================================================================
   // DOM Elements
   // ====================================================================
@@ -670,6 +986,7 @@
   const chartCanvas = document.getElementById('chartCanvas');
   const chartCtx = chartCanvas.getContext('2d');
   const tooltipEl = document.getElementById('tooltip');
+  const emptyState = document.getElementById('emptyState');
 
   const mTime = document.getElementById('mTime');
   const mStep = document.getElementById('mStep');
@@ -677,7 +994,9 @@
   const mEntered = document.getElementById('mEntered');
   const mExited = document.getElementById('mExited');
   const mDensity = document.getElementById('mDensity');
+  const mVehiclesTrend = document.getElementById('mVehiclesTrend');
   const modeBadge = document.getElementById('modeBadge');
+  const modeDot = document.getElementById('modeDot');
   const signalList = document.getElementById('signalList');
   const statusDot = document.getElementById('statusDot');
   const statusText = document.getElementById('statusText');
@@ -695,6 +1014,39 @@
   const speedSlider = document.getElementById('speedSlider');
   const speedVal = document.getElementById('speedVal');
 
+  // Minimap elements
+  const minimapEl = document.getElementById('minimap');
+  const minimapCanvas = document.getElementById('minimapCanvas');
+  const minimapCtx = minimapCanvas.getContext('2d');
+  const minimapViewport = document.getElementById('minimapViewport');
+
+  // ====================================================================
+  // Collapsible Sections
+  // ====================================================================
+  document.querySelectorAll('.panel-section-header').forEach(header => {
+    header.addEventListener('click', () => {
+      const section = header.dataset.section;
+      const body = document.querySelector(`[data-section-body="${section}"]`);
+      const chevron = header.querySelector('.section-chevron');
+      if (body) {
+        body.classList.toggle('collapsed');
+        header.classList.toggle('collapsed');
+        chevron.classList.toggle('collapsed');
+      }
+    });
+  });
+
+  // ====================================================================
+  // Panel Toggle
+  // ====================================================================
+  const panelToggle = document.getElementById('panelToggle');
+  const panel = document.getElementById('panel');
+
+  panelToggle.addEventListener('click', () => {
+    panel.classList.toggle('collapsed');
+    panelToggle.classList.toggle('collapsed');
+  });
+
   // ====================================================================
   // Color Utilities
   // ====================================================================
@@ -702,7 +1054,6 @@
     const r = Math.max(0, Math.min(1, ratio));
     const stops = CONFIG.densityColors;
 
-    // Find surrounding stops
     let lo = 0, hi = stops.length - 1;
     for (let i = 0; i < stops.length - 1; i++) {
       if (r >= stops[i][0] && r <= stops[i + 1][0]) {
@@ -768,6 +1119,12 @@
     chartCanvas.width = cr.width * dpr;
     chartCanvas.height = cr.height * dpr;
     chartCtx.setTransform(dpr, 0, 0, dpr, 0, 0);
+
+    // Minimap
+    const mr = minimapEl.getBoundingClientRect();
+    minimapCanvas.width = mr.width * dpr;
+    minimapCanvas.height = mr.height * dpr;
+    minimapCtx.setTransform(dpr, 0, 0, dpr, 0, 0);
   }
   window.addEventListener('resize', resizeCanvas);
   resizeCanvas();
@@ -916,7 +1273,6 @@
   function showTooltip(x, y, html) {
     tooltipEl.innerHTML = html;
     tooltipEl.classList.add('visible');
-    // Position with bounds check
     const rect = canvas.parentElement.getBoundingClientRect();
     let tx = x + 16, ty = y - 10;
     if (tx + 240 > rect.width) tx = x - 250;
@@ -1047,7 +1403,6 @@
     sctx.lineTo(pad.l, pad.t + ch);
     sctx.closePath();
 
-    // Color gradient based on congestion level
     const lastOcc = data[data.length - 1];
     const gradColor = densityColorRGBA(lastOcc, 0.15);
     sctx.fillStyle = gradColor;
@@ -1086,7 +1441,6 @@
   // ====================================================================
   // Particle System
   // ====================================================================
-  // Cache for per-link speed/density (updated each sim frame)
   let linkCache = [];
 
   function updateLinkCache() {
@@ -1114,7 +1468,6 @@
 
   function initParticles() {
     particles = [];
-    // Pre-fill particles at random positions for immediate visual
     if (!topology || !lastFrame) return;
     updateLinkCache();
     for (let i = 0; i < topology.links.length; i++) {
@@ -1137,14 +1490,11 @@
   function updateParticles(dt) {
     if (!topology || !lastFrame || !layers.particles) return;
 
-    // Update existing particles
     for (let i = particles.length - 1; i >= 0; i--) {
       const p = particles[i];
       p.pos += p.speed * dt;
       if (p.pos >= 1.0) {
-        // Recycle: reset position on the same or a new link
         p.pos -= 1.0;
-        // Update speed from cache
         const lc = linkCache[p.linkIdx];
         if (lc && lc.totalDensity > 0.001) {
           p.speed = lc.avgSpeed / (lc.totalLen || 100);
@@ -1154,11 +1504,9 @@
       }
     }
 
-    // Spawn new particles proportional to link flow
     const budget = CONFIG.maxParticles - particles.length;
     if (budget <= 0) return;
 
-    // Use cached weights
     let totalWeight = 0;
     for (const lc of linkCache) totalWeight += lc.flow;
     if (totalWeight < 1e-9) return;
@@ -1176,12 +1524,137 @@
       const linkLen = lc.totalLen || 100;
       particles.push({
         linkIdx: linkIdx,
-        pos: Math.random() * 0.15,  // Start near beginning
+        pos: Math.random() * 0.15,
         speed: lc.avgSpeed / linkLen,
         size: 1.5 + Math.random() * 1.0,
       });
     }
   }
+
+  // ====================================================================
+  // Minimap Drawing
+  // ====================================================================
+  function drawMinimap() {
+    if (!topology || !topology.nodes.length) {
+      minimapEl.style.display = 'none';
+      return;
+    }
+    minimapEl.style.display = '';
+
+    const mr = minimapEl.getBoundingClientRect();
+    const mw = mr.width;
+    const mh = mr.height;
+    minimapCtx.clearRect(0, 0, mw, mh);
+
+    // Compute bounds
+    let minX = Infinity, minY = Infinity, maxX = -Infinity, maxY = -Infinity;
+    for (const n of topology.nodes) {
+      minX = Math.min(minX, n.x);
+      minY = Math.min(minY, n.y);
+      maxX = Math.max(maxX, n.x);
+      maxY = Math.max(maxY, n.y);
+    }
+    const pad = 8;
+    const rangeX = maxX - minX || 1;
+    const rangeY = maxY - minY || 1;
+    const scale = Math.min((mw - pad * 2) / rangeX, (mh - pad * 2) / rangeY);
+    const ox = pad + ((mw - pad * 2) - rangeX * scale) / 2;
+    const oy = pad + ((mh - pad * 2) - rangeY * scale) / 2;
+
+    function miniScreen(x, y) {
+      return [ox + (x - minX) * scale, oy + (maxY - y) * scale];
+    }
+
+    // Draw links
+    minimapCtx.lineWidth = 1.5;
+    minimapCtx.lineCap = 'round';
+    for (let li = 0; li < topology.links.length; li++) {
+      const link = topology.links[li];
+      const [x1, y1] = miniScreen(link.from_x, link.from_y);
+      const [x2, y2] = miniScreen(link.to_x, link.to_y);
+
+      // Color by density
+      if (lastFrame && lastFrame.density && layers.density) {
+        let avgRatio = 0;
+        for (const cid of link.cells) {
+          const d = lastFrame.density[cid] || 0;
+          const kj = topology.cells[cid] ? topology.cells[cid].kj : 0.15;
+          avgRatio += kj > 0 ? d / kj : 0;
+        }
+        avgRatio /= (link.cells.length || 1);
+        minimapCtx.strokeStyle = avgRatio > 0.01 ? densityColorRGBA(avgRatio, 0.8) : 'rgba(255,255,255,0.15)';
+      } else {
+        minimapCtx.strokeStyle = 'rgba(255,255,255,0.15)';
+      }
+      minimapCtx.beginPath();
+      minimapCtx.moveTo(x1, y1);
+      minimapCtx.lineTo(x2, y2);
+      minimapCtx.stroke();
+    }
+
+    // Draw signal nodes
+    for (const node of topology.nodes) {
+      if (node.type !== 'signalized') continue;
+      const [nx, ny] = miniScreen(node.x, node.y);
+
+      let color = '#555';
+      if (lastFrame && lastFrame.signals) {
+        const sig = lastFrame.signals[String(node.id)];
+        if (sig) {
+          color = sig.in_all_red ? '#ef476f' : sig.in_yellow ? '#ffd166' : '#10e896';
+        }
+      }
+      minimapCtx.beginPath();
+      minimapCtx.arc(nx, ny, 2.5, 0, Math.PI * 2);
+      minimapCtx.fillStyle = color;
+      minimapCtx.fill();
+    }
+
+    // Draw viewport rectangle
+    const canvasRect = canvas.parentElement.getBoundingClientRect();
+    const topLeft = toWorld(0, 0);
+    const bottomRight = toWorld(canvasRect.width, canvasRect.height);
+    const [vx1, vy1] = miniScreen(topLeft[0], topLeft[1]);
+    const [vx2, vy2] = miniScreen(bottomRight[0], bottomRight[1]);
+    const vw = Math.abs(vx2 - vx1);
+    const vh = Math.abs(vy2 - vy1);
+    const vleft = Math.min(vx1, vx2);
+    const vtop = Math.min(vy1, vy2);
+
+    minimapViewport.style.left = Math.max(0, vleft) + 'px';
+    minimapViewport.style.top = Math.max(0, vtop) + 'px';
+    minimapViewport.style.width = Math.min(vw, mw) + 'px';
+    minimapViewport.style.height = Math.min(vh, mh) + 'px';
+  }
+
+  // Minimap click-to-navigate
+  minimapEl.addEventListener('click', (e) => {
+    if (!topology || !topology.nodes.length) return;
+    const mr = minimapEl.getBoundingClientRect();
+    const mx = e.clientX - mr.left;
+    const my = e.clientY - mr.top;
+
+    let minX = Infinity, minY2 = Infinity, maxX = -Infinity, maxY = -Infinity;
+    for (const n of topology.nodes) {
+      minX = Math.min(minX, n.x);
+      minY2 = Math.min(minY2, n.y);
+      maxX = Math.max(maxX, n.x);
+      maxY = Math.max(maxY, n.y);
+    }
+    const pad = 8;
+    const rangeX = maxX - minX || 1;
+    const rangeY = maxY - minY2 || 1;
+    const scale = Math.min((mr.width - pad * 2) / rangeX, (mr.height - pad * 2) / rangeY);
+    const ox = pad + ((mr.width - pad * 2) - rangeX * scale) / 2;
+    const oy = pad + ((mr.height - pad * 2) - rangeY * scale) / 2;
+
+    const worldX = minX + (mx - ox) / scale;
+    const worldY = maxY - (my - oy) / scale;
+
+    const canvasRect = canvas.parentElement.getBoundingClientRect();
+    viewX = canvasRect.width / 2 - worldX * viewScale;
+    viewY = canvasRect.height / 2 + worldY * viewScale;
+  });
 
   // ====================================================================
   // Drawing
@@ -1198,7 +1671,7 @@
 
     // Subtle grid background
     const gridSize = 40;
-    ctx.strokeStyle = 'rgba(255,255,255,0.015)';
+    ctx.strokeStyle = 'rgba(255,255,255,0.012)';
     ctx.lineWidth = 0.5;
     const gx0 = viewX % gridSize;
     const gy0 = viewY % gridSize;
@@ -1216,12 +1689,12 @@
     }
 
     if (!topology || !lastFrame) {
-      ctx.fillStyle = '#6a6a8a';
-      ctx.font = '14px sans-serif';
-      ctx.textAlign = 'center';
-      ctx.textBaseline = 'middle';
-      ctx.fillText('Waiting for simulation data...', w / 2, h / 2);
       return;
+    }
+
+    // Hide empty state once data arrives
+    if (emptyState.style.display !== 'none') {
+      emptyState.style.display = 'none';
     }
 
     computeLinkGeometry();
@@ -1243,14 +1716,13 @@
     for (let li = 0; li < topology.links.length; li++) {
       const g = linkGeom[li];
       if (g.len < 1 || !isVisible(g)) continue;
-      const link = topology.links[li];
       const roadW = cw + CONFIG.roadEdgeWidth * 2;
 
       // Road edge (dark outline)
       ctx.beginPath();
       ctx.moveTo(g.x1, g.y1);
       ctx.lineTo(g.x2, g.y2);
-      ctx.strokeStyle = '#0a0a14';
+      ctx.strokeStyle = '#060610';
       ctx.lineWidth = roadW + 2;
       ctx.lineCap = 'round';
       ctx.stroke();
@@ -1259,7 +1731,7 @@
       ctx.beginPath();
       ctx.moveTo(g.x1, g.y1);
       ctx.lineTo(g.x2, g.y2);
-      ctx.strokeStyle = layers.density ? '#1e1e30' : '#2a2a3e';
+      ctx.strokeStyle = layers.density ? '#181828' : '#242438';
       ctx.lineWidth = roadW;
       ctx.lineCap = 'round';
       ctx.stroke();
@@ -1280,7 +1752,7 @@
           const kj = topology.cells[cid] ? topology.cells[cid].kj : 0.15;
           const ratio = kj > 0 ? d / kj : 0;
 
-          if (ratio < 0.001) continue;  // Skip empty cells
+          if (ratio < 0.001) continue;
 
           const cx = g.x1 + g.nx * cellLen * (i + 0.5);
           const cy = g.y1 + g.ny * cellLen * (i + 0.5);
@@ -1300,9 +1772,8 @@
     // === Layer 3: Lane markings & direction arrows ===
     if (layers.lanes && cw > 8) {
       ctx.save();
-      // Lane dividers
       ctx.setLineDash(CONFIG.laneMarkingDash);
-      ctx.strokeStyle = 'rgba(255,255,255,0.08)';
+      ctx.strokeStyle = 'rgba(255,255,255,0.07)';
       ctx.lineWidth = 0.5;
       for (let li = 0; li < topology.links.length; li++) {
         const g = linkGeom[li];
@@ -1322,10 +1793,10 @@
       ctx.setLineDash([]);
       ctx.restore();
 
-      // Direction arrows (small chevrons along roads)
+      // Direction arrows
       if (cw > 10) {
         ctx.save();
-        ctx.strokeStyle = 'rgba(255,255,255,0.12)';
+        ctx.strokeStyle = 'rgba(255,255,255,0.10)';
         ctx.lineWidth = 1;
         ctx.lineCap = 'round';
         const arrowSpacing = Math.max(40, cw * 4);
@@ -1338,7 +1809,6 @@
             const t = a / (nArrows + 1);
             const ax = g.x1 + g.dx * t;
             const ay = g.y1 + g.dy * t;
-            // Draw a small chevron pointing in the direction of flow
             const bx = -g.nx * arrowSize;
             const by = -g.ny * arrowSize;
             const px = -g.ny * arrowSize * 0.6;
@@ -1366,13 +1836,13 @@
         if (CONFIG.particleGlow) {
           ctx.beginPath();
           ctx.arc(px, py, sz + 2, 0, Math.PI * 2);
-          ctx.fillStyle = 'rgba(255,255,255,0.06)';
+          ctx.fillStyle = 'rgba(255,255,255,0.05)';
           ctx.fill();
         }
 
         ctx.beginPath();
         ctx.arc(px, py, sz, 0, Math.PI * 2);
-        ctx.fillStyle = 'rgba(255,255,255,0.55)';
+        ctx.fillStyle = 'rgba(255,255,255,0.5)';
         ctx.fill();
       }
     }
@@ -1384,7 +1854,7 @@
         ctx.beginPath();
         ctx.moveTo(g.x1, g.y1);
         ctx.lineTo(g.x2, g.y2);
-        ctx.strokeStyle = 'rgba(0,180,216,0.3)';
+        ctx.strokeStyle = 'rgba(0,200,240,0.25)';
         ctx.lineWidth = cw + 6;
         ctx.lineCap = 'round';
         ctx.stroke();
@@ -1396,7 +1866,7 @@
         ctx.beginPath();
         ctx.moveTo(g.x1, g.y1);
         ctx.lineTo(g.x2, g.y2);
-        ctx.strokeStyle = 'rgba(0,180,216,0.5)';
+        ctx.strokeStyle = 'rgba(0,200,240,0.4)';
         ctx.lineWidth = cw + 8;
         ctx.lineCap = 'round';
         ctx.stroke();
@@ -1404,7 +1874,7 @@
         ctx.beginPath();
         ctx.moveTo(g.x1, g.y1);
         ctx.lineTo(g.x2, g.y2);
-        ctx.strokeStyle = 'rgba(0,180,216,0.8)';
+        ctx.strokeStyle = 'rgba(0,200,240,0.7)';
         ctx.lineWidth = cw + 4;
         ctx.lineCap = 'round';
         ctx.setLineDash([3, 3]);
@@ -1433,8 +1903,8 @@
               color = '#ffd166';
               glowColor = 'rgba(255,209,102,0.35)';
             } else {
-              color = '#06d6a0';
-              glowColor = 'rgba(6,214,160,0.35)';
+              color = '#10e896';
+              glowColor = 'rgba(16,232,150,0.35)';
             }
           }
 
@@ -1444,23 +1914,23 @@
           ctx.fillStyle = glowColor;
           ctx.fill();
 
-          // Body — rounded square
+          // Body - rounded square
           const half = r * 0.85;
-          const cr = 3;
+          const cr2 = 3;
           ctx.beginPath();
-          ctx.moveTo(sx - half + cr, sy - half);
-          ctx.lineTo(sx + half - cr, sy - half);
-          ctx.quadraticCurveTo(sx + half, sy - half, sx + half, sy - half + cr);
-          ctx.lineTo(sx + half, sy + half - cr);
-          ctx.quadraticCurveTo(sx + half, sy + half, sx + half - cr, sy + half);
-          ctx.lineTo(sx - half + cr, sy + half);
-          ctx.quadraticCurveTo(sx - half, sy + half, sx - half, sy + half - cr);
-          ctx.lineTo(sx - half, sy - half + cr);
-          ctx.quadraticCurveTo(sx - half, sy - half, sx - half + cr, sy - half);
+          ctx.moveTo(sx - half + cr2, sy - half);
+          ctx.lineTo(sx + half - cr2, sy - half);
+          ctx.quadraticCurveTo(sx + half, sy - half, sx + half, sy - half + cr2);
+          ctx.lineTo(sx + half, sy + half - cr2);
+          ctx.quadraticCurveTo(sx + half, sy + half, sx + half - cr2, sy + half);
+          ctx.lineTo(sx - half + cr2, sy + half);
+          ctx.quadraticCurveTo(sx - half, sy + half, sx - half, sy + half - cr2);
+          ctx.lineTo(sx - half, sy - half + cr2);
+          ctx.quadraticCurveTo(sx - half, sy - half, sx - half + cr2, sy - half);
           ctx.closePath();
           ctx.fillStyle = color;
           ctx.fill();
-          ctx.strokeStyle = isHovered ? '#fff' : 'rgba(255,255,255,0.6)';
+          ctx.strokeStyle = isHovered ? '#fff' : 'rgba(255,255,255,0.5)';
           ctx.lineWidth = isHovered ? 2 : 1;
           ctx.stroke();
 
@@ -1474,16 +1944,15 @@
           }
         } else if (node.type === 'origin') {
           const r = CONFIG.nodeSize.origin;
-          // Diamond shape
           ctx.beginPath();
           ctx.moveTo(sx, sy - r);
           ctx.lineTo(sx + r, sy);
           ctx.lineTo(sx, sy + r);
           ctx.lineTo(sx - r, sy);
           ctx.closePath();
-          ctx.fillStyle = isHovered ? '#00d4f8' : '#00b4d8';
+          ctx.fillStyle = isHovered ? '#00e8ff' : '#00c8f0';
           ctx.fill();
-          ctx.strokeStyle = 'rgba(255,255,255,0.3)';
+          ctx.strokeStyle = 'rgba(255,255,255,0.25)';
           ctx.lineWidth = 0.5;
           ctx.stroke();
         } else if (node.type === 'destination') {
@@ -1496,7 +1965,7 @@
           ctx.closePath();
           ctx.fillStyle = isHovered ? '#8892c0' : '#5a5a7a';
           ctx.fill();
-          ctx.strokeStyle = 'rgba(255,255,255,0.2)';
+          ctx.strokeStyle = 'rgba(255,255,255,0.15)';
           ctx.lineWidth = 0.5;
           ctx.stroke();
         } else {
@@ -1514,7 +1983,7 @@
       ctx.font = '9px sans-serif';
       ctx.textAlign = 'center';
       ctx.textBaseline = 'top';
-      ctx.fillStyle = 'rgba(255,255,255,0.5)';
+      ctx.fillStyle = 'rgba(255,255,255,0.45)';
       for (let li = 0; li < topology.links.length; li++) {
         const g = linkGeom[li];
         if (g.len < 20) continue;
@@ -1524,6 +1993,9 @@
         ctx.fillText('L' + link.id, mx, my);
       }
     }
+
+    // Draw minimap
+    drawMinimap();
   }
 
   // ====================================================================
@@ -1542,7 +2014,6 @@
     const cw = w - pad.l - pad.r;
     const ch = h - pad.t - pad.b;
 
-    // Find max across all series
     const maxVal = Math.max(1,
       Math.max(...history.vehicles),
       Math.max(...history.entered),
@@ -1550,7 +2021,7 @@
     );
 
     // Grid lines
-    chartCtx.strokeStyle = 'rgba(42,42,74,0.5)';
+    chartCtx.strokeStyle = 'rgba(255,255,255,0.04)';
     chartCtx.lineWidth = 0.5;
     for (let i = 0; i <= 4; i++) {
       const y = pad.t + ch * (1 - i / 4);
@@ -1561,8 +2032,8 @@
     }
 
     // Y-axis labels
-    chartCtx.fillStyle = '#6a6a8a';
-    chartCtx.font = '9px sans-serif';
+    chartCtx.fillStyle = '#5a5a80';
+    chartCtx.font = '9px "JetBrains Mono", monospace';
     chartCtx.textAlign = 'right';
     chartCtx.textBaseline = 'middle';
     for (let i = 0; i <= 4; i++) {
@@ -1594,9 +2065,9 @@
       }
     }
 
-    drawSeries(history.entered, 'rgb(6,214,160)', 0.08);
-    drawSeries(history.exited, 'rgb(255,159,67)', 0.08);
-    drawSeries(history.vehicles, 'rgb(0,180,216)', 0.12);
+    drawSeries(history.entered, 'rgb(16,232,150)', 0.06);
+    drawSeries(history.exited, 'rgb(255,159,67)', 0.06);
+    drawSeries(history.vehicles, 'rgb(0,200,240)', 0.1);
   }
 
   // ====================================================================
@@ -1607,12 +2078,30 @@
     updateLinkCache();
     const m = frame.metrics || {};
 
+    const curVehicles = m.total_vehicles || 0;
+
     mTime.textContent = (m.time || 0).toFixed(1) + 's';
     mStep.textContent = frame.step || 0;
-    mVehicles.textContent = (m.total_vehicles || 0).toFixed(1);
+    mVehicles.textContent = curVehicles.toFixed(1);
     mEntered.textContent = Math.round(m.total_entered || 0);
     mExited.textContent = Math.round(m.total_exited || 0);
     mDensity.textContent = (m.avg_density || 0).toFixed(4);
+
+    // Trend indicator
+    const diff = curVehicles - prevVehicles;
+    if (prevVehicles > 0 && Math.abs(diff) > 0.5) {
+      if (diff > 0) {
+        mVehiclesTrend.textContent = '+' + diff.toFixed(0);
+        mVehiclesTrend.className = 'trend up';
+      } else {
+        mVehiclesTrend.textContent = diff.toFixed(0);
+        mVehiclesTrend.className = 'trend down';
+      }
+    } else {
+      mVehiclesTrend.textContent = '';
+      mVehiclesTrend.className = 'trend';
+    }
+    prevVehicles = curVehicles;
 
     // Chart
     history.time.push(m.time || 0);
@@ -1649,11 +2138,16 @@
       if (s.in_all_red) { cls = 'red'; label = 'All Red'; }
       else if (s.in_yellow) { cls = 'yellow'; label = 'Yellow'; }
 
+      // Estimate phase progress (assume ~30s cycle)
+      const typicalPhaseLen = s.in_yellow ? 3 : s.in_all_red ? 2 : 30;
+      const progress = Math.min(100, (s.time_in_phase / typicalPhaseLen) * 100);
+
       const item = document.createElement('div');
       item.className = 'signal-item';
       item.innerHTML = `<div class="signal-dot ${cls}"></div>
-        <span>Node ${nid}: ${label}</span>
-        <span class="signal-phase">${s.time_in_phase.toFixed(0)}s</span>`;
+        <span class="signal-name">Node ${nid}: ${label}</span>
+        <span class="signal-phase">${s.time_in_phase.toFixed(0)}s</span>
+        <div class="signal-progress ${cls}" style="width:${progress}%"></div>`;
       signalList.appendChild(item);
     }
   }
@@ -1748,7 +2242,6 @@
   // Keyboard Shortcuts
   // ====================================================================
   document.addEventListener('keydown', (e) => {
-    // Don't capture if user is typing in an input
     if (e.target.tagName === 'INPUT' || e.target.tagName === 'TEXTAREA') return;
 
     switch (e.key) {
@@ -1778,6 +2271,12 @@
       case '-':
       case '_':
         viewScale /= 1.2;
+        break;
+      case 'p':
+      case 'P':
+        // Toggle panel
+        panel.classList.toggle('collapsed');
+        panelToggle.classList.toggle('collapsed');
         break;
     }
   });
@@ -1837,7 +2336,7 @@
       currentFps = frameCount;
       frameCount = 0;
       fpsTime = timestamp;
-      fpsCounter.textContent = `${currentFps} fps | ${Math.round(viewScale * 100)}% zoom`;
+      fpsCounter.textContent = `${currentFps} fps | ${Math.round(viewScale * 100)}%`;
     }
 
     // Particle update
@@ -1890,7 +2389,6 @@
         topology = msg.data;
         fitView();
         initParticles();
-        // Reset chart history on new topology
         history.time.length = 0;
         history.vehicles.length = 0;
         history.entered.length = 0;
@@ -1898,8 +2396,7 @@
         clearSelection();
         statusInfo.textContent = `${topology.nodes.length} nodes, ${topology.links.length} links, ${topology.n_cells} cells`;
         fetch('/api/info').then(r => r.json()).then(info => {
-          modeBadge.textContent = info.mode + ' | ' + info.scenario;
-          // Update dropdown selections to match server
+          modeBadge.innerHTML = `<span class="mode-dot"></span>${info.mode} | ${info.scenario}`;
           if (info.scenario && scenarioSelect.value !== info.scenario) {
             scenarioSelect.value = info.scenario;
           }
@@ -1910,7 +2407,8 @@
       } else if (msg.type === 'frame') {
         onFrame(msg);
       } else if (msg.type === 'end') {
-        modeBadge.textContent += ' (ended)';
+        modeBadge.innerHTML += ' (ended)';
+        modeDot.style.animation = 'none';
         btnPause.click();
       } else if (msg.type === 'error') {
         statusText.textContent = 'Error: ' + msg.message;
@@ -1925,7 +2423,6 @@
   const controllerSelect = document.getElementById('controllerSelect');
   const switcherSection = document.getElementById('switcherSection');
 
-  // Populate dropdowns from API
   Promise.all([
     fetch('/api/scenarios').then(r => r.json()),
     fetch('/api/controllers').then(r => r.json()),
@@ -1945,7 +2442,6 @@
     }
     scenarioSelect.value = info.scenario || '';
     controllerSelect.value = info.controller || 'FixedTime';
-    // Show switcher only in live mode
     if (info.mode === 'live') {
       switcherSection.style.display = '';
     }
