@@ -4,13 +4,17 @@ Compares controller performance in default (deterministic) vs mesoscopic mode,
 showing how start-up lost time penalizes frequent phase switching.
 """
 
-from lightsim.benchmarks.single_intersection import create_single_intersection
-from lightsim.core.engine import SimulationEngine
-from lightsim.core.signal import (
-    FixedTimeController,
-    LostTimeAwareMaxPressureController,
-    MaxPressureController,
-)
+try:
+    from lightsim.benchmarks.single_intersection import create_single_intersection
+    from lightsim.core.engine import SimulationEngine
+    from lightsim.core.signal import (
+        FixedTimeController,
+        LostTimeAwareMaxPressureController,
+        MaxPressureController,
+    )
+except ImportError:
+    print("Please install lightsim: pip install -e '.[all]'")
+    raise
 
 STEPS = 3600  # 1 hour
 LOST_TIME = 2.0  # seconds of capacity ramp-up after each green onset
@@ -52,8 +56,13 @@ def run(mode: str, stochastic: bool, lost_time: float):
               f"  vehicles_remaining={m['total_vehicles']:>5.1f}")
 
 
-# Default: deterministic, no lost time
-run("Default", stochastic=False, lost_time=0.0)
+def main():
+    # Default: deterministic, no lost time
+    run("Default", stochastic=False, lost_time=0.0)
 
-# Mesoscopic: stochastic demand + start-up lost time
-run("Mesoscopic", stochastic=True, lost_time=LOST_TIME)
+    # Mesoscopic: stochastic demand + start-up lost time
+    run("Mesoscopic", stochastic=True, lost_time=LOST_TIME)
+
+
+if __name__ == "__main__":
+    main()
