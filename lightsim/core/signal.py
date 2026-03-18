@@ -544,21 +544,27 @@ class SignalManager:
         self._time_since_green = np.zeros(net.n_movements, dtype=FLOAT)
         self._was_green = np.zeros(net.n_movements, dtype=bool)
 
+        # Pre-compute movement index arrays per node (avoids repeated np.asarray)
+        self._node_mov_arrays: dict[NodeID, np.ndarray] = {}
+        for node_id in net.node_phases:
+            movs = net.node_movements.get(node_id, [])
+            if movs:
+                self._node_mov_arrays[node_id] = np.asarray(movs, dtype=np.intp)
+            else:
+                self._node_mov_arrays[node_id] = np.empty(0, dtype=np.intp)
+
     def get_movement_mask(self) -> np.ndarray:
         """Return boolean mask: True if movement is green."""
         mask = np.ones(self.net.n_movements, dtype=FLOAT)
         net = self.net
         for node_id, state in self.states.items():
-            phase_ids = net.node_phases[node_id]
-            if not phase_ids:
+            movs = self._node_mov_arrays.get(node_id)
+            if movs is None or len(movs) == 0:
                 continue
-            node_movs = net.node_movements.get(node_id, [])
-            if not node_movs:
-                continue
-            movs = np.asarray(node_movs, dtype=np.intp)
             if state.in_yellow or state.in_all_red:
                 mask[movs] = 0.0
             else:
+                phase_ids = net.node_phases[node_id]
                 current_pid = phase_ids[state.current_phase_idx]
                 not_green = ~net.phase_mov_mask[current_pid, movs]
                 mask[movs[not_green]] = 0.0
@@ -638,10 +644,9 @@ class SignalManager:
             lost = float(net.phase_lost_time[current_pid])
             if lost <= 0.0:
                 continue
-            node_movs = net.node_movements.get(node_id, [])
-            if not node_movs:
+            movs = self._node_mov_arrays.get(node_id)
+            if movs is None or len(movs) == 0:
                 continue
-            movs = np.asarray(node_movs, dtype=np.intp)
             green = self._was_green[movs]
             green_movs = movs[green]
             if len(green_movs) > 0:
@@ -649,6 +654,20 @@ class SignalManager:
                     1.0, self._time_since_green[green_movs] / lost
                 )
         return factor
+
+    def get_node_phase(self, node_id: NodeID) -> int | None:
+        """Return the current local phase index at *node_id*, or None if unsignalized."""
+        state = self.states.get(node_id)
+        if state is None:
+            return None
+        return state.current_phase_idx
+
+    def is_green_for_movement(self, movement_id: int) -> bool:
+        """Return True if the given movement is currently green."""
+        mask = self.get_movement_mask()
+        if movement_id < len(mask):
+            return bool(mask[movement_id] > 0.5)
+        return False
 
     def _get_phase_yellow(self, phase_id: PhaseID) -> float:
         """Look up yellow duration for a phase from compiled arrays."""

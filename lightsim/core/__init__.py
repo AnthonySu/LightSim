@@ -1,7 +1,8 @@
-"""Core simulation components: network, engine, flow model, signal controllers, and demand."""
+"""Core simulation components: network, engine, flow model, signal controllers, demand, and EV tracking."""
 
 from .demand import DemandManager, DemandProfile
 from .engine import SimState, SimulationEngine
+from .ev import EVState, EVTracker
 from .flow_model import CTMFlowModel, FlowModel
 from .network import Cell, CompiledNetwork, Link, Movement, Network, Node, Phase
 from .signal import (
@@ -30,6 +31,9 @@ __all__ = [
     # Engine
     "SimulationEngine",
     "SimState",
+    # EV
+    "EVTracker",
+    "EVState",
     # Flow
     "FlowModel",
     "CTMFlowModel",
