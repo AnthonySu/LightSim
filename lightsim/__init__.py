@@ -47,7 +47,7 @@ from .core.types import LinkID, NodeID, NodeType, TurnType
 from .envs.single_agent import LightSimEnv
 from .pretrained import list_pretrained, load_pretrained
 
-__version__ = "0.1.0"
+__version__ = "0.2.0"
 
 # Decision Transformer (requires torch)
 try:

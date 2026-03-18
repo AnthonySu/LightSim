@@ -1,5 +1,40 @@
 # Changelog
 
+## v0.2.0 (2026-03-18)
+
+### Emergency Vehicle Tracking
+- New `EVTracker` class for tracking emergency vehicles along pre-computed routes
+- Congestion-dependent EV speed with signal blocking at red lights
+- `EVState` dataclass with travel time, distance, stops, and fraction completed
+- `distance_to_intersection()` and `distance_to_next_intersection()` methods
+- `get_ev_observation()` returns a dict suitable for RL observation builders
+
+### New Signal Controller
+- `GreedyEVPreemptionController`: forces green for the EV at every intersection,
+  with configurable fallback controller for non-EV intersections
+
+### New Reward Function
+- `ev_corridor` reward: combines EV distance progress with queue penalty and arrival bonus
+
+### Performance
+- Pre-compute per-node movement index arrays in `SignalManager.__init__`,
+  eliminating repeated `np.asarray()` calls in `get_movement_mask()`
+- ~19% speedup on 8x8 grids (3,289 → 3,919 steps/s)
+
+### API Additions
+- `SignalManager.get_node_phase()`: returns current local phase index at a node
+- `SignalManager.is_green_for_movement()`: checks if a specific movement is green
+
+### New Files
+- `lightsim/core/ev.py` — EV tracking module
+- `examples/ev_corridor.py` — EV corridor optimization example
+- `tests/test_ev_tracker.py` — 13 tests for EV tracking
+- `CONTRIBUTING.md` — contribution guidelines
+
+### Packaging
+- Added `ruff` to dev dependencies
+- Added `[tool.ruff]` configuration to `pyproject.toml`
+
 ## v0.1.0 (2026-02-25)
 
 Initial public release.

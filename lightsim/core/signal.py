@@ -83,6 +83,64 @@ class RLController(SignalController):
         return self._actions.get(node_id, state.current_phase_idx)
 
 
+class GreedyEVPreemptionController(SignalController):
+    """Forces green for the EV's current link at every intersection.
+
+    This controller selects the phase that serves the movement from the
+    EV's current link. At non-EV intersections, it falls back to a
+    delegate controller (default: FixedTime).
+
+    Usage::
+
+        from lightsim.core import GreedyEVPreemptionController, EVTracker
+        ctrl = GreedyEVPreemptionController()
+        ev = EVTracker(engine, route)
+        ctrl.set_ev_tracker(ev)
+    """
+
+    def __init__(self, fallback: SignalController | None = None) -> None:
+        self._fallback = fallback or FixedTimeController()
+        self._ev_tracker = None
+        self._ev_phase_cache: dict[tuple[int, int], int] = {}  # (last_cell, node) -> phase_idx
+
+    def set_ev_tracker(self, ev_tracker) -> None:
+        """Register the EVTracker so the controller knows which link the EV is on."""
+        self._ev_tracker = ev_tracker
+        self._ev_phase_cache.clear()
+
+    def get_phase_index(
+        self,
+        node_id: NodeID,
+        state: SignalState,
+        net: CompiledNetwork,
+        density: np.ndarray,
+    ) -> int:
+        if self._ev_tracker is None or self._ev_tracker.state.arrived:
+            return self._fallback.get_phase_index(node_id, state, net, density)
+
+        ev = self._ev_tracker
+        ev_link = ev.route[min(ev.state.link_idx, len(ev.route) - 1)]
+        last_cell = net.link_last_cell.get(ev_link)
+        if last_cell is None:
+            return self._fallback.get_phase_index(node_id, state, net, density)
+
+        # Check if this node is the downstream node of the EV's current link
+        cache_key = (last_cell, node_id)
+        if cache_key in self._ev_phase_cache:
+            return self._ev_phase_cache[cache_key]
+
+        # Find the phase that serves a movement from the EV's link through this node
+        phase_ids = net.node_phases.get(node_id, [])
+        for local_idx, pid in enumerate(phase_ids):
+            for mid in net.phase_movements.get(pid, []):
+                if net.mov_from_cell[mid] == last_cell and net.mov_node[mid] == node_id:
+                    self._ev_phase_cache[cache_key] = local_idx
+                    return local_idx
+
+        # EV's link doesn't connect to this node — use fallback
+        return self._fallback.get_phase_index(node_id, state, net, density)
+
+
 def _compute_phase_pressure(
     pid: int,
     net: CompiledNetwork,

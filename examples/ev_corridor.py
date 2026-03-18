@@ -30,6 +30,7 @@ def main() -> None:
         EVTracker,
         FixedTimeController,
         MaxPressureController,
+        GreedyEVPreemptionController,
     )
     from lightsim.core.demand import DemandProfile
     from lightsim.networks.grid import create_grid_network
@@ -57,9 +58,12 @@ def main() -> None:
         route = link_ids[:min(7, len(link_ids))]
         return route
 
+    greedy_ctrl = GreedyEVPreemptionController(fallback=FixedTimeController())
+
     controllers = {
         "FixedTime": FixedTimeController(),
         "MaxPressure": MaxPressureController(),
+        "Greedy EV": greedy_ctrl,
     }
 
     print("=" * 60)
@@ -80,6 +84,10 @@ def main() -> None:
         route = get_corridor_route(engine)
         ev = EVTracker(engine, route, speed_factor=1.5)
         ev.reset()
+
+        # Hook up greedy controller to EV tracker
+        if hasattr(ctrl, 'set_ev_tracker'):
+            ctrl.set_ev_tracker(ev)
 
         max_steps = 200
         for step in range(max_steps):

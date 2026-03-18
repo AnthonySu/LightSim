@@ -143,3 +143,66 @@ class NormalizedThroughputReward(RewardFunction):
         if total_capacity < 1e-9:
             return 0.0
         return min(total_flow / total_capacity, 1.0)
+
+
+@register_reward("ev_corridor")
+class EVCorridorReward(RewardFunction):
+    """Reward for EV corridor optimization.
+
+    Combines EV progress reward with a queue penalty. Requires an
+    ``EVTracker`` to be attached via ``set_ev_tracker()``.
+
+    reward = alpha * ev_distance_this_step - beta * queue_at_node + lambda * arrived_bonus
+
+    Parameters
+    ----------
+    alpha : float
+        Weight on EV distance progress (default 1.0).
+    beta : float
+        Weight on queue penalty (default 0.01).
+    arrival_bonus : float
+        One-time bonus when EV arrives (default 10.0).
+    """
+
+    def __init__(
+        self,
+        alpha: float = 1.0,
+        beta: float = 0.01,
+        arrival_bonus: float = 10.0,
+    ) -> None:
+        self.alpha = alpha
+        self.beta = beta
+        self.arrival_bonus = arrival_bonus
+        self._ev_tracker = None
+        self._prev_distance: float = 0.0
+        self._gave_bonus: bool = False
+
+    def set_ev_tracker(self, ev_tracker) -> None:
+        """Attach the EVTracker for reward computation."""
+        self._ev_tracker = ev_tracker
+        self._prev_distance = 0.0
+        self._gave_bonus = False
+
+    def compute(
+        self, engine: SimulationEngine, node_id: NodeID,
+    ) -> float:
+        # Queue penalty at this node
+        queue = 0.0
+        for lid in engine.net.node_incoming_links.get(node_id, []):
+            queue += engine.get_link_queue(lid)
+        reward = -self.beta * queue
+
+        # EV progress (shared across all agents)
+        if self._ev_tracker is not None:
+            ev = self._ev_tracker
+            current_dist = ev.state.distance_traveled
+            delta_dist = current_dist - self._prev_distance
+            self._prev_distance = current_dist
+            reward += self.alpha * delta_dist
+
+            # Arrival bonus (only once)
+            if ev.arrived and not self._gave_bonus:
+                reward += self.arrival_bonus
+                self._gave_bonus = True
+
+        return reward

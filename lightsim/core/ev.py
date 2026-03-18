@@ -261,6 +261,41 @@ class EVTracker:
         completed = self.state.link_idx + self.state.progress
         return min(completed / total_links, 1.0)
 
+    def distance_to_next_intersection(self) -> float:
+        """Distance in metres from the EV to the next downstream intersection."""
+        s = self.state
+        if s.arrived or s.link_idx >= len(self.route):
+            return 0.0
+        link_length = self._link_lengths[s.link_idx]
+        return link_length * (1.0 - s.progress)
+
+    def distance_to_intersection(self, route_idx: int) -> float:
+        """Distance in metres from the EV to a specific intersection along the route.
+
+        Parameters
+        ----------
+        route_idx : int
+            Index into the route (0 = first link's downstream intersection).
+
+        Returns
+        -------
+        float
+            Remaining distance. Negative if the EV has already passed.
+        """
+        s = self.state
+        if route_idx < s.link_idx:
+            return -(sum(self._link_lengths[route_idx:s.link_idx]) +
+                     self._link_lengths[s.link_idx] * s.progress
+                     if s.link_idx < len(self._link_lengths) else 0.0)
+        if route_idx == s.link_idx:
+            return self.distance_to_next_intersection()
+
+        # Sum remaining distance on current link + full links in between
+        dist = self._link_lengths[s.link_idx] * (1.0 - s.progress)
+        for i in range(s.link_idx + 1, min(route_idx, len(self._link_lengths))):
+            dist += self._link_lengths[i]
+        return dist
+
     def get_ev_observation(self) -> dict:
         """Return a dict of EV state for use in observations.
 

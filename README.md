@@ -183,10 +183,45 @@ print(engine.get_network_metrics())
 | `EfficientMaxPressureController` | Pressure-proportional green duration extension | Ours |
 | `GreenWaveController` | Arterial coordination via travel-time offsets | Classical |
 | `RLController` | Wraps a trained RL checkpoint for evaluation | --- |
+| `GreedyEVPreemptionController` | Forces green for an EV's link, falls back to delegate | Ours |
 
 ---
 
-## Reward Functions (6)
+## Emergency Vehicle Tracking (NEW in v0.2.0)
+
+LightSim includes a lightweight EV tracking overlay for emergency corridor research:
+
+```python
+from lightsim.core import SimulationEngine, EVTracker, GreedyEVPreemptionController
+from lightsim.networks.grid import create_grid_network
+
+network = create_grid_network(4, 4)
+ctrl = GreedyEVPreemptionController()
+engine = SimulationEngine(network, dt=5.0, controller=ctrl)
+engine.reset(seed=42)
+
+route = sorted(engine.net.link_cells.keys())[:7]
+ev = EVTracker(engine, route, speed_factor=1.5)
+ctrl.set_ev_tracker(ev)
+
+while not ev.arrived:
+    engine.step()
+    ev.step()
+
+print(f"EV travel time: {ev.travel_time:.1f}s, stops: {ev.state.stops}")
+```
+
+Features:
+- **Congestion-dependent speed**: EV slows in dense traffic, blocked at red signals
+- **Signal interaction**: `GreedyEVPreemptionController` forces green for the EV
+- **Rich API**: `distance_to_intersection()`, `fraction_completed`, `get_ev_observation()`
+- **EV-aware reward**: `ev_corridor` reward combines EV progress with queue penalty
+
+See [`examples/ev_corridor.py`](examples/ev_corridor.py) for a complete demo.
+
+---
+
+## Reward Functions (7)
 
 | Reward | String key | Description |
 |---|---|---|
@@ -196,6 +231,7 @@ print(engine.get_network_metrics())
 | `WaitingTimeReward` | `"waiting_time"` | Negative vehicle-seconds waiting (queued vehicles × dt) |
 | `ThroughputReward` | `"throughput"` | Total flow through the intersection's movements |
 | `NormalizedThroughputReward` | `"normalized_throughput"` | Throughput / max capacity, normalized to [0, 1] |
+| `EVCorridorReward` | `"ev_corridor"` | EV distance progress - queue penalty + arrival bonus |
 
 Pass any string key to `lightsim.make()`:
 

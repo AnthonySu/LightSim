@@ -9,6 +9,7 @@ from .signal import (
     EfficientMaxPressureController,
     FixedTimeController,
     GreenWaveController,
+    GreedyEVPreemptionController,
     LostTimeAwareMaxPressureController,
     MaxPressureController,
     RLController,
@@ -47,6 +48,7 @@ __all__ = [
     "LostTimeAwareMaxPressureController",
     "EfficientMaxPressureController",
     "GreenWaveController",
+    "GreedyEVPreemptionController",
     "RLController",
     # Demand
     "DemandProfile",
