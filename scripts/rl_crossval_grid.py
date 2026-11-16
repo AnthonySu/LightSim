@@ -50,7 +50,6 @@ TOTAL_TIMESTEPS = 50_000
 N_SEEDS = 3
 SEEDS = [0, 1, 2]
 N_EVAL_EPISODES = 3
-MAX_OBS_DIM = 14
 
 RESULTS_DIR = Path("results")
 RESULTS_FILE = RESULTS_DIR / "rl_crossval_grid.json"
@@ -91,8 +90,7 @@ VARIANTS = [
 # ---------------------------------------------------------------------------
 def LightSimMultiAgentWrapper(max_steps=720):
     """LightSim grid-4x4 wrapped as single-agent Gym with parameter sharing."""
-    return make_lightsim_shared_env("grid-4x4-v0", max_steps=max_steps,
-                                    obs_dim=MAX_OBS_DIM)
+    return make_lightsim_shared_env("grid-4x4-v0", max_steps=max_steps)
 
 
 def _make_sumo_grid_env(max_steps):
@@ -116,7 +114,6 @@ def SUMOMultiAgentWrapper(max_steps=720):
     """sumo-rl grid4x4 wrapped as single-agent Gym with parameter sharing."""
     return SharedPolicyWrapper(
         lambda: _make_sumo_grid_env(max_steps),
-        obs_dim=MAX_OBS_DIM,
         obs_transform=_normalize_sumo_obs,
         recreate_on_reset=True,
     )
@@ -141,8 +138,10 @@ def evaluate_multi_agent(model, simulator: str, n_episodes: int = N_EVAL_EPISODE
         steps = 0
         while not done:
             action, _ = model.predict(obs, deterministic=True)
-            obs, reward, terminated, truncated, _ = env.step(int(action))
-            total_reward += reward
+            obs, reward, terminated, truncated, info = env.step(int(action))
+            # Per-step network-wide mean reward (same metric as before the
+            # wrapper switched to per-agent, one-round-late training rewards).
+            total_reward += info.get("mean_reward", 0.0)
             done = terminated or truncated
             steps += 1
             if steps >= 720 * 20:  # safety cap (720 steps * ~16 agents)

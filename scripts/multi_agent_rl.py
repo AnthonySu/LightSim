@@ -28,7 +28,7 @@ from lightsim.core.signal import FixedTimeController, MaxPressureController
 from lightsim.core.engine import SimulationEngine
 from lightsim.core.types import NodeType
 from lightsim.benchmarks.scenarios import get_scenario
-from lightsim.envs.shared_policy import make_lightsim_shared_env, pad_obs
+from lightsim.envs.shared_policy import make_lightsim_shared_env, max_obs_dim, pad_obs
 
 RESULTS_DIR = Path(__file__).resolve().parent.parent / "results"
 RESULTS_DIR.mkdir(exist_ok=True)
@@ -90,11 +90,12 @@ def evaluate_rl_pettingzoo(model, episodes=5, episode_steps=720):
         obs, infos = env.reset(seed=100 + ep)
         ep_rewards = {agent: 0.0 for agent in env.possible_agents}
         last_metrics = None
+        obs_dim = max_obs_dim(env)
 
         while env.agents:
             actions = {}
             for agent in env.agents:
-                padded = pad_obs(obs[agent])
+                padded = pad_obs(obs[agent], obs_dim)
                 action, _ = model.predict(padded, deterministic=True)
                 actions[agent] = int(action)
 
@@ -192,9 +193,9 @@ def main():
     action, _ = model.predict(test_obs, deterministic=True)
     print("  Policy input dim: {}".format(test_obs.shape[0]))
     print("  Policy output action: {} (from Discrete(2))".format(action))
-    for native_dim in [10, 12, 14]:
+    for native_dim in [10, 12, train_env.obs_dim]:
         raw = np.random.rand(native_dim).astype(np.float32)
-        padded = pad_obs(raw)
+        padded = pad_obs(raw, train_env.obs_dim)
         act, _ = model.predict(padded, deterministic=True)
         print("  Native dim {} -> padded to {}, action={}".format(
             native_dim, len(padded), act))
