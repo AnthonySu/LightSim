@@ -18,18 +18,16 @@ import sys
 import time
 from pathlib import Path
 
-import gymnasium as gym
 import numpy as np
 
 PROJECT_ROOT = Path(__file__).resolve().parent.parent
 sys.path.insert(0, str(PROJECT_ROOT))
 
 import lightsim
+from lightsim.envs.shared_policy import make_lightsim_shared_env
 
 WEIGHTS_DIR = PROJECT_ROOT / "weights"
 WEIGHTS_DIR.mkdir(exist_ok=True)
-
-MAX_OBS_DIM = 14
 
 SINGLE_AGENT_MODELS = [
     {"algo": "DQN", "reward": "queue", "name": "dqn_single_intersection"},
@@ -37,71 +35,6 @@ SINGLE_AGENT_MODELS = [
     {"algo": "DQN", "reward": "pressure", "name": "dqn_single_intersection_pressure"},
     {"algo": "PPO", "reward": "pressure", "name": "ppo_single_intersection_pressure"},
 ]
-
-
-# ---------------------------------------------------------------------------
-# Multi-agent wrapper (parameter sharing across 16 heterogeneous agents)
-# ---------------------------------------------------------------------------
-
-def pad_obs(obs, target_dim=MAX_OBS_DIM):
-    """Pad observation to target_dim with trailing zeros."""
-    if len(obs) >= target_dim:
-        return obs[:target_dim].astype(np.float32)
-    padded = np.zeros(target_dim, dtype=np.float32)
-    padded[: len(obs)] = obs
-    return padded
-
-
-class SharedPolicyMultiAgentWrapper(gym.Env):
-    """Wraps PettingZoo grid-4x4 as single-agent Gym env with parameter sharing.
-
-    Each env step cycles through all 16 agents: the policy sees one padded
-    observation at a time, outputs one action, and only after all 16 actions
-    are collected does the underlying PettingZoo env advance.
-    """
-
-    metadata = {"render_modes": []}
-
-    def __init__(self, max_steps=720):
-        super().__init__()
-        self.max_steps = max_steps
-        self.pz_env = lightsim.parallel_env("grid-4x4-v0", max_steps=max_steps)
-        self.observation_space = gym.spaces.Box(
-            low=0.0, high=1.0, shape=(MAX_OBS_DIM,), dtype=np.float32
-        )
-        self.action_space = gym.spaces.Discrete(2)
-        self._agents: list = []
-        self._agent_idx = 0
-        self._actions: dict = {}
-        self._obs: dict = {}
-        self._done = False
-
-    def reset(self, seed=None, options=None):
-        super().reset(seed=seed)
-        self._obs, _ = self.pz_env.reset(seed=seed)
-        self._agents = list(self.pz_env.agents)
-        self._agent_idx = 0
-        self._actions = {}
-        self._done = False
-        return pad_obs(self._obs[self._agents[0]]), {}
-
-    def step(self, action):
-        if self._done:
-            return pad_obs(np.zeros(10)), 0.0, False, True, {}
-        agent_name = self._agents[self._agent_idx]
-        self._actions[agent_name] = int(action)
-        self._agent_idx += 1
-        if self._agent_idx < len(self._agents):
-            return pad_obs(self._obs[self._agents[self._agent_idx]]), 0.0, False, False, {}
-        self._obs, rewards, terms, truncs, infos = self.pz_env.step(self._actions)
-        mean_reward = float(np.mean(list(rewards.values())))
-        if not self.pz_env.agents:
-            self._done = True
-            return pad_obs(np.zeros(10)), mean_reward, False, True, {}
-        self._agents = list(self.pz_env.agents)
-        self._agent_idx = 0
-        self._actions = {}
-        return pad_obs(self._obs[self._agents[0]]), mean_reward, False, False, {}
 
 
 # ---------------------------------------------------------------------------
@@ -193,7 +126,7 @@ def train_multi_agent(timesteps: int, seed: int = 42) -> dict:
     name = "dqn_grid4x4_multi"
     print(f"\n  Training {name} (DQN shared-parameter, {timesteps:,} steps)...")
 
-    train_env = SharedPolicyMultiAgentWrapper(max_steps=720)
+    train_env = make_lightsim_shared_env(max_steps=720)
     model = DQN(
         "MlpPolicy",
         train_env,

@@ -18,10 +18,11 @@ import sys
 import time
 from pathlib import Path
 
-import gymnasium as gym
 import numpy as np
 
 sys.path.insert(0, str(Path(__file__).resolve().parent.parent))
+
+from lightsim.envs.shared_policy import SharedPolicyWrapper, make_lightsim_shared_env  # noqa: E402
 
 # ---------------------------------------------------------------------------
 # SUMO_HOME setup
@@ -86,171 +87,39 @@ VARIANTS = [
 
 
 # ---------------------------------------------------------------------------
-# Observation padding (reused from multi_agent_rl.py)
+# Shared-policy wrappers (see lightsim/envs/shared_policy.py)
 # ---------------------------------------------------------------------------
-def pad_obs(obs, target_dim=MAX_OBS_DIM):
-    """Pad observation vector to target_dim with trailing zeros."""
-    if len(obs) >= target_dim:
-        return obs[:target_dim].astype(np.float32)
-    padded = np.zeros(target_dim, dtype=np.float32)
-    padded[:len(obs)] = obs
-    return padded
+def LightSimMultiAgentWrapper(max_steps=720):
+    """LightSim grid-4x4 wrapped as single-agent Gym with parameter sharing."""
+    return make_lightsim_shared_env("grid-4x4-v0", max_steps=max_steps,
+                                    obs_dim=MAX_OBS_DIM)
 
 
-# ---------------------------------------------------------------------------
-# LightSim multi-agent wrapper (from multi_agent_rl.py)
-# ---------------------------------------------------------------------------
-class LightSimMultiAgentWrapper(gym.Env):
-    """PettingZoo grid-4x4 wrapped as single-agent Gym with parameter sharing."""
-
-    metadata = {"render_modes": []}
-
-    def __init__(self, max_steps=720):
-        super().__init__()
-        import lightsim
-        self.max_steps = max_steps
-        self.pz_env = lightsim.parallel_env("grid-4x4-v0", max_steps=max_steps)
-        self.observation_space = gym.spaces.Box(
-            low=0.0, high=1.0, shape=(MAX_OBS_DIM,), dtype=np.float32,
-        )
-        self.action_space = gym.spaces.Discrete(2)
-        self._agents = []
-        self._agent_idx = 0
-        self._actions = {}
-        self._obs = {}
-        self._done = False
-
-    def reset(self, seed=None, options=None):
-        super().reset(seed=seed)
-        self._obs, _ = self.pz_env.reset(seed=seed)
-        self._agents = list(self.pz_env.agents)
-        self._agent_idx = 0
-        self._actions = {}
-        self._done = False
-        return pad_obs(self._obs[self._agents[0]]), {}
-
-    def step(self, action):
-        if self._done:
-            return pad_obs(np.zeros(MAX_OBS_DIM)), 0.0, False, True, {}
-
-        agent_name = self._agents[self._agent_idx]
-        self._actions[agent_name] = int(action)
-        self._agent_idx += 1
-
-        if self._agent_idx < len(self._agents):
-            next_obs = pad_obs(self._obs[self._agents[self._agent_idx]])
-            return next_obs, 0.0, False, False, {}
-
-        # All agents acted — step PZ env
-        self._obs, rewards, terms, truncs, infos = self.pz_env.step(self._actions)
-        mean_reward = float(np.mean(list(rewards.values())))
-
-        if not self.pz_env.agents:
-            self._done = True
-            return pad_obs(np.zeros(MAX_OBS_DIM)), mean_reward, False, True, {}
-
-        self._agents = list(self.pz_env.agents)
-        self._agent_idx = 0
-        self._actions = {}
-        return pad_obs(self._obs[self._agents[0]]), mean_reward, False, False, {}
+def _make_sumo_grid_env(max_steps):
+    import sumo_rl
+    return sumo_rl.grid4x4(
+        parallel=True,
+        num_seconds=max_steps,
+        reward_fn="diff-waiting-time",
+        sumo_warnings=False,
+        additional_sumo_cmd="--no-step-log",
+    )
 
 
-# ---------------------------------------------------------------------------
-# SUMO multi-agent wrapper
-# ---------------------------------------------------------------------------
-class SUMOMultiAgentWrapper(gym.Env):
-    """Wraps sumo_rl grid env as single-agent Gym with parameter sharing.
+def _normalize_sumo_obs(obs):
+    """Min-max normalise a SUMO observation to [0, 1]."""
+    obs = np.clip(np.array(obs, dtype=np.float32), -100, 100)
+    return (obs - obs.min()) / (obs.max() - obs.min() + 1e-8)
 
-    sumo_rl.parallel_env for grid networks provides per-agent obs/actions.
-    We normalize obs to MAX_OBS_DIM by padding and cycle through agents.
-    """
 
-    metadata = {"render_modes": []}
-
-    def __init__(self, max_steps=720):
-        super().__init__()
-        self.max_steps = max_steps
-        self.observation_space = gym.spaces.Box(
-            low=0.0, high=1.0, shape=(MAX_OBS_DIM,), dtype=np.float32,
-        )
-        self.action_space = gym.spaces.Discrete(2)
-        self._pz_env = None
-        self._agents = []
-        self._agent_idx = 0
-        self._actions = {}
-        self._obs = {}
-        self._done = False
-
-    def _make_env(self, seed=None):
-        """Create sumo_rl grid env."""
-        import sumo_rl
-        env = sumo_rl.grid4x4(
-            parallel=True,
-            num_seconds=self.max_steps,
-            reward_fn="diff-waiting-time",
-            sumo_warnings=False,
-            additional_sumo_cmd="--no-step-log",
-        )
-        return env
-
-    def _normalize_obs(self, obs):
-        """Normalize SUMO obs to [0,1] range and pad to MAX_OBS_DIM."""
-        obs = np.array(obs, dtype=np.float32)
-        # Clip extreme values and normalize
-        obs = np.clip(obs, -100, 100)
-        obs = (obs - obs.min()) / (obs.max() - obs.min() + 1e-8)
-        return pad_obs(obs)
-
-    def reset(self, seed=None, options=None):
-        super().reset(seed=seed)
-        if self._pz_env is not None:
-            try:
-                self._pz_env.close()
-            except Exception:
-                pass
-        self._pz_env = self._make_env(seed)
-        self._obs, _ = self._pz_env.reset(seed=seed)
-        self._agents = list(self._pz_env.agents)
-        self._agent_idx = 0
-        self._actions = {}
-        self._done = False
-        if not self._agents:
-            self._done = True
-            return pad_obs(np.zeros(MAX_OBS_DIM)), {}
-        return self._normalize_obs(self._obs[self._agents[0]]), {}
-
-    def step(self, action):
-        if self._done:
-            return pad_obs(np.zeros(MAX_OBS_DIM)), 0.0, False, True, {}
-
-        agent_name = self._agents[self._agent_idx]
-        self._actions[agent_name] = int(action)
-        self._agent_idx += 1
-
-        if self._agent_idx < len(self._agents):
-            next_obs = self._normalize_obs(
-                self._obs[self._agents[self._agent_idx]])
-            return next_obs, 0.0, False, False, {}
-
-        # All agents acted — step PZ env
-        self._obs, rewards, terms, truncs, infos = self._pz_env.step(self._actions)
-        mean_reward = float(np.mean(list(rewards.values())))
-
-        if not self._pz_env.agents:
-            self._done = True
-            return pad_obs(np.zeros(MAX_OBS_DIM)), mean_reward, False, True, {}
-
-        self._agents = list(self._pz_env.agents)
-        self._agent_idx = 0
-        self._actions = {}
-        return self._normalize_obs(self._obs[self._agents[0]]), mean_reward, False, False, {}
-
-    def close(self):
-        if self._pz_env is not None:
-            try:
-                self._pz_env.close()
-            except Exception:
-                pass
+def SUMOMultiAgentWrapper(max_steps=720):
+    """sumo-rl grid4x4 wrapped as single-agent Gym with parameter sharing."""
+    return SharedPolicyWrapper(
+        lambda: _make_sumo_grid_env(max_steps),
+        obs_dim=MAX_OBS_DIM,
+        obs_transform=_normalize_sumo_obs,
+        recreate_on_reset=True,
+    )
 
 
 # ---------------------------------------------------------------------------

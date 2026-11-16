@@ -19,7 +19,6 @@ import sys
 import time
 from pathlib import Path
 
-import gymnasium as gym
 import numpy as np
 
 sys.path.insert(0, str(Path(__file__).resolve().parent.parent))
@@ -29,87 +28,10 @@ from lightsim.core.signal import FixedTimeController, MaxPressureController
 from lightsim.core.engine import SimulationEngine
 from lightsim.core.types import NodeType
 from lightsim.benchmarks.scenarios import get_scenario
+from lightsim.envs.shared_policy import make_lightsim_shared_env, pad_obs
 
 RESULTS_DIR = Path(__file__).resolve().parent.parent / "results"
 RESULTS_DIR.mkdir(exist_ok=True)
-
-MAX_OBS_DIM = 14
-
-
-def pad_obs(obs, target_dim=MAX_OBS_DIM):
-    """Pad an observation vector to target_dim with trailing zeros."""
-    if len(obs) >= target_dim:
-        return obs[:target_dim].astype(np.float32)
-    padded = np.zeros(target_dim, dtype=np.float32)
-    padded[:len(obs)] = obs
-    return padded
-
-
-class SharedPolicyMultiAgentWrapper(gym.Env):
-    """Wraps PettingZoo grid-4x4 as single-agent Gym env with parameter sharing.
-
-    Each environment step cycles through ALL 16 agents:
-    - The wrapper presents one agent observation (padded) at a time.
-    - The policy outputs one action for that agent.
-    - After all 16 actions are collected, the underlying PettingZoo env steps.
-    - Reward returned is the mean reward across all agents for that step.
-
-    SB3 sees 16 micro-steps per real env step. Only the 16th micro-step
-    advances the simulation and returns the real mean reward.
-    """
-
-    metadata = {"render_modes": []}
-
-    def __init__(self, max_steps=720):
-        super().__init__()
-        self.max_steps = max_steps
-        self.pz_env = lightsim.parallel_env("grid-4x4-v0", max_steps=max_steps)
-        self.observation_space = gym.spaces.Box(
-            low=0.0, high=1.0, shape=(MAX_OBS_DIM,), dtype=np.float32,
-        )
-        self.action_space = gym.spaces.Discrete(2)
-        self._agents = []
-        self._agent_idx = 0
-        self._actions = {}
-        self._obs = {}
-        self._done = False
-
-    def reset(self, seed=None, options=None):
-        super().reset(seed=seed)
-        self._obs, _ = self.pz_env.reset(seed=seed)
-        self._agents = list(self.pz_env.agents)
-        self._agent_idx = 0
-        self._actions = {}
-        self._done = False
-        first_obs = pad_obs(self._obs[self._agents[0]])
-        return first_obs, {}
-
-    def step(self, action):
-        if self._done:
-            return pad_obs(np.zeros(10)), 0.0, False, True, {}
-
-        agent_name = self._agents[self._agent_idx]
-        self._actions[agent_name] = int(action)
-        self._agent_idx += 1
-
-        if self._agent_idx < len(self._agents):
-            next_obs = pad_obs(self._obs[self._agents[self._agent_idx]])
-            return next_obs, 0.0, False, False, {}
-
-        # All 16 actions collected -- step the PettingZoo env
-        self._obs, rewards, terms, truncs, infos = self.pz_env.step(self._actions)
-        mean_reward = float(np.mean(list(rewards.values())))
-
-        if not self.pz_env.agents:
-            self._done = True
-            return pad_obs(np.zeros(10)), mean_reward, False, True, {}
-
-        self._agents = list(self.pz_env.agents)
-        self._agent_idx = 0
-        self._actions = {}
-        first_obs = pad_obs(self._obs[self._agents[0]])
-        return first_obs, mean_reward, False, False, {}
-
 
 def evaluate_baseline(controller, episodes=5, episode_steps=3600):
     """Evaluate a non-RL controller on grid-4x4."""
@@ -227,7 +149,7 @@ def main():
         print("ERROR: stable-baselines3 is required.")
         sys.exit(1)
 
-    train_env = SharedPolicyMultiAgentWrapper(max_steps=720)
+    train_env = make_lightsim_shared_env(max_steps=720)
     obs, info = train_env.reset(seed=0)
     print("  Wrapper obs shape: {}, dtype: {}".format(obs.shape, obs.dtype))
     print("  Wrapper action space: {}".format(train_env.action_space))
@@ -338,7 +260,7 @@ def main():
         "padding_strategy": "zero-pad to max dim (14)",
         "training": {
             "method": "DQN with MlpPolicy",
-            "wrapper": "SharedPolicyMultiAgentWrapper",
+            "wrapper": "SharedPolicyWrapper",
             "total_timesteps": TOTAL_TIMESTEPS,
             "training_time_seconds": round(train_time, 1),
             "hyperparameters": {
